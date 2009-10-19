@@ -1,5 +1,9 @@
 <?
-class ptkvalidator {
+/**
+ * PHPGrease::DBOField field abstraction, validator and encrypter
+ * @link {mailto:slig.h@x0rz.com}
+ */
+class ptkfield {
 
 	/* @var string save value of this field (will populate to database) */
 	private $value = '';
