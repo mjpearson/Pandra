@@ -13,13 +13,13 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-The PTK homepage is http://www.phpgrease.net/projects/ptk
+The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
-== Welcome to Panda Toolkit ==
+== Welcome to the Pandra toolkit ==
 
 - What is it?
 
-	PTK is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.  
+	Pandra (PHP-Cassandra) is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.  
 	Sitting ontop of the generated Thrift Interface files, it suits as a factory patterned rapid prototyping tool.
 
 	"Cassandra is a highly scalable, eventually consistent, distributed, structured key-value store. 
@@ -30,7 +30,7 @@ The PTK homepage is http://www.phpgrease.net/projects/ptk
 	 In a lot of ways you can think of Cassandra as Dynamo 2.0. Cassandra is in production use at Facebook but is still under heavy development."
 	 - http://incubator.apache.org/cassandra/
 
-	PTK can be installed and interfaced in a few minutes, crud objects can be implemented and stored in as little as two lines.  
+	Pandra can be installed and interfaced in a few minutes, crud objects can be implemented and stored in as little as two lines.  
 
 	Building your API or web service on a highly redundant datastore can be realised with relative ease.
 
