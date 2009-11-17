@@ -15,8 +15,8 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-The PTK homepage is :
-http://www.phpgrease.net/projects/ptk
+The pandra homepage is :
+http://www.phpgrease.net/projects/pandra
 */
 
 $GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/../thrift-php/';
@@ -27,34 +27,25 @@ require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 
-define('PTK_LOG_SYSLOG', 1);
-define('PTK_LOG_FIREPHP', 2);
-define('PTK_LOG_ALL', 3);
+define('PANDRA_PORT_DEFAULT', 9160);
 
-define('PTK_LOGGING', PTK_LOG_ALL);
-define('PTK_PORT_DEFAULT', 9160);
+function pandraAutoLoad($className) {
+//	$className = strtolower($className);
 
-function ptkAutoLoad($className) {
-    $className = strtolower($className);
-    if (!preg_match("/^ptk/", $className)) return;
+    	if (!preg_match("/^pandra/i", $className)) return;
 
-    // class path relative to config
-    $classPath = dirname(__FILE__)."/lib/";
+	if ($className != 'Pandra') $className = preg_replace('/^pandra/i', '', $className);
 
-    // class file suffix
-    $cSuffix = ".class.php";
+    	// class path relative to config
+    	$classPath = dirname(__FILE__)."/lib/";
 
-    if (preg_match("/^ptk_/", $className)) {
-        list(, $keySpace, $cFamily) = preg_split("/\_/", $className);
-        if (!empty($keySpace) && !empty($cFamily)) {
-            // maps to classes/keyspace/columnfamily
-            $classPath .= ptkcache::cacheDIR."/".$keySpace."/";
-        }
-    }
+    	// class file suffix
+    	$cSuffix = ".class.php";
 
-    $classFile = $classPath.$className.$cSuffix;
-    if (file_exists($classFile)) {
-        require_once($classFile);
-    }
+    	$classFile = $classPath.$className.$cSuffix;
+    	if (file_exists($classFile)) {
+        	require_once($classFile);
+	}
 }
-spl_autoload_register('ptkAutoload');
+
+spl_autoload_register('pandraAutoload');
