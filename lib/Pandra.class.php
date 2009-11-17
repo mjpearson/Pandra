@@ -2,13 +2,23 @@
 /**
  * @todo read/write switching, memcached hooks, logging hooks
  */
-class ptk {
+
+// constants for determining results format
+class Pandra {
+
+	const PANDRA_OBJ = 1;
+	const PANDRA_ASSOC = 2;
+	const PANDRA_XML = 3;
+	const PANDRA_JSON = 4;
 
 	static public $lastError = '';
 
 	static private $_nodeConns = array();
 	static private $_activeNode = NULL;
 	static private $consistencyLevel = cassandra_ConsistencyLevel::ZERO;
+
+	public function Query($keySpace, $columnFamily, $args, $format = PANDRA_OBJ) {
+	}
 
     /**
      * 
@@ -34,9 +44,9 @@ class ptk {
      * 
      */
     static public function disconnectAll() {
-        while ($conn = each(self::$_nodeConns)) {
-            self::disconnect($connectionID);
-		}
+	while ($connectionID = each(self::$_nodeConns)) {
+		self::disconnect($connectionID);
+	}
     }
 
     /**
@@ -46,9 +56,9 @@ class ptk {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-	static public function connect($connectionID, $host, $port = PTK_PORT_DEFAULT) {
+	static public function connect($connectionID, $host, $port = PANDRA_PORT_DEFAULT) {
 		try {
-            // if the connection exists but it is closed, then re-open
+			// if the connection exists but it is closed, then re-open
 			if (array_key_exists($connectionID, self::$_nodeConns)) {
 				if (!self::$_nodeConns[$connectionID]['transport']->isOpen()) {
 					self::$_nodeConns[$connectionID]['transport']->open();
@@ -56,19 +66,18 @@ class ptk {
 				return TRUE;
 			}
 
-            // Create Thrift transport and binary protocol cassandra client
+        		// Create Thrift transport and binary protocol cassandra client
   			$transport = new TBufferedTransport(new TSocket($host, $port), 1024, 1024);
-            $transport->open();
+            		$transport->open();
 
   			self::$_nodeConns[$connectionID] = array(
-  								'transport' => $transport,
-								'client' => new CassandraClient(new TBinaryProtocol($transport))
-								);
+				'transport' => $transport,
+				'client' => new CassandraClient(new TBinaryProtocol($transport))
+			);
 
-            // set new connection the active, working master
-            self::setActiveNode($connectionID);
-            return TRUE;
-            
+            		// set new connection the active, working master
+            		self::setActiveNode($connectionID);
+            		return TRUE;            
 		} catch (TException $tx) {
 			self::$lastError = 'TException: '.$tx->getMessage() . "\n";
 			return FALSE;
@@ -79,6 +88,7 @@ class ptk {
      * get current working node
      */
     static public function getClient() {
+        if (empty(self::$_activeNode)) throw new Exception('Not Connected');
         return self::$_nodeConns[self::$_activeNode]['client'];
     }
 

@@ -1,9 +1,9 @@
 <?
 /**
- * **Experimental** class Supercolumn/ColumnFamily builder
+ * **Experimental** class ColumnFamily builder
  *
  * Without an authoritive key id and with a keyspace holding any arbitrary data structure,
- * ptkcache will make a guess attempt for the required schema based on the column
+ * PandraFactory will make a guess attempt for the required schema based on the column
  * names of the first row.
  *
  * Guess attempts can only be run against Cassandra instances running an Order Preserving Partitioner
@@ -11,7 +11,7 @@
  * @todo fix errors system
  * @todo complete class template writer
  */
-class ptkcache {
+class PandraFactory {
 
 	private $fieldList = '';
 	private $keySpace = '';
