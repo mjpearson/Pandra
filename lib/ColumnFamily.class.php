@@ -34,8 +34,15 @@ abstract class PandraColumnFamily {
 		if (!array_key_exists($colName, $this->columns)) {
 			$this->columns[$colName] = array();
 		}
+
+		// array of validation functions
 		$this->columns[$colName]['validators'] = $validators;
+
+		// function callback pre-save
 		$this->columns[$colName]['callback'] = $callbackOnSave;
+
+		// flag on column as to whether it was modified - stops unnecessary column saves
+		$this->columns[$colName]['modified'] = FALSE;
 	}
 
 	public function removeColumn($colName) {
@@ -51,35 +58,6 @@ abstract class PandraColumnFamily {
 			}
 			$this->columns[$colName]['super'] = $superName;
 		}
-	}
-
-
-	/**
-	 * Attempt to create a table abstraction on the fly (cache to filesystem).
-	 * If class has been created already, its fine to use ptkcolumnfamily::Factory but prefereble to autload a db_$keySpace_$columnFamily object
-	 * @param string $keySpace keyspace name
-	 * @param string $columnFamily table name
-	 * @return ptkcolumnfamily child class
-	 */
-	public static function Factory($keySpace, $columnFamily, $superColumn = NULL) {
-	        if (!empty($superColumn)) $superColumn .= '_';
-        
-		$className = 'ptk_'.$keySpace.'_'.$superColumn.$columnFamily;
-		if (!class_exists($className)) {			
-			// create caching class
-			if (class_exists('ptkcache')) {
-				$ptkcache = new ptkcache();				
-				$errors = "";
-				
-				// @todo check field signature
-				if (!$ptkcache->factory($keySpace, $superColumn, $columnFamily, &$errors)) {
-					throw new Exception($errors);
-				}
-			} else {
-				throw new Exception('Factory could not build class.  ptkcache.class.php not found');
-			}
-		}		
-		return new $className;
 	}
 
 	/**
@@ -113,11 +91,10 @@ abstract class PandraColumnFamily {
 		$predicate->slice_range->finish = '';
 
   		$result = $client->get_slice($this->keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
-	        // @todo load rcv data into local object
         	if (!empty($result)) {
 			$this->keyID = $keyID;
 			foreach ($result as $cObj) {
-        	        	// populate self
+        	        	// populate self, skip validators - self trusted
 				$c = $cObj->column;
 				$this->columns[$c->name]['value'] = $c->value;
 	            	}
@@ -132,13 +109,13 @@ abstract class PandraColumnFamily {
 	 */
 	public function save() {
 		// check a keyID is defined
-		if ($this->keyID === NULL) throw new Exception('NULL keyID defined, cannot insert');
+		if ($this->keyID === NULL) throw new RuntimeException('NULL keyID defined, cannot insert');
 
 		// check a Keyspace is defined
-		if ($this->keySpace === NULL) throw new Exception('NULL keySpace defined, cannot insert');
+		if ($this->keySpace === NULL) throw new RuntimeException('NULL keySpace defined, cannot insert');
 
 		// check a column family is defined
-		if ($this->columnFamily === NULL) throw new Exception('NULL columnFamliy defined, cannot insert');
+		if ($this->columnFamily === NULL) throw new RuntimeException('NULL columnFamliy defined, cannot insert');
 
 	        $client = Pandra::getClient();
 
@@ -150,6 +127,8 @@ abstract class PandraColumnFamily {
 	        $columnPath->column_family = $this->columnFamily;
 
 	        foreach ($this->columns as $colName => $cStruct) {
+			if (!$cStruct['modified']) continue;
+
 	        	$timestamp = time();
         	    	$columnPath->column = $colName;
 //	        	$columnPath->super_column = null;
@@ -243,6 +222,7 @@ echo "insert ks:".$this->keySpace." id:".$this->keyID." cp:".$columnPath->column
 				}
 			}
 			$this->columns[$colName]['value'] = $value;
+			$this->columns[$colName]['modified'] = TRUE;
 			return TRUE;
 		}
 		return FALSE;

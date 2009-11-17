@@ -1,3 +1,7 @@
+version: alpha
+
+== Welcome to the Pandra Toolkit ==
+
 Copyright (C) 2009 PHPGrease.net
 
 This library is free software; you can redistribute it and/or
@@ -15,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
-== Welcome to the Pandra toolkit ==
-
 - What is it?
 
 	Pandra (PHP-Cassandra) is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.  
@@ -30,9 +32,7 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 	 In a lot of ways you can think of Cassandra as Dynamo 2.0. Cassandra is in production use at Facebook but is still under heavy development."
 	 - http://incubator.apache.org/cassandra/
 
-	Pandra can be installed and interfaced in a few minutes, crud objects can be implemented and stored in as little as two lines.  
-
-	Building your API or web service on a highly redundant datastore can be realised with relative ease.
+	Pandra can be installed and interfaced in a few minutes, building your API or web service on a highly redundant datastore can be realised with relative ease.
 
 - Key Features
 
@@ -44,16 +44,12 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 	* Extensible input validation layer
 
-	* Can build class files on the fly based on existing schemas, easily extended by your own domain logic
-
 	* Supports any arrangement of Keyspaces, Column Families and Super Columns
 
 	* Provides paginated search functions
 
 	* Bundles with browser based ad hoc predicate, scaffolding and input validation tools
 
-	* Syslog/FirePHP/Memcache ready
-	
 - Dependencies
 
 	* Cassandra >=0.4
