@@ -1,7 +1,4 @@
 <?
-/**
- * @todo everything! (stub only)
- */
 abstract class PandraColumnFamily {
 
 	/* @var string magic set/get prefixes */
@@ -30,13 +27,13 @@ abstract class PandraColumnFamily {
 		if ($keyID !== NULL) $this->load($keyID);
 	}	
 
-	public function addColumn($colName, $validators = array(), $callbackOnSave = '') {
+	public function addColumn($colName, $typeDef = array(), $callbackOnSave = '') {
 		if (!array_key_exists($colName, $this->columns)) {
 			$this->columns[$colName] = array();
 		}
 
 		// array of validation functions
-		$this->columns[$colName]['validators'] = $validators;
+		$this->columns[$colName]['typeDef'] = $typeDef;
 
 		// function callback pre-save
 		$this->columns[$colName]['callback'] = $callbackOnSave;
@@ -51,12 +48,14 @@ abstract class PandraColumnFamily {
 		}
 	}
 
-	public function addSuper($superName, $columnsIn) {
-		foreach ($columnsIn as $colName) {
-			if (!array_key_exists($colName, $this->columns)) {
-				// throw columnfamily exception ??
+	public function addSuper($superName, $columnsIn = array()) {
+		if (!empty($columnsIn)) {
+			foreach ($columnsIn as $colName) {
+				if (!array_key_exists($colName, $this->columns)) {
+					// throw columnfamily exception ??
+				}
+				$this->columns[$colName]['super'] = $superName;
 			}
-			$this->columns[$colName]['super'] = $superName;
 		}
 	}
 
@@ -71,14 +70,14 @@ abstract class PandraColumnFamily {
 	}
 
 	/**
-	 * Loads a row by it's keyID (all supercolumns and columns)
-	 * @param mixed $value value of this rows primary key to load from
-	 * @return bool this object has loaded its fields
+	 * Gets complete slice of Thrift cassandra_Column objects for keyID
+	 * 
+	 * @return array cassandra_Column objects
 	 */
-	public function load($keyID, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-		if (empty($keyID)) return NULL;
+	public function getRawSlice($keyID, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+		$this->keyID = $keyID;
 
-	        $client = Pandra::getClient();
+		$client = $this->_getClient();
 
 	        // build the column path
   		$columnParent = new cassandra_ColumnParent();
@@ -90,24 +89,28 @@ abstract class PandraColumnFamily {
 		$predicate->slice_range->start = '';
 		$predicate->slice_range->finish = '';
 
-  		$result = $client->get_slice($this->keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+  		return $client->get_slice($this->keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+	}
+
+	/**
+	 * Loads a row by it's keyID (all supercolumns and columns)
+	 * @param mixed $value value of this rows primary key to load from
+	 * @return bool this object has loaded its fields
+	 */
+	public function load($keyID, $colAutoCreate = FALSE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+		$result = $this->getRawSlice($keyID, $consistencyLevel);
         	if (!empty($result)) {
-			$this->keyID = $keyID;
 			foreach ($result as $cObj) {
         	        	// populate self, skip validators - self trusted
-				$c = $cObj->column;
-				$this->columns[$c->name]['value'] = $c->value;
+				if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->columns)) $this->addColumn($cObj->column->name);
+				$this->columns[$cObj->column->name]['value'] = $cObj->column->value;
 	            	}
         	    return TRUE;
 	        }
         	return FALSE;
 	}
 
-	/**
-	 * Save a record, based on this objects field values
-	 * @return void
-	 */
-	public function save() {
+	private function _getClient() {
 		// check a keyID is defined
 		if ($this->keyID === NULL) throw new RuntimeException('NULL keyID defined, cannot insert');
 
@@ -117,10 +120,19 @@ abstract class PandraColumnFamily {
 		// check a column family is defined
 		if ($this->columnFamily === NULL) throw new RuntimeException('NULL columnFamliy defined, cannot insert');
 
-	        $client = Pandra::getClient();
+	        return Pandra::getClient();
+	}
+
+	/**
+	 * Save a record, based on this objects field values
+	 * @return void
+	 */
+	public function save() {
+
+		$client = $this->_getClient();
 
 	        // @todo configurable consistency level
-        	$consistency_level = cassandra_ConsistencyLevel::ZERO;
+        	$consistencyLevel = cassandra_ConsistencyLevel::ONE;
 
 	        // build the column path
         	$columnPath = new cassandra_ColumnPath();
@@ -140,19 +152,42 @@ abstract class PandraColumnFamily {
 
 // @todo supercolumn
 //			if (!empty($cStruct['super'])) $columnPath->super_column = $cStruct['super'];
-echo "insert ks:".$this->keySpace." id:".$this->keyID." cp:".$columnPath->column." sp:".$columnPath->super_column." v:".$cStruct['value']." ts:".$timestamp." cl:".$consistency_level."\n";
-	            	$client->insert($this->keySpace, $this->keyID, $columnPath, $cStruct['value'], $timestamp, $consistency_level);
+//echo "insert ks:".$this->keySpace." id:".$this->keyID." cp:".$columnPath->column." sp:".$columnPath->super_column." v:".$cStruct['value']." ts:".$timestamp." cl:".$consistencyLevel."\n";
+	            	$client->insert($this->keySpace, $this->keyID, $columnPath, $cStruct['value'], $timestamp, $consistencyLevel);
         	}
 	}
 
 	/**
-	 * deletes the loaded object from the keyspace
+	 * deletes the loaded object from the keyspace, or optionally the supplied columns for the key
 	 */
-	public function delete() {
-		
+	public function delete(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+
+		$client = $this->_getClient();
+
+		if ($columnPath === NULL) {
+			$columnPath = new cassandra_ColumnPath();
+		        $columnPath->column_family = $this->columnFamily;
+		}
+echo "deleting \n";
+
+		$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+
 		return FALSE;
 	}
 
+	public function deleteColumn($column) {
+		throw new RuntimeException('Not Implemented');
+
+		// build column path
+		$columnPath = new cassandra_ColumnPath();
+	        $columnPath->column_family = $this->columnFamily;
+	        $columnPath->column = $column;
+	}
+
+	public function deleteSuperColumn() {
+		// delete columns in super column
+		throw new RuntimeException('Not Implemented');
+	}
 
 	/*
 	 * Populates object with
@@ -209,21 +244,28 @@ echo "insert ks:".$this->keySpace." id:".$this->keyID." cp:".$columnPath->column
 	 */
 	protected function __set($colName, $value) {
 		if ($this->gsMutable($colName)) {
+			return $this->setColumn($colName, $value);
+		}
+		return FALSE;
+	}
+
+	public function setColumn($colName, $value)  {
+		if ($this->gsMutable($colName)) {
 			// @todo validation handler, exception?
-			if (is_array($this->columns[$colName]['validators'])) {
-				foreach ($this->columns[$colName]['validators'] as $validator) {
-					list($validator, $args) = explode('=', $validators);
 /*
-	@todo: validator
-					if (!Pandra::valid($validator, $args)) {
-						return FALSE;
+			if (is_array($this->columns[$colName]['typeDef'])) {
+				foreach ($this->columns[$colName]['typeDef'] as $typeDef) {
+					$vArgs = explode('=', $typeDef);
+					$validator = $vArgs[0];
+					if (count($vArgs) > 1) {
+						$args = $vArgs[1];
 					}
-*/
 				}
 			}
+*/
 			$this->columns[$colName]['value'] = $value;
 			$this->columns[$colName]['modified'] = TRUE;
-			return TRUE;
+			return TRUE;		
 		}
 		return FALSE;
 	}

@@ -36,15 +36,15 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 - Key Features
 
-	* Can be installed anywhere, bundles with an autoloader - minimal setup
-
 	* Clear demarcation of columfamily objects from the underlying cluster connection handlers
 
-	* Supports any number of Cassandra nodes, and honors consistency levels
+	* Supports any number of Cassandra nodes, tweakable consistency levels
 
-	* Extensible input validation layer
+	* Extensible type definition, validation and callback layers
 
-	* Supports any arrangement of Keyspaces, Column Families and Super Columns
+	* Flexible arrangement of Keyspaces, Column Families and Super Columns
+
+	* Hard schema aware, or build factory objects on the fly
 
 	* Provides paginated search functions
 
@@ -54,6 +54,6 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 	* Cassandra >=0.4
 
-	* Thrift Interface  (thrift binary, and php sources)
+	* Thrift Interface  (thrift binary + cassandra.thrift, or pre generated php sources)
 
 	* PHP >=5.2 (requires APC module)
