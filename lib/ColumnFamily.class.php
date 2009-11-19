@@ -168,7 +168,6 @@ abstract class PandraColumnFamily {
 			$columnPath = new cassandra_ColumnPath();
 		        $columnPath->column_family = $this->columnFamily;
 		}
-echo "deleting \n";
 
 		$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
 
