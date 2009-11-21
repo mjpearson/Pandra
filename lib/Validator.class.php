@@ -1,185 +1,114 @@
 <?
 class PandraValidator {
 
-	/* @var string save value of this field (will populate to database) */
-	private $value = '';
+        // primitives for which there is $this->validate() logic
+        static public $_primitive = array(
+                                'notempty',
+                                'int',
+                                'numeric',
+                                'string',
+                                'maxlength',
+                                'minlength',
+                                'email',
+                                'url'
+                                );
 
-	/* @var string encryption callback function for TYPE_CRYPT field */
-	private $cryptCBFunc = NULL;
+        /**
+         * Complex types are aggregates of the predefined primitive type definitions. Similarly,
+         * the type definitions can also be aggregated to build even more complex types. In cases where there appears to be
+         * collision between types (aggregate types with different maxlength options for example) the first type will be
+         * viewed as authoritive.
+         */
+        static public $_complex = array(
+                                'stringregular' => array('string', 'notempty'),
+                                'string20' => array('stringregular', 'maxlength=20'),
+                                );
 
-	/* @var string validator plugin for this field */
-	private $valCBFunc = NULL;
+        /**
+         * given a typedef array, detects complex types and expands to primitives
+         * @param array &$typeDefs validating type definitions
+         */
+        static private function typeExpander(&$typeDefs) {
 
-	/* @var int field is of special TYPE_ */
-    	private $type = NULL;
+            $isComplex = FALSE;
 
-	/* @var bool this field is a primary key */
-	var $isPKey = FALSE;
+            foreach ($typeDefs as $idx => $typeDef) {
+                
+                // check if type is complex                
+                if (array_key_exists($typeDef, self::$_complex)) {
 
-	/* @var string last validation error */
-	private $validationError = '';
+                    // drop this complex type from our typeDefs, ready to expand
+                    unset($typeDefs[$idx]);
 
-	/* @var bool validation default for dbofields */
-	public $validateEnabled = self::VALIDATE;
+                    // merge against complex type def
+                    $typeDefs = array_merge($typeDefs, self::$_complex[$typeDef]);
 
-	// special column types
-	const TYPE_NONE = 0;	// none
-	const TYPE_PKEY = 1;	// primary key
-	const TYPE_IDX = 2;	// index type
-	const TYPE_CRYPT = 3;	// Crypt on store via cryptCBFunc
-	const TYPE_CRYPT_SOFT = 4;	// Crypt at dbo insert/update level
+                    // if it looks like this type has expanded to another complex type, then flag for recursion
+                    foreach ($typeDefs as $xType) {
+                        if (array_key_exists($xType, self::$_complex)) {                            
+                            $isComplex = TRUE;
+                        }
+                    }
+                }
+            }
+            
+            // recurse, expand out new complex type
+            if ($isComplex) self::typeExpander($typeDefs);
+        }
 
-	// validation flag constants
-	const VALIDATE = TRUE;
-	const NO_VALIDATE = FALSE;
-
-	/**
-	 * field constructor
-	 * @param string $valueDefault default value of this field
-	 * @param string $valCBFunc validation callback function
-	 * @param int $type special column type
-	 * @param string $cryptCBFunc encrypt callback type for TYPE_CRYPT field
-	 */
-	public function __construct($valueDefault = NULL, $valCBFunc = NULL, $cryptCBFunc = 'md5') {
-
-		// set validation callback
-		if (!empty($valCBFunc)) {			
-			$this->valCBFunc = $valCBFunc;
-		}
-
-		// set value
-		$this->setValue($valueDefault);
-
-		// setup types
-		$this->isPKey = ($type == self::TYPE_PKEY);
-		
-		// handle encrypted storage data types
-		if ($type == self::TYPE_CRYPT) {
-			$this->cryptCBFunc = $cryptCBFunc;
-			$this->cryptValue = eval($cryptCallback."(".$this->value.")");
-		}
-	}
-
-	/**
-	 * Runs encrypt callback function (eval wrapper)
-	 */
-	private function cryptCallback() {
-		$this->value = eval($this->cryptCBFunc."(".$this->value.")");
-	}
 
 	/**
 	 * Validates a field
 	 * @param string $errorMsg custom error message for field validation error
 	 * @return bool field validated correctly
 	 */
-	public function validate($errorMsg = "") {
-		// fields without a validator will always return true
-		if (empty($this->valCBFunc)) return TRUE;
+	static public function check($value, $label, $typeDefs = array(), &$errorMsg = "") {
 
-		// find multiple validators
-		$validators = explode("/|/", $this->valCBFunc);
+                if (empty($typeDefs)) return TRUE;
+
+                if (!is_array($typeDefs)) $typeDefs = array($typeDefs);
+
+                // normalise to real type defs if complex types found
+                self::typeExpander($typeDefs);
 
 		$error = FALSE;
 
-		foreach ($validators as $validator) {
+		foreach ($typeDefs as $type) {
+
+                        if (preg_match('/=/', $type)) {
+                            list($type, $args) = explode("=", $type);
+                        }
+
 			// check for basic validator types
-			switch ($this->valCBFunc) {
-				// PHP 'Filter' functions
+			switch ($type) {
+                                case 'notempty' :
+                                        $error = empty($value);
+                                        if ($error) $errorMsg = "Field cannot be empty";
+                                        break;
 				case 'email' :
-					$error = !filter_var($this->value, FILTER_VALIDATE_EMAIL);
-					if ($error && empty($errorMsg)) $errorMsg = "Invalid email address ".$this->valCBFunc;
+					$error = !filter_var($value, FILTER_VALIDATE_EMAIL);
+					if ($error && empty($errorMsg)) $errorMsg = "Invalid email address\n";
 					break;
 				case 'url' :
-					$error = !filter_var($this->value, FILTER_VALIDATE_URL);
-					if ($error && empty($errorMsg)) $errorMsg = "Invalid URL ".$this->valCBFunc;
+					$error = !filter_var($value, FILTER_VALIDATE_URL);
+					if ($error && empty($errorMsg)) $errorMsg = "Invalid URL\n";
 					break;
 				case 'int' :
-				case 'double' :
-				case 'float' :
-				case 'long' :
-				case 'real' :
 				case 'numeric' :
 				case 'string' :
-					$error = !(eval('is_'.$this->valCBFunc.'('.$this->value.')'));
-					if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$this->valCBFunc;
+					eval('$error != is_'.$type.'('.$value.')');
+					if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$type."\n";
 					break;
-				case 'strlen' :
-					break;
+				case 'maxlength' :
+                                        if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+                                        $error = (strlen($value) > $args);
+                                        if ($error) $errorMsg .= "Maximum length exceeded ($label)";
 				default :
-					// check that the callback class can be found...
-					$vFileName = dirname(__FILE__).'/plugins/validators/'.$this->valCBFunc.'.class.php';
-					if (!file_exists($vFileName)) {
-						$error = TRUE;
-						$errorMsg = "Validate class '".$this->valCBFunc."' not found in ".$vFileName;
-					} else {
-						// @todovalidator plugins
-						//require_once($vFileName);
-						//$error = $valCBFunc::isValid($errorMsg);
-					}
-					break;
+                                    throw new RuntimeException("undefined type definition ($type)\n");
+                                    break;
 			}
 		}
 
-		if ($error) {
-			$this->validationError = $errorMsg;
-		}
 		return !$error;
 	}
-
-	/**
-	 * get last error
-	 * @return string last validation error
-	 */
-	public function lastError() {
-		return $this->validationError;
-		
-	}
-
-	/**
-	 * Get the 'value' of this abstraction field.
-	 * @return mixed value of this dboField.
-	 */
-	public function getValue() {
-		return $this->value;
-	}
-
-	/**
-	 * Get column type for this field
-	 * @return int TYPE_ const
-	 */
-	public function getType() {
-		return $this->type;
-	}
-
-	/**
-	 * Attempt to set value for this field, including validation and encryption
-	 * @param mixed $value value to set for this dboField
-	 * @return bool set was successful
-	 */
-	public function setValue($value) {
-		if ($this->validateEnable && !$this->validate($value)) {
-			return FALSE;
-		}
-		
-		$this->value = $value;
-		
-		if ($this->type == self::TYPE_CRYPT) {
-			$this->cryptCallback();
-		}
-	}
 }
-
-/*
- * Base validation class. Individual plugins should extend
- *
- */
-interface DBOFieldValidator {
-
-	/*
-	 * Given a value, determine its type validity for the dboField
-	 * @param string $value value to validate
-	 * @return bool field validated ok
-	 */
-	public function isValid($value, $errorMsg = '');
-}
-?>
