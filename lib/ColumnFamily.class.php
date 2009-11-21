@@ -19,6 +19,12 @@ abstract class PandraColumnFamily {
     	/* @var mixed keyID key for the working row */
     	public $keyID = NULL;
 
+        /* */
+        public $lastError = NULL;
+
+        /* */
+        public $errors = NULL;
+
 	/**
 	 * Constructor, builds column structures
 	 */
@@ -27,19 +33,19 @@ abstract class PandraColumnFamily {
 		if ($keyID !== NULL) $this->load($keyID);
 	}	
 
-	public function addColumn($colName, $typeDef = array(), $callbackOnSave = '') {
+	public function addColumn($colName, $typeDef = array(), $callbackOnSave = NULL) {
 		if (!array_key_exists($colName, $this->columns)) {
-			$this->columns[$colName] = array();
+			$this->columns[$colName] = new PandraColumn();
+                        $this->columns[$colName]->name = $colName;
 		}
 
-		// array of validation functions
-		$this->columns[$colName]['typeDef'] = $typeDef;
+                // array of validation functions
+                if (!empty($typeDef)) $this->columns[$colName]->typeDef = $typeDef;
 
 		// function callback pre-save
-		$this->columns[$colName]['callback'] = $callbackOnSave;
+		if (!empty($callbackOnSave)) $this->columns[$colName]->callback = $callbackOnSave;
 
-		// flag on column as to whether it was modified - stops unnecessary column saves
-		$this->columns[$colName]['modified'] = FALSE;
+                return TRUE;
 	}
 
 	public function removeColumn($colName) {
@@ -103,7 +109,7 @@ abstract class PandraColumnFamily {
 			foreach ($result as $cObj) {
         	        	// populate self, skip validators - self trusted
 				if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->columns)) $this->addColumn($cObj->column->name);
-				$this->columns[$cObj->column->name]['value'] = $cObj->column->value;
+				$this->columns[$cObj->column->name]->value = $cObj->column->value;
 	            	}
         	    return TRUE;
 	        }
@@ -138,21 +144,20 @@ abstract class PandraColumnFamily {
         	$columnPath = new cassandra_ColumnPath();
 	        $columnPath->column_family = $this->columnFamily;
 
-	        foreach ($this->columns as $colName => $cStruct) {
+	        foreach ($this->columns as $colName => $cObj) {
 			if (!$cStruct['modified']) continue;
 
 	        	$timestamp = time();
         	    	$columnPath->column = $colName;
-//	        	$columnPath->super_column = null;
+	        	$columnPath->super_column = null;
 
 			// handle saving callback
-			if (!empty($cStruct['callback'])) {
-				eval('$cStruct[\'value\'] = '.$cStruct['callback'].'("'.$cStruct['value'].'");');
+                        $value = $cObj->value;
+			if (!empty($cObj->callback)) {
+                                $value = $cObj->callbackValue();
 			}
-
-// @todo supercolumn
-//			if (!empty($cStruct['super'])) $columnPath->super_column = $cStruct['super'];
-//echo "insert ks:".$this->keySpace." id:".$this->keyID." cp:".$columnPath->column." sp:".$columnPath->super_column." v:".$cStruct['value']." ts:".$timestamp." cl:".$consistencyLevel."\n";
+                        
+                        // @todo supercolumn container
 	            	$client->insert($this->keySpace, $this->keyID, $columnPath, $cStruct['value'], $timestamp, $consistencyLevel);
         	}
 	}
@@ -189,26 +194,22 @@ abstract class PandraColumnFamily {
 	}
 
 	/*
-	 * Populates object with
-	 * @param array key/value pair of field => value attributes
+	 * Populates object from $data array.  Bool false on validation error error, check $this->errors for messages
+	 * @param array key/value pair of column => value
+         * @return bool populated without validation errors
 	 */
 	protected function populate($data) {
-		if (is_array($data)) {
-			foreach ($data as $key => $value) {
-				// store old validation flag
-				//$oldValidate = $this->columns[$key]->validateEnable;
-				//$this->columns[$key]->validateEnable = $validate;
-
-				if (!array_key_exists($key, $this->columns)) throw new Exception("Class ".get_class($this)." appears out of date.  Missing field '".$key."'");
-
-				// create prefixed magic set call
-				$keyName = $this->_fieldPrefix.$key;
-				$this->$keyName = $value;
-				
-				// restore validation flag
-				//$this->columns[$key]->validateEnable = $oldValidate;
-			}
-		}
+            $errors = NULL;
+            if (is_array($data)) {
+                    foreach ($data as $key => $value) {
+                            if (array_key_exists($key, $this->columns)) {
+                                if (!$this->columns[$key]->setValue($value)) {
+                                    $this->errors .= $this->columns[$key]->lastError;
+                                }
+                            }
+                    }
+            }
+            return empty($errors);
 	}
 
 	/**
@@ -228,8 +229,7 @@ abstract class PandraColumnFamily {
 	 */
 	protected function __get($colName) {
 		if ($this->gsMutable($colName)) {
-			if (!array_key_exists('value', $this->columns[$colName])) return NULL;
-			return $this->columns[$colName]['value'];
+			return $this->columns[$colName]->value;
 		} else {
 			return NULL;
 		}
@@ -248,61 +248,24 @@ abstract class PandraColumnFamily {
 		return FALSE;
 	}
 
-	public function setColumn($colName, $value)  {
+        /**
+         * Sets a columns value for this slice
+         * @param string $colName Column name to set
+         * @param string $value New value for column
+         * @param bool $validate opt validate from typeDef (default TRUE)
+         * @return bool column set ok
+         */
+	public function setColumn($colName, $value, $validate = TRUE)  {
 		if ($this->gsMutable($colName)) {
-			// @todo validation handler, exception?
-/*
-			if (is_array($this->columns[$colName]['typeDef'])) {
-				foreach ($this->columns[$colName]['typeDef'] as $typeDef) {
-					$vArgs = explode('=', $typeDef);
-					$validator = $vArgs[0];
-					if (count($vArgs) > 1) {
-						$args = $vArgs[1];
-					}
-				}
-			}
-*/
-			$this->columns[$colName]['value'] = $value;
-			$this->columns[$colName]['modified'] = TRUE;
-			return TRUE;		
+                    if (!$this->columns[$colName]->setValue($value, $validate)) {
+                        $this->errors .= $this->lastError = $this->columns[$colName]->lastError;
+                        return FALSE;
+                    }
+                    return TRUE;
 		}
 		return FALSE;
 	}
-
-	/**
-	 * Grab last error from field validator
-	 * @return string validation error
-	 */
-	protected function getValidateError() {
-		return $this->columns[$colName]->lastError();
-	}
-
-	/**
-	 * gets the serialised k/v fields for this row
-	 * @return string
-	 */
-	public function getFieldsSerialised() {
-		// build temp k/v pair array for serialisation
-		$columns = array();
-		foreach ($this->columns as $colName => $ptkField) {
-			$columns[$colName] = $ptkField->getValue();
-		}
-		return serialize($columns);
-	}
-
-	/**
-	 * gets xml k/v fields
-	 * @param string $header optional xml header (default v1.0/utf-8)
-	 * @return string xml for this rows fields
-	 */
-	public function getFieldsXML($header = '<?xml version="1.0" encoding="utf-8"?>') {
-		$xml = simplexml_load_string($header."<".str_replace(".", "_", $this->table)." />");
-		foreach ($this->columns as $colName => $ptkField) {
-			$xml->addChild($colName, $ptkField->getValue());
-		}
-		return $xml->asXML();
-	}
-
+       
 	/**
 	 * constructFields builds ptkField objects
 	 */

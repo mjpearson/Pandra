@@ -1,114 +1,114 @@
 <?
 class PandraValidator {
 
-        // primitives for which there is $this->validate() logic
-        static public $_primitive = array(
-                                'notempty',
-                                'int',
-                                'numeric',
-                                'string',
-                                'maxlength',
-                                'minlength',
-                                'email',
-                                'url'
+    // primitives for which there is $this->validate() logic
+    static public $_primitive = array(
+                                    'notempty',
+                                    'int',
+                                    'numeric',
+                                    'string',
+                                    'maxlength',
+                                    'minlength',
+                                    'email',
+                                    'url'
                                 );
 
-        /**
-         * Complex types are aggregates of the predefined primitive type definitions. Similarly,
-         * the type definitions can also be aggregated to build even more complex types. In cases where there appears to be
-         * collision between types (aggregate types with different maxlength options for example) the first type will be
-         * viewed as authoritive.
-         */
-        static public $_complex = array(
-                                'stringregular' => array('string', 'notempty'),
-                                'string20' => array('stringregular', 'maxlength=20'),
+    /**
+     * Complex types are aggregates of the predefined primitive type definitions. Similarly,
+     * the type definitions can also be aggregated to build even more complex types. In cases where there appears to be
+     * collision between types (aggregate types with different maxlength options for example) the first type will be
+     * viewed as authoritive.
+     */
+    static public $_complex = array(
+                                    'stringregular' => array('string', 'notempty'),
+                                    'string20' => array('stringregular', 'maxlength=20'),
                                 );
 
-        /**
-         * given a typedef array, detects complex types and expands to primitives
-         * @param array &$typeDefs validating type definitions
-         */
-        static private function typeExpander(&$typeDefs) {
+    /**
+     * given a typedef array, detects complex types and expands to primitives
+     * @param array &$typeDefs validating type definitions
+     */
+    static private function typeExpander(&$typeDefs) {
 
-            $isComplex = FALSE;
+        $isComplex = FALSE;
 
-            foreach ($typeDefs as $idx => $typeDef) {
-                
-                // check if type is complex                
-                if (array_key_exists($typeDef, self::$_complex)) {
+        foreach ($typeDefs as $idx => $typeDef) {
 
-                    // drop this complex type from our typeDefs, ready to expand
-                    unset($typeDefs[$idx]);
+        // check if type is complex
+            if (array_key_exists($typeDef, self::$_complex)) {
 
-                    // merge against complex type def
-                    $typeDefs = array_merge($typeDefs, self::$_complex[$typeDef]);
+            // drop this complex type from our typeDefs, ready to expand
+                unset($typeDefs[$idx]);
 
-                    // if it looks like this type has expanded to another complex type, then flag for recursion
-                    foreach ($typeDefs as $xType) {
-                        if (array_key_exists($xType, self::$_complex)) {                            
-                            $isComplex = TRUE;
-                        }
+                // merge against complex type def
+                $typeDefs = array_merge($typeDefs, self::$_complex[$typeDef]);
+
+                // if it looks like this type has expanded to another complex type, then flag for recursion
+                foreach ($typeDefs as $xType) {
+                    if (array_key_exists($xType, self::$_complex)) {
+                        $isComplex = TRUE;
                     }
                 }
             }
-            
-            // recurse, expand out new complex type
-            if ($isComplex) self::typeExpander($typeDefs);
         }
 
+        // recurse, expand out new complex type
+        if ($isComplex) self::typeExpander($typeDefs);
+    }
 
-	/**
-	 * Validates a field
-	 * @param string $errorMsg custom error message for field validation error
-	 * @return bool field validated correctly
-	 */
-	static public function check($value, $label, $typeDefs = array(), &$errorMsg = "") {
 
-                if (empty($typeDefs)) return TRUE;
+    /**
+     * Validates a field
+     * @param string $errorMsg custom error message for field validation error
+     * @return bool field validated correctly
+     */
+    static public function check($value, $label, $typeDefs = array(), &$errorMsg = "") {
 
-                if (!is_array($typeDefs)) $typeDefs = array($typeDefs);
+        if (empty($typeDefs)) return TRUE;
 
-                // normalise to real type defs if complex types found
-                self::typeExpander($typeDefs);
+        if (!is_array($typeDefs)) $typeDefs = array($typeDefs);
 
-		$error = FALSE;
+        // normalise to real type defs if complex types found
+        self::typeExpander($typeDefs);
 
-		foreach ($typeDefs as $type) {
+        $error = FALSE;
 
-                        if (preg_match('/=/', $type)) {
-                            list($type, $args) = explode("=", $type);
-                        }
+        foreach ($typeDefs as $type) {
 
-			// check for basic validator types
-			switch ($type) {
-                                case 'notempty' :
-                                        $error = empty($value);
-                                        if ($error) $errorMsg = "Field cannot be empty";
-                                        break;
-				case 'email' :
-					$error = !filter_var($value, FILTER_VALIDATE_EMAIL);
-					if ($error && empty($errorMsg)) $errorMsg = "Invalid email address\n";
-					break;
-				case 'url' :
-					$error = !filter_var($value, FILTER_VALIDATE_URL);
-					if ($error && empty($errorMsg)) $errorMsg = "Invalid URL\n";
-					break;
-				case 'int' :
-				case 'numeric' :
-				case 'string' :
-					eval('$error != is_'.$type.'('.$value.')');
-					if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$type."\n";
-					break;
-				case 'maxlength' :
-                                        if (empty($args)) throw new RuntimeException("type $type requires argument\n");
-                                        $error = (strlen($value) > $args);
-                                        if ($error) $errorMsg .= "Maximum length exceeded ($label)";
-				default :
-                                    throw new RuntimeException("undefined type definition ($type)\n");
-                                    break;
-			}
-		}
+            if (preg_match('/=/', $type)) {
+                list($type, $args) = explode("=", $type);
+            }
 
-		return !$error;
-	}
+            // check for basic validator types
+            switch ($type) {
+                case 'notempty' :
+                    $error = empty($value);
+                    if ($error) $errorMsg = "Field cannot be empty";
+                    break;
+                case 'email' :
+                    $error = !filter_var($value, FILTER_VALIDATE_EMAIL);
+                    if ($error && empty($errorMsg)) $errorMsg = "Invalid email address\n";
+                    break;
+                case 'url' :
+                    $error = !filter_var($value, FILTER_VALIDATE_URL);
+                    if ($error && empty($errorMsg)) $errorMsg = "Invalid URL\n";
+                    break;
+                case 'int' :
+                case 'numeric' :
+                case 'string' :
+                    eval('$error != is_'.$type.'('.$value.')');
+                    if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$type."\n";
+                    break;
+                case 'maxlength' :
+                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+                    $error = (strlen($value) > $args);
+                    if ($error) $errorMsg .= "Maximum length exceeded ($label)";
+                default :
+                    throw new RuntimeException("undefined type definition ($type)\n");
+                    break;
+            }
+        }
+
+        return !$error;
+    }
 }
