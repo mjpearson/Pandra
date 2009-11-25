@@ -1,14 +1,10 @@
-<?
+<?php
+/**
+ *
+ * @package Pandra
+ * @abstract
+ */
 abstract class PandraColumnFamily {
-
-	/* @var string magic set/get prefixes */
-	private  $_fieldPrefix = 'col';	// magic __get/__set column prefix
-
-	/* @var bool flag indicates whether object was 'loaded' */
-	private $_loaded = FALSE;
-
-	/* @var array container for ptkField objects, indexed to field name */
-	protected $columns = array();
 
 	/* @var string keyspace for this column family */
 	public $keySpace = NULL;
@@ -16,14 +12,32 @@ abstract class PandraColumnFamily {
 	/* @var string child table name */
 	public $columnFamily = NULL;
 
+	/* @var string super column name for this columnfamily (supers may encapsulate columns and column families) */
+	public $superColumn = NULL;
+
     	/* @var mixed keyID key for the working row */
     	public $keyID = NULL;
 
-        /* */
+	/* @var string magic set/get prefixes */
+	private  $_cFieldPrefix = 'column_';	// magic __get/__set column prefix in column famliy
+
+	/* @var string magic set/get prefixes */
+	private  $_sFieldPrefix = 'super_';	// magic __get/__set super prefix in column family
+
+	/* @var array container for column objects, indexed to field name */
+	protected $columns = array();
+
+	/* @var array container for supers (column container objects), indexed to supercolumn name */
+	protected $supers = array();
+
+        /* @var string last error encountered */
         public $lastError = NULL;
 
-        /* */
-        public $errors = NULL;
+        /* @var array complete list of errors for this object instance */
+        public $errors = array();
+
+	/* var bool columnfamily marked for deletion */
+	private $_delete = FALSE;
 
 	/**
 	 * Constructor, builds column structures
@@ -35,44 +49,37 @@ abstract class PandraColumnFamily {
 
 	public function addColumn($colName, $typeDef = array(), $callbackOnSave = NULL) {
 		if (!array_key_exists($colName, $this->columns)) {
-			$this->columns[$colName] = new PandraColumn();
-                        $this->columns[$colName]->name = $colName;
+			$this->columns[$colName] = new PandraColumn($colName, $this);
 		}
 
                 // array of validation functions
                 if (!empty($typeDef)) $this->columns[$colName]->typeDef = $typeDef;
 
-		// function callback pre-save
+		// pre-save callback
 		if (!empty($callbackOnSave)) $this->columns[$colName]->callback = $callbackOnSave;
 
-                return TRUE;
+                return $this->getColumn($colName);
 	}
 
-	public function removeColumn($colName) {
+	public function getColumn($colName) {
 		if (array_key_exists($colName, $this->columns)) {
-			unset ($this->columns[$colName]);
+			return $this->columns[$colName];
 		}
+		return NULL;
 	}
 
-	public function addSuper($superName, $columnsIn = array()) {
-		if (!empty($columnsIn)) {
-			foreach ($columnsIn as $colName) {
-				if (!array_key_exists($colName, $this->columns)) {
-					// throw columnfamily exception ??
-				}
-				$this->columns[$colName]['super'] = $superName;
-			}
+	public function addSuper($superName) {
+		if (!array_key_exists($superName, $this->supers)) {
+			$this->supers[$superName] = new PandraSuperColumn($superName);
 		}
+		return $this->getSuper($superName);
 	}
 
-	/**
-	 * returns array of matching rows by $search on this table
-	 * @param array $search
-	 * @param int $limit
-	 * @return array
-	 */
-	static protected function findByKey($value) {
-        	// @todo create a clone of this object, populate it with load data and return
+	public function getSuper($superName) {
+		if (array_key_exists($superName, $this->supers)) {
+			return $this->supers[$superName];
+		}
+		return NULL;
 	}
 
 	/**
@@ -83,12 +90,14 @@ abstract class PandraColumnFamily {
 	public function getRawSlice($keyID, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 		$this->keyID = $keyID;
 
-		$client = $this->_getClient();
+		$this->checkCFState();
+
+	        $client = Pandra::getClient();
 
 	        // build the column path
   		$columnParent = new cassandra_ColumnParent();
   		$columnParent->column_family = $this->columnFamily;
-  		$columnParent->super_column = NULL;
+  		$columnParent->super_column = $this->superColumn;
 
   		$predicate = new cassandra_SlicePredicate();
   		$predicate->slice_range = new cassandra_SliceRange();
@@ -100,6 +109,7 @@ abstract class PandraColumnFamily {
 
 	/**
 	 * Loads a row by it's keyID (all supercolumns and columns)
+	 * @todo super columns and slice loads
 	 * @param mixed $value value of this rows primary key to load from
 	 * @return bool this object has loaded its fields
 	 */
@@ -116,7 +126,11 @@ abstract class PandraColumnFamily {
         	return FALSE;
 	}
 
-	private function _getClient() {
+	/**
+	 * Check column family object state looks OK for writes
+	 * @todo: make more dev friendly
+	 */
+	public function checkCFState() {
 		// check a keyID is defined
 		if ($this->keyID === NULL) throw new RuntimeException('NULL keyID defined, cannot insert');
 
@@ -125,72 +139,49 @@ abstract class PandraColumnFamily {
 
 		// check a column family is defined
 		if ($this->columnFamily === NULL) throw new RuntimeException('NULL columnFamliy defined, cannot insert');
-
-	        return Pandra::getClient();
 	}
 
 	/**
-	 * Save a record, based on this objects field values
+	 * Save all columns in this loaded columnfamily
 	 * @return void
 	 */
 	public function save() {
 
-		$client = $this->_getClient();
+		$this->checkCFState();
 
-	        // @todo configurable consistency level
-        	$consistencyLevel = cassandra_ConsistencyLevel::ONE;
+		if ($this->_delete === TRUE) {
+		        $client = Pandra::getClient(TRUE);
 
-	        // build the column path
-        	$columnPath = new cassandra_ColumnPath();
-	        $columnPath->column_family = $this->columnFamily;
-
-	        foreach ($this->columns as $colName => $cObj) {
-			if (!$cStruct['modified']) continue;
-
-	        	$timestamp = time();
-        	    	$columnPath->column = $colName;
-	        	$columnPath->super_column = null;
-
-			// handle saving callback
-                        $value = $cObj->value;
-			if (!empty($cObj->callback)) {
-                                $value = $cObj->callbackValue();
+			if ($columnPath === NULL) {
+				$columnPath = new cassandra_ColumnPath();
+			        $columnPath->column_family = $this->columnFamily;
 			}
-                        
-                        // @todo supercolumn container
-	            	$client->insert($this->keySpace, $this->keyID, $columnPath, $cStruct['value'], $timestamp, $consistencyLevel);
+
+			$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+		}
+
+	        foreach ($this->columns as &$cObj) {
+			$cObj->save();
         	}
 	}
 
 	/**
 	 * deletes the loaded object from the keyspace, or optionally the supplied columns for the key
 	 */
-	public function delete(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+	public function markDelete() {
+		$this->_delete = TRUE;
+		return;
+	}
 
-		$client = $this->_getClient();
+	public function unDelete() {
+		$this->_delete = FALSE;
+		return;
+	}
 
-		if ($columnPath === NULL) {
-			$columnPath = new cassandra_ColumnPath();
-		        $columnPath->column_family = $this->columnFamily;
+	public function reset() {
+		foreach  ($this->columns as &$cObj) {
+			$cObj->reset();
 		}
-
-		$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
-
-		return FALSE;
-	}
-
-	public function deleteColumn($column) {
-		throw new RuntimeException('Not Implemented');
-
-		// build column path
-		$columnPath = new cassandra_ColumnPath();
-	        $columnPath->column_family = $this->columnFamily;
-	        $columnPath->column = $column;
-	}
-
-	public function deleteSuperColumn() {
-		// delete columns in super column
-		throw new RuntimeException('Not Implemented');
 	}
 
 	/*
@@ -204,7 +195,7 @@ abstract class PandraColumnFamily {
                     foreach ($data as $key => $value) {
                             if (array_key_exists($key, $this->columns)) {
                                 if (!$this->columns[$key]->setValue($value)) {
-                                    $this->errors .= $this->columns[$key]->lastError;
+                                    $this->errors[] = $this->columns[$key]->lastError;
                                 }
                             }
                     }
@@ -218,7 +209,7 @@ abstract class PandraColumnFamily {
 	 * @return bool field exists
 	 */
 	private function gsMutable(&$colName) {
-		$colName = preg_replace("/^".$this->_fieldPrefix."/", "", strtolower($colName));
+		$colName = preg_replace("/^".$this->_cFieldPrefix."/", "", strtolower($colName));
 		return array_key_exists($colName, $this->columns);
 	}
 
@@ -257,18 +248,14 @@ abstract class PandraColumnFamily {
          */
 	public function setColumn($colName, $value, $validate = TRUE)  {
 		if ($this->gsMutable($colName)) {
-                    if (!$this->columns[$colName]->setValue($value, $validate)) {
-                        $this->errors .= $this->lastError = $this->columns[$colName]->lastError;
-                        return FALSE;
-                    }
-                    return TRUE;
+                    if ($this->columns[$colName]->setValue($value, $validate)) return TRUE;
+                    $this->errors[] = $this->lastError = $this->columns[$colName]->lastError;
 		}
 		return FALSE;
 	}
        
 	/**
-	 * constructFields builds ptkField objects
+	 * constructFields builds column objects via addColumn/addSuper methods
 	 */
 	abstract public function constructColumns();
 }
-?>

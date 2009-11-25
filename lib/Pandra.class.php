@@ -1,32 +1,52 @@
 <?php
 /**
- * @todo read/write switching, memcached hooks, logging hooks
+ * @package Pandra
  */
-
-// constants for determining results format
 class Pandra {
 
-	const PANDRA_OBJ = 1;
-	const PANDRA_ASSOC = 2;
-	const PANDRA_XML = 3;
-	const PANDRA_JSON = 4;
+	const FORMAT_OBJ = 1;
+	const FORMAT_ASSOC = 2;
+	const FORMAT_XML = 3;
+	const FORMAT_JSON = 4;
+
+	//const APC_EXPIRE_SECONDS = 60;
 
 	static public $lastError = '';
+	static public $consistencyLevel = cassandra_ConsistencyLevel::ZERO;
 
 	static private $_nodeConns = array();
 	static private $_activeNode = NULL;
-	static private $consistencyLevel = cassandra_ConsistencyLevel::ZERO;
 
-	public function Query($keySpace, $columnFamily, $args, $format = PANDRA_OBJ) {
+	static private $readMode = PANDRA_MODE_ACTIVE;
+	static private $writeMode = PANDRA_MODE_ACTIVE;
+
+	static private $supportedModes = array(
+						PANDRA_MODE_ACTIVE,
+						PANDRA_MODE_ROUND,
+						//PANDRA_MODE_ROUND_APC,
+						PANDRA_MODE_RANDOM,
+						);
+
+	static public function setReadMode($newMode) {
+		if (!array_key_exists($newMode, self::$supportedModes)) throw new RuntimeExcpetion("Unsupported Read Mode");
+		self::$readMode = $newMode;
 	}
+
+	static public function setWriteMode($newMode) {
+		if (!array_key_exists($newMode, self::$supportedModes)) throw new RuntimeExcpetion("Unsupported Write Mode");
+		self::$writeMode = $newMode;
+	}
+
 
     /**
      * 
      */
-	public function setactiveNode($connectionID) {
-		if (array_key_exists($connectionID, self::$_nodeConns)) {
+	public function setActiveNode($connectionID) {
+		if (array_key_exists($connectionID, self::$_nodeConns) && self::$_nodeConns[$connectionID]['transport']->isOpen()) {
 			self::$_activeNode = $connectionID;
+			return TRUE;
 		}
+		return FALSE;
 	}
 
     /**
@@ -56,7 +76,7 @@ class Pandra {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-	static public function connect($connectionID, $host, $port = PANDRA_PORT_DEFAULT) {
+	static public function connect($connectionID, $host = NULL, $port = PANDRA_PORT_DEFAULT) {
 		try {
 			// if the connection exists but it is closed, then re-open
 			if (array_key_exists($connectionID, self::$_nodeConns)) {
@@ -85,15 +105,46 @@ class Pandra {
 	}
 
     /**
-     * get current working node
+     * get current working node, recursive, trims disconnected clients
      */
-    static public function getClient() {
+    static public function getClient($writeMode = FALSE) {
         if (empty(self::$_activeNode)) throw new Exception('Not Connected');
-        return self::$_nodeConns[self::$_activeNode]['client'];
+	$useMode = ($writeMode) ? self::$writeMode : self::$readMode;
+	switch ($useMode) {
+		case PANDRA_MODE_ROUND_APC :
+			// @todo, APC store of activeNode
+		case PANDRA_MODE_ROUND :
+			if (!current(self::$_nodeConns)) reset(self::$_nodeConns);			
+			$curConn = each(self::$_nodeConns);
+			self::$_activeNode = $curConn['key'];		// store current working node
+		        return self::$_nodeConns[self::$_activeNode]['client'];
+			break;
+		case PANDRA_MODE_RANDOM :
+			$randConn =& array_rand(self::$_nodeConns);
+			return $randConn['client'];
+			break;
+		case PANDRA_MODE_ACTIVE :
+		default :
+		        return self::$_nodeConns[self::$_activeNode]['client'];
+			break;
+	}
     }
 
     static public function getKeyspace($keySpace) {
         $client = self::getClient();
         return $client->describe_keyspace($keySpace);
     }
+
+	static public function toJSON(&$results) {
+	}
+
+	static public function toXML(&$results) {
+	}
+
+	static public function toSerialised(&$results) {
+	}
+
+	static public function toArray(&$results) {
+	}
+
 }

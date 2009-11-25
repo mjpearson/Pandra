@@ -18,7 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 The pandra homepage is :
 http://www.phpgrease.net/projects/pandra
 */
-
+/**
+ *
+ * @package Pandra
+ */
 $GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/../thrift-php/';
 
 require_once $GLOBALS['THRIFT_ROOT'].'/packages/cassandra/Cassandra.php';
@@ -27,10 +30,16 @@ require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 
+// Default Thrift port
 define('PANDRA_PORT_DEFAULT', 9160);
 
+// read/write modes (can be configured independently)
+define('PANDRA_MODE_ACTIVE', 0);	// Active client only
+define('PANDRA_MODE_ROUND', 1);		// sequentially select configured clients 
+define('PANDRA_MODE_ROUND_APC', 1);	// sequentially select between interpreter instances w/APC
+define('PANDRA_MODE_RANDOM', 2);	// select random node
+
 function pandraAutoLoad($className) {
-//	$className = strtolower($className);
 
     	if (!preg_match("/^pandra/i", $className)) return;
 

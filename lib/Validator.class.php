@@ -1,14 +1,21 @@
-<?
+<?php
+/**
+ *
+ * @package Pandra
+ */
 class PandraValidator {
 
-    // primitives for which there is $this->validate() logic
+    // primitives for which there is self::check() logic
     static public $_primitive = array(
                                     'notempty',
                                     'int',
+                                    'float',
                                     'numeric',
                                     'string',
-                                    'maxlength',
-                                    'minlength',
+                                    'bool',
+                                    'maxlength',	// =[length]
+                                    'minlength',	// =[length]
+				    'enum',		// =[comma,delimitered,enumerates]
                                     'email',
                                     'url'
                                 );
@@ -79,6 +86,11 @@ class PandraValidator {
                 list($type, $args) = explode("=", $type);
             }
 
+		if (!in_array($type, self::$_primitive)) {
+                    throw new RuntimeException("undefined type definition ($type)\n");
+		}
+
+
             // check for basic validator types
             switch ($type) {
                 case 'notempty' :
@@ -94,17 +106,30 @@ class PandraValidator {
                     if ($error && empty($errorMsg)) $errorMsg = "Invalid URL\n";
                     break;
                 case 'int' :
+                case 'float' :
                 case 'numeric' :
                 case 'string' :
-                    eval('$error != is_'.$type.'('.$value.')');
+                case 'bool' :
+                    eval('$error != is_'.$type.'("'.$value.'");');
                     if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$type."\n";
                     break;
                 case 'maxlength' :
                     if (empty($args)) throw new RuntimeException("type $type requires argument\n");
                     $error = (strlen($value) > $args);
-                    if ($error) $errorMsg .= "Maximum length exceeded ($label)";
+                    if ($error) $errorMsg .= "Maximum length $args exceeded ($label)";
+		    break;
+                case 'minlength' :
+                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+                    $error = (strlen($value) < $args);
+                    if ($error) $errorMsg .= "Minimum length $args unmet ($label)\n";
+                    break;
+                case 'enum' :
+                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+		    $enums = explode(",", $args);
+		    $error = (!in_array($value, $enums));
+                    if ($error) $errorMsg .= "Invalid Argument\n";
                 default :
-                    throw new RuntimeException("undefined type definition ($type)\n");
+                    throw new RuntimeException("unhandled type definition ($type)\n");
                     break;
             }
         }
