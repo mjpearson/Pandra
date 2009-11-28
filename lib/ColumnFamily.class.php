@@ -4,7 +4,7 @@
  * @package Pandra
  * @abstract
  */
-abstract class PandraColumnFamily {
+abstract class PandraColumnFamily extends cassandra_ColumnParent {
 
 	/* @var string keyspace for this column family */
 	public $keySpace = NULL;
@@ -31,7 +31,7 @@ abstract class PandraColumnFamily {
 	protected $supers = array();
 
         /* @var string last error encountered */
-        public $lastError = NULL;
+        //public $lastError = NULL;
 
         /* @var array complete list of errors for this object instance */
         public $errors = array();
@@ -46,6 +46,13 @@ abstract class PandraColumnFamily {
 		$this->constructColumns();
 		if ($keyID !== NULL) $this->load($keyID);
 	}	
+
+	public function lastError() {
+		if (!empty($this->errors)) {
+			return $this->errors[0];
+		}
+		return NULL;
+	}
 
 	public function addColumn($colName, $typeDef = array(), $callbackOnSave = NULL) {
 		if (!array_key_exists($colName, $this->columns)) {
@@ -189,18 +196,17 @@ abstract class PandraColumnFamily {
 	 * @param array key/value pair of column => value
          * @return bool populated without validation errors
 	 */
-	protected function populate($data) {
-            $errors = NULL;
+	public function populate($data) {
+            // $errors = NULL;
             if (is_array($data)) {
                     foreach ($data as $key => $value) {
                             if (array_key_exists($key, $this->columns)) {
-                                if (!$this->columns[$key]->setValue($value)) {
-                                    $this->errors[] = $this->columns[$key]->lastError;
-                                }
+                                $this->columns[$key]->setValue($value);
                             }
                     }
             }
-            return empty($errors);
+//            return empty($errors);
+            return empty($this->errors);
 	}
 
 	/**
@@ -228,15 +234,15 @@ abstract class PandraColumnFamily {
 
 	/**
 	 * Magic setter
+	 * @todo propogate an exception for setcolumn if it returns false.  magic __set's are void return type
 	 * @param string $colName field name to set
 	 * @param string $value  value to set for field
 	 * @return bool field set ok
 	 */
 	protected function __set($colName, $value) {
 		if ($this->gsMutable($colName)) {
-			return $this->setColumn($colName, $value);
+			$this->setColumn($colName, $value);
 		}
-		return FALSE;
 	}
 
         /**
@@ -247,11 +253,7 @@ abstract class PandraColumnFamily {
          * @return bool column set ok
          */
 	public function setColumn($colName, $value, $validate = TRUE)  {
-		if ($this->gsMutable($colName)) {
-                    if ($this->columns[$colName]->setValue($value, $validate)) return TRUE;
-                    $this->errors[] = $this->lastError = $this->columns[$colName]->lastError;
-		}
-		return FALSE;
+		return (array_key_exists($colName, $this->columns) && $this->columns[$colName]->setValue($value, $validate));
 	}
        
 	/**

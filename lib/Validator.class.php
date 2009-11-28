@@ -5,20 +5,21 @@
  */
 class PandraValidator {
 
-    // primitives for which there is self::check() logic
+// primitives for which there is self::check() logic
     static public $_primitive = array(
-                                    'notempty',
-                                    'int',
-                                    'float',
-                                    'numeric',
-                                    'string',
-                                    'bool',
-                                    'maxlength',	// =[length]
-                                    'minlength',	// =[length]
-				    'enum',		// =[comma,delimitered,enumerates]
-                                    'email',
-                                    'url'
-                                );
+        'notempty',
+        'isempty',          // honeypot
+        'int',
+        'float',
+        'numeric',
+        'string',
+        'bool',
+        'maxlength',	// =[length]
+        'minlength',	// =[length]
+        'enum',		// =[comma,delimitered,enumerates]
+        'email',
+        'url'
+    );
 
     /**
      * Complex types are aggregates of the predefined primitive type definitions. Similarly,
@@ -27,9 +28,9 @@ class PandraValidator {
      * viewed as authoritive.
      */
     static public $_complex = array(
-                                    'stringregular' => array('string', 'notempty'),
-                                    'string20' => array('stringregular', 'maxlength=20'),
-                                );
+        'stringregular' => array('string', 'notempty'),
+        'string20' => array('stringregular', 'maxlength=20'),
+    );
 
     /**
      * given a typedef array, detects complex types and expands to primitives
@@ -69,8 +70,7 @@ class PandraValidator {
      * @param string $errorMsg custom error message for field validation error
      * @return bool field validated correctly
      */
-    static public function check($value, $label, $typeDefs = array(), &$errorMsg = "") {
-
+    static public function check($value, $label, $typeDefs, &$errors) {
         if (empty($typeDefs)) return TRUE;
 
         if (!is_array($typeDefs)) $typeDefs = array($typeDefs);
@@ -79,6 +79,7 @@ class PandraValidator {
         self::typeExpander($typeDefs);
 
         $error = FALSE;
+        $errorMsg = array();
 
         foreach ($typeDefs as $type) {
 
@@ -86,24 +87,28 @@ class PandraValidator {
                 list($type, $args) = explode("=", $type);
             }
 
-		if (!in_array($type, self::$_primitive)) {
-                    throw new RuntimeException("undefined type definition ($type)\n");
-		}
+            if (!in_array($type, self::$_primitive)) {
+                throw new RuntimeException("undefined type definition ($type)");
+            }
 
 
             // check for basic validator types
             switch ($type) {
                 case 'notempty' :
                     $error = empty($value);
-                    if ($error) $errorMsg = "Field cannot be empty";
+                    if ($error) $errorMsg[] = "Field cannot be empty";
+                    break;
+                case 'isempty' :
+                    $error = !empty($value);
+                    if ($error) $errorMsg[] = "Field must be empty";
                     break;
                 case 'email' :
                     $error = !filter_var($value, FILTER_VALIDATE_EMAIL);
-                    if ($error && empty($errorMsg)) $errorMsg = "Invalid email address\n";
+                    if ($error) $errorMsg[] = "Invalid email address";
                     break;
                 case 'url' :
                     $error = !filter_var($value, FILTER_VALIDATE_URL);
-                    if ($error && empty($errorMsg)) $errorMsg = "Invalid URL\n";
+                    if ($error) $errorMsg[] = "Invalid URL";
                     break;
                 case 'int' :
                 case 'float' :
@@ -111,29 +116,30 @@ class PandraValidator {
                 case 'string' :
                 case 'bool' :
                     eval('$error != is_'.$type.'("'.$value.'");');
-                    if ($error && empty($errorMsg)) $errorMsg = "Field error, expected ".$type."\n";
+                    if ($error) $errorMsg[] = "Field error, expected ".$type;
                     break;
                 case 'maxlength' :
-                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+                    if (empty($args)) throw new RuntimeException("type $type requires argument");
                     $error = (strlen($value) > $args);
-                    if ($error) $errorMsg .= "Maximum length $args exceeded ($label)";
-		    break;
+                    if ($error) $errorMsg[] = "Maximum length $args exceeded";
+                    break;
                 case 'minlength' :
-                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
+                    if (empty($args)) throw new RuntimeException("type $type requires argument");
                     $error = (strlen($value) < $args);
-                    if ($error) $errorMsg .= "Minimum length $args unmet ($label)\n";
+                    if ($error) $errorMsg[] = "Minimum length $args unmet";
                     break;
                 case 'enum' :
-                    if (empty($args)) throw new RuntimeException("type $type requires argument\n");
-		    $enums = explode(",", $args);
-		    $error = (!in_array($value, $enums));
-                    if ($error) $errorMsg .= "Invalid Argument\n";
+                    if (empty($args)) throw new RuntimeException("type $type requires argument");
+                    $enums = explode(",", $args);
+                    $error = (!in_array($value, $enums));
+                    if ($error) $errorMsg[] = "Invalid Argument";
                 default :
-                    throw new RuntimeException("unhandled type definition ($type)\n");
+                    throw new RuntimeException("unhandled type definition ($type)");
                     break;
             }
         }
 
-        return !$error;
+        if (!empty($errorMsg)) $errors[] = array($label => $errorMsg);
+        return empty($errorMsg);
     }
 }

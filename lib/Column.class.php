@@ -18,7 +18,7 @@ class PandraColumn {
 	public $typeDef = array();
 
 	/* @var string last processing error */
-	public $lastError = NULL;
+	public $lastError = array();
 
 	/* @var string callback function for this column pre-save */
 	public $callback = NULL;
@@ -45,6 +45,7 @@ class PandraColumn {
         public function setValue($value, $validate = TRUE) {
             if ($validate && !empty($this->typeDef)) {
                 if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->lastError)) {
+		    $this->_parentCF->errors[] = $this->lastError[0];
                     return FALSE;
                 }
             }
@@ -69,6 +70,10 @@ class PandraColumn {
             eval('$value = '.$cObj->callback.'("'.$cObj->value.'");');
             return $value;
         }
+
+	public function cast(PandraColumn $object) {
+		return $object;
+	}
 
 	public function save() {
 
