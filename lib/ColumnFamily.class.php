@@ -6,37 +6,37 @@
  */
 abstract class PandraColumnFamily extends cassandra_ColumnParent {
 
-	/* @var string keyspace for this column family */
+    /* @var string keyspace for this column family */
     public $keySpace = NULL;
 
-	/* @var string child table name */
+    /* @var string child table name */
     public $columnFamily = NULL;
 
-	/* @var string super column name for this columnfamily (supers may encapsulate columns and column families) */
+    /* @var string super column name for this columnfamily (supers may encapsulate columns and column families) */
     public $superColumn = NULL;
 
-    	/* @var mixed keyID key for the working row */
+    /* @var mixed keyID key for the working row */
     public $keyID = NULL;
 
-	/* @var string magic set/get prefixes */
+    /* @var string magic set/get prefixes */
     private  $_cFieldPrefix = 'column_';	// magic __get/__set column prefix in column famliy
 
-	/* @var string magic set/get prefixes */
+    /* @var string magic set/get prefixes */
     private  $_sFieldPrefix = 'super_';	// magic __get/__set super prefix in column family
 
-	/* @var array container for column objects, indexed to field name */
+    /* @var array container for column objects, indexed to field name */
     protected $columns = array();
 
-	/* @var array container for supers (column container objects), indexed to supercolumn name */
+    /* @var array container for supers (column container objects), indexed to supercolumn name */
     protected $supers = array();
 
-        /* @var string last error encountered */
+    /* @var string last error encountered */
     //public $lastError = NULL;
 
-        /* @var array complete list of errors for this object instance */
+    /* @var array complete list of errors for this object instance */
     public $errors = array();
 
-	/* var bool columnfamily marked for deletion */
+    /* var bool columnfamily marked for deletion */
     private $_delete = FALSE;
 
     /**
@@ -81,7 +81,7 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
 
     public function addSuper($superName) {
         if (!array_key_exists($superName, $this->supers)) {
-            $this->supers[$superName] = new PandraSuperColumn($superName);
+            $this->supers[$superName] = new PandraSuperColumn($superName, $this);
         }
         return $this->getSuper($superName);
     }
@@ -128,7 +128,7 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
         $result = $this->getRawSlice($keyID, $consistencyLevel);
         if (!empty($result)) {
             foreach ($result as $cObj) {
-            // populate self, skip validators - self trusted
+                // populate self, skip validators - self trusted
                 if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->columns)) $this->addColumn($cObj->column->name);
                 $this->columns[$cObj->column->name]->value = $cObj->column->value;
             }
@@ -142,7 +142,7 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
      * @todo: make more dev friendly
      */
     public function checkCFState() {
-    // check a keyID is defined
+        // check a keyID is defined
         if ($this->keyID === NULL) throw new RuntimeException('NULL keyID defined, cannot insert');
 
         // check a Keyspace is defined
@@ -195,13 +195,13 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
         }
     }
 
-	/*
+    /*
 	 * Populates object from $data array.  Bool false on validation error error, check $this->errors for messages
 	 * @param array key/value pair of column => value
          * @return bool populated without validation errors
-	 */
+    */
     public function populate($data) {
-    // $errors = NULL;
+        // $errors = NULL;
         if (is_array($data)) {
             foreach ($data as $key => $value) {
                 if (array_key_exists($key, $this->columns)) {
