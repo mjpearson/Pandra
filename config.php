@@ -22,7 +22,7 @@ http://www.phpgrease.net/projects/pandra
  *
  * @package Pandra
  */
-$GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/../thrift-php/';
+$GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/thrift-php/';
 
 require_once $GLOBALS['THRIFT_ROOT'].'/packages/cassandra/Cassandra.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TSocket.php';

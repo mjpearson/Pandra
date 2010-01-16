@@ -115,8 +115,8 @@ class PandraTest extends PHPUnit_Framework_TestCase {
         // at least be able to pull out their basic attributes
         $expectedKeys = array('FlushPeriodInMinutes', 'Type', 'Desc');
 
-        foreach ($ks as $keySpace => $columnFamily) {
-            $diff = array_diff($expectedKeys, array_keys($columnFamily));
+        foreach ($ks as $columnFamily => $attributes) {
+            $diff = array_diff($expectedKeys, array_keys($attributes    ));
             $this->assertTrue(empty($diff));
         }
     }
