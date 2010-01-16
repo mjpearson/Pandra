@@ -1,96 +1,59 @@
 <?php
 /**
- *
+ * ColumnFamily container class
  * @package Pandra
  * @abstract
  */
-abstract class PandraColumnFamily extends cassandra_ColumnParent {
+abstract class PandraColumnFamily extends PandraColumnContainer {
 
-    /* @var string keyspace for this column family */
+    /* @var string keyspace (or database) for this column family */
     public $keySpace = NULL;
 
-    /* @var string child table name */
-    public $columnFamily = NULL;
-
-    /* @var string super column name for this columnfamily (supers may encapsulate columns and column families) */
-    public $superColumn = NULL;
+    /* @var this column families name (table name) */
+    public $name = NULL;
 
     /* @var mixed keyID key for the working row */
     public $keyID = NULL;
 
-    /* @var string magic set/get prefixes */
-    private  $_cFieldPrefix = 'column_';	// magic __get/__set column prefix in column famliy
+    /* @var int column family type (standard or super) */
+    private $_type = PANDRA_CF_STANDARD;
 
-    /* @var string magic set/get prefixes */
-    private  $_sFieldPrefix = 'super_';	// magic __get/__set super prefix in column family
-
-    /* @var array container for column objects, indexed to field name */
-    protected $columns = array();
-
-    /* @var array container for supers (column container objects), indexed to supercolumn name */
-    protected $supers = array();
-
-    /* @var string last error encountered */
-    //public $lastError = NULL;
-
-    /* @var array complete list of errors for this object instance */
-    public $errors = array();
-
-    /* var bool columnfamily marked for deletion */
+      /* var bool columnfamily marked for deletion */
     private $_delete = FALSE;
+
+    private $_loaded = FALSE;
 
     /**
      * Constructor, builds column structures
      */
-    public function __construct($keyID = NULL) {
+    public function ___construct($keyID = NULL) {
         $this->constructColumns();
         if ($keyID !== NULL) $this->load($keyID);
     }
 
-    public function lastError() {
-        if (!empty($this->errors)) {
-            return $this->errors[0];
+    /**
+     * deletes the loaded object from the keyspace, or optionally the supplied columns for the key
+     */
+    public function markDelete() {
+        $this->_delete = TRUE;
+        foreach ($this->columns as &$column) {
+            $column->delete();
         }
-        return NULL;
     }
 
-    public function addColumn($colName, $typeDef = array(), $callbackOnSave = NULL) {
-        if (!array_key_exists($colName, $this->columns)) {
-            $this->columns[$colName] = new PandraColumn($colName, $this);
-        }
-
-        // array of validation functions
-        if (!empty($typeDef)) $this->columns[$colName]->typeDef = $typeDef;
-
-        // pre-save callback
-        if (!empty($callbackOnSave)) $this->columns[$colName]->callback = $callbackOnSave;
-
-        return $this->getColumn($colName);
+    public function delete() {
+        $this->markDelete();
     }
 
-    public function getColumn($colName) {
-        if (array_key_exists($colName, $this->columns)) {
-            return $this->columns[$colName];
+    public function reset() {
+        $this->_delete = FALSE;
+        foreach ($this->columns as &$column) {
+            $column->reset();
         }
-        return NULL;
     }
 
-    public function listColumns() {
-        return array_keys($this->columns);
-    }
-
-    public function addSuper($superName) {
-        if (!array_key_exists($superName, $this->supers)) {
-            $this->supers[$superName] = new PandraSuperColumn($superName, $this);
-        }
-        return $this->getSuper($superName);
-    }
-
-    public function getSuper($superName) {
-        if (array_key_exists($superName, $this->supers)) {
-            return $this->supers[$superName];
-        }
-        return NULL;
+    public function isDeleted() {
+        return $this->_delete;
     }
 
     /**
@@ -107,8 +70,9 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
 
         // build the column path
         $columnParent = new cassandra_ColumnParent();
-        $columnParent->column_family = $this->columnFamily;
-        $columnParent->super_column = $this->superColumn;
+        $columnParent->column_family = $this->name;
+        //$columnParent->super_column = $this->superColumn;
+        $columnParent->super_column = null;
 
         $predicate = new cassandra_SlicePredicate();
         $predicate->slice_range = new cassandra_SliceRange();
@@ -125,6 +89,8 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
      * @return bool this object has loaded its fields
      */
     public function load($keyID, $colAutoCreate = FALSE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+        $this->_loaded = FALSE;
+
         $result = $this->getRawSlice($keyID, $consistencyLevel);
         if (!empty($result)) {
             foreach ($result as $cObj) {
@@ -132,9 +98,9 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
                 if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->columns)) $this->addColumn($cObj->column->name);
                 $this->columns[$cObj->column->name]->value = $cObj->column->value;
             }
-            return TRUE;
+            $this->_loaded = TRUE;
         }
-        return FALSE;
+        return $this->_loaded;
     }
 
     /**
@@ -149,14 +115,14 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
         if ($this->keySpace === NULL) throw new RuntimeException('NULL keySpace defined, cannot insert');
 
         // check a column family is defined
-        if ($this->columnFamily === NULL) throw new RuntimeException('NULL columnFamliy defined, cannot insert');
+        if ($this->name === NULL) throw new RuntimeException('NULL name defined, cannot insert');
     }
 
     /**
      * Save all columns in this loaded columnfamily
      * @return void
      */
-    public function save() {
+    public function save(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
         $this->checkCFState();
 
@@ -165,103 +131,25 @@ abstract class PandraColumnFamily extends cassandra_ColumnParent {
 
             if ($columnPath === NULL) {
                 $columnPath = new cassandra_ColumnPath();
-                $columnPath->column_family = $this->columnFamily;
+                $columnPath->column_family = $this->name;
             }
-
+            
+            // Delete this column family
             $client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
         }
 
         foreach ($this->columns as &$cObj) {
-            $cObj->save();
+            if (!$cObj->save()) return FALSE;
         }
+        return TRUE;
     }
 
-    /**
-     * deletes the loaded object from the keyspace, or optionally the supplied columns for the key
-     */
-    public function markDelete() {
-        $this->_delete = TRUE;
-        return;
+    public function getType() {
+        return $this->_type;
     }
 
-    public function unDelete() {
-        $this->_delete = FALSE;
-        return;
+    public function isLoaded() {
+       return $this->_loaded;
     }
-
-    public function reset() {
-        foreach  ($this->columns as &$cObj) {
-            $cObj->reset();
-        }
-    }
-
-    /*
-	 * Populates object from $data array.  Bool false on validation error error, check $this->errors for messages
-	 * @param array key/value pair of column => value
-         * @return bool populated without validation errors
-    */
-    public function populate($data) {
-        // $errors = NULL;
-        if (is_array($data)) {
-            foreach ($data as $key => $value) {
-                if (array_key_exists($key, $this->columns)) {
-                    $this->columns[$key]->setValue($value);
-                }
-            }
-        }
-        //            return empty($errors);
-        return empty($this->errors);
-    }
-
-    /**
-     * determine if get/set field exists/is mutable, strips field prefix from magic get/setters
-     * @param string $colName field name to check
-     * @return bool field exists
-     */
-    private function gsMutable(&$colName) {
-        $colName = preg_replace("/^".$this->_cFieldPrefix."/", "", strtolower($colName));
-        return array_key_exists($colName, $this->columns);
-    }
-
-    /**
-     * Magic getter
-     * @param string $colName field name to get
-     * @return string value
-     */
-    protected function __get($colName) {
-        if ($this->gsMutable($colName)) {
-            return $this->columns[$colName]->value;
-        } else {
-            return NULL;
-        }
-    }
-
-    /**
-     * Magic setter
-     * @todo propogate an exception for setcolumn if it returns false.  magic __set's are void return type
-     * @param string $colName field name to set
-     * @param string $value  value to set for field
-     * @return bool field set ok
-     */
-    protected function __set($colName, $value) {
-        if ($this->gsMutable($colName)) {
-            $this->setColumn($colName, $value);
-        }
-    }
-
-    /**
-     * Sets a columns value for this slice
-     * @param string $colName Column name to set
-     * @param string $value New value for column
-     * @param bool $validate opt validate from typeDef (default TRUE)
-     * @return bool column set ok
-     */
-    public function setColumn($colName, $value, $validate = TRUE) {
-        return (array_key_exists($colName, $this->columns) && $this->columns[$colName]->setValue($value, $validate));
-    }
-
-    /**
-     * constructFields builds column objects via addColumn/addSuper methods
-     */
-    abstract public function constructColumns();
 }
+?>

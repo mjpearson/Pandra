@@ -15,7 +15,7 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-The pandra homepage is :
+The Pandra homepage is :
 http://www.phpgrease.net/projects/pandra
 */
 /**
@@ -30,6 +30,9 @@ require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 
+// Config xml path for Cassandra
+define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.4.0/conf/storage-conf.xml');
+
 // Default Thrift port
 define('PANDRA_PORT_DEFAULT', 9160);
 
@@ -38,6 +41,10 @@ define('PANDRA_MODE_ACTIVE', 0);	// Active client only
 define('PANDRA_MODE_ROUND', 1);		// sequentially select configured clients 
 define('PANDRA_MODE_ROUND_APC', 1);	// sequentially select between interpreter instances w/APC
 define('PANDRA_MODE_RANDOM', 2);	// select random node
+
+// Column Family Types
+define('PANDRA_CF_STANDARD', 0);
+define('PANDRA_CF_SUPER', 1);
 
 function pandraAutoLoad($className) {
 

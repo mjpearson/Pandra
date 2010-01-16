@@ -4,51 +4,51 @@
  *
  * @package pandra
  */
-class PandraSuperColumn extends PandraColumnFamily {
-
-    /* @var array container for child column family objects, indexed to cf name */
-    protected $columnFamilies = array();
+class PandraSuperColumn extends PandraColumnContainer {
 
     /* @var PandraColumnFamily column family parent reference */
     private $_parentCF = NULL;
 
-    public function __construct($superName, $parentCF) {
-        $this->superColumn = $superName;
+    public function __construct($superName, PandraColumnFamilySuper $parentCF = NULL) {
+        // SuperColumn name
+        $this->name = $superName;
+
+        // Reference parent ColumnFamilySuper
+        if ($parentCF !== NULL) {
+            $this->_parentCF = $parentCF;
+        }
+        parent::__construct();
+    }
+
+    public function setParentCF($parentCF) {
         $this->_parentCF = $parentCF;
     }
 
-    public function constructColumns() { }
+     /**
+     * Save all columns in this loaded columnfamily
+     * @return void
+     */
+    public function save() {
 
-    public function addColumnFamily($cfName, PandraColumnFamily $cfObj = NULL) {
-                
-        if ($this->_parentCF instanceof PandraColumnFamily) {
-            // Will get here if dimensions is key > SuperColumn > ColumnFamily > SuperColumn
-            throw new RuntimeException('Cannot add ColumnFamily: Dimensionality Exceeded');
+        $this->checkCFState();
+
+        if ($this->_delete === TRUE) {
+            $client = Pandra::getClient(TRUE);
+
+            if ($columnPath === NULL) {
+                $columnPath = new cassandra_ColumnPath();
+                $columnPath->column_family = $this->name;
+            }
+
+            //$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+            echo 'REMOVING WHOLE COLUMNFAMILY FOR '.$this->keyID;
         }
 
-        if ($cfObj === NULL) {
-            $cfObj = new PandraColumnFamily($this->keyID);
+        foreach ($this->columns as &$cObj) {
+            echo 'SC SAVING '. $cObj->name;
+            //var_dump($cObj);
+            //$cObj->save();
         }
-
-        $this->columnFamilies[$cfName] = $cfObj;
-
-        return $this->getColumnFamily($cfName);
     }
 
-    public function removeColumnFamily() {     
-    }
-
-    public function getColumnFamily($cfName) {
-        if (array_key_exists($cfName, $this->columnFamilies)) return $this->columnFamilies[$cfName];
-        return NULL;
-    }
-
-    public function addSuper($superName) {
-        throw new RuntimeException("SuperColumns cannot be containers for SuperColumns");
-    }
-
-    public function getSuper($superName) {
-        return NULL;
-    }
- 
 }
