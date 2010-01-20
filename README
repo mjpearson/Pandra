@@ -2,7 +2,7 @@ version: alpha
 
 == Welcome to the Pandra Toolkit ==
 
-Copyright (C) 2009 PHPGrease.net
+Copyright (C) 2010 Michael Pearson <pandra-support@phpgrease.net>
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -42,13 +42,9 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 	* Extensible type definition, validation and callback layers
 
-	* Flexible arrangement of Keyspaces, Column Families and Super Columns
+	* Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
 
 	* Hard schema aware, or build factory objects on the fly
-
-	* Provides paginated search functions
-
-	* Bundles with browser based ad hoc predicate, scaffolding and input validation tools
 
 - Dependencies
 
@@ -57,83 +53,3 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 	* Thrift Interface  (thrift binary + cassandra.thrift, or pre generated php sources)
 
 	* PHP >=5.2 (requires APC module)
-
-- Usage Samples
-
-	* Simple connection handling and CRUD operations are currently supported, pending significant further development :
-
-<?php
-// -------- THE CONNECTOR MODEL
-// The basic connection handler to the Cassandra cluster, supporting round-robin reads and writes
-
-// create named connections against PANDRA_PORT_DEFAULT
-Pandra::Connect('default', 'host1'); 
-Pandra::Connect('default1', 'host2');
-Pandra::Connect('default2', 'host3'); // last connected becomes the active connection
-
-// to set active node
-Pandra::setActive('default');
-
-// read/write modes
-Pandra::setReadMode(PANDRA_MODE_ACTIVE); // PANDRA_MODE_ACTIVE, PANDRA_MODE_ROUND, PANDRA_MODE_ROUNDRANDOM. Default ACTIVE
-Pandra::setWriteMode(PANDRA_MODE_ROUND); // PANDRA_MODE_ACTIVE, PANDRA_MODE_ROUND, PANDRA_MODE_ROUNDRANDOM, Default ACTIVE
-
-// get active CassandraClient/Thrift object
-Pandra::getClient();
-
-// disconnections.  Consistency level can be tweaked to replication factor - will detect < 3 nodes for a quorum read for example and downgrade consistency accordingly
-Pandra::disconnect('default'); // closes transport for a named node and drops from connection pool.  
-Pandra::disconnectAll();
-
-// Sets global default consistency level for reads and writes
-Pandra::setConsistency(cassandra_ConsistencyLevel::ONE);
-
-// -------- FACTORY CREATE
-// create a slice object from an existing key
-$mySlice = new PandraSlice('Keyspace1', 'Standard1', '4afcdebc4a65e'); // Keyspace/ColumnFamily/Key ID
-// create a new column
-$mySlice->addColumn('dyn');
-$mySlice->coldyn = 'some data';
-// save
-$mySlice->save();
-
-// -------- BY CHILD OBJECT
-class Customer extends PandraColumnFamily {
-        
-        public function constructColumns() {
-                $this->keySpace = 'Keyspace1';
-                $this->columnFamily = 'Standard1';
-
-                $this->addColumn('customer', array('notempty', 'maxlength=20'));
-                $this->addColumn('username', array('notempty', 'maxlength=20'));
-                $this->addColumn('password', array('notempty', 'maxlength=20'), 'md5');	// md5 crypt password prior to save
-        }
-}
-
-$customer = new Customer();
-$keyID = $customer->keyID = uniqid();
-echo $keyID."\n";
-
-// Magic setters for column values
-$cName = $customer->colcustomer = 'Foo McBar';
-$cUsername = $customer->colusername = 'foologin';
-$cPassword = $customer->colpassword = 'abc1234';
-
-echo $keyID."\n";
-
-// Save new record (slice)
-$customer->save();
-
-unset($customer);
-$customer = new Customer();
-$customer->load($keyID);
-
-// confirm password callback-save matches what we'd expect
-if ($customer->password != md5($cPassword)) {
-        echo "password w/md5 mismatch\n"; // authenticate
-} else {
-        echo "'password' w/md5 callback OK\n";
-}
-
-// Delete
-$customer->delete();

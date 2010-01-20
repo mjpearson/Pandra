@@ -191,5 +191,28 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($this->obj->column_column1, $c1NewValue);
         $this->assertTrue($this->obj->getColumn('column1')->isModified());
     }
+
+    /**
+     * Tests ColumnFamily for Array Access
+     */
+    public function testArrayAccess() {
+        $newValue = 'TEST NEW VALUE';
+
+        // test set
+        $this->obj['column1'] = $newValue;
+        $this->assertTrue($this->obj->getColumn('column1')->value == $newValue);
+        $this->assertFalse($this->obj->getColumn('column1')->value != $newValue);
+
+        // test exists
+        $this->assertTrue(isset($this->obj['column1']));
+        $this->assertFalse(isset($this->obj['NOTcolumn1']));
+
+        // test get
+        $this->assertTrue($this->obj['column1'] == $newValue);
+
+        // test unset
+        unset($this->obj['column1']);
+        $this->assertFalse($this->obj->getColumn('column1') instanceof PandraColumn);        
+    }
 }
 ?>

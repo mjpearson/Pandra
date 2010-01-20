@@ -1,23 +1,33 @@
 <?php
 /**
+ * (c) 2010 phpgrease.net
+ *
+ * For licensing terms, plese see license.txt which should distribute with this source
+ *
  * @package Pandra
+ * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class Pandra {
 
+    /*
     const FORMAT_OBJ = 1;
     const FORMAT_ASSOC = 2;
     const FORMAT_XML = 3;
     const FORMAT_JSON = 4;
 
-    //const APC_EXPIRE_SECONDS = 60;
+    const APC_EXPIRE_SECONDS = 60;
+    */
 
     static public $lastError = '';
+
     static public $consistencyLevel = cassandra_ConsistencyLevel::ZERO;
 
     static private $_nodeConns = array();
+
     static private $_activeNode = NULL;
 
     static private $readMode = PANDRA_MODE_ACTIVE;
+
     static private $writeMode = PANDRA_MODE_ACTIVE;
 
     static private $_supportedModes = array(
@@ -195,3 +205,4 @@ class Pandra {
     }
     */
 }
+?>

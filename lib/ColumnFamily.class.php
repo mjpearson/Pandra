@@ -1,7 +1,14 @@
 <?php
 /**
- * ColumnFamily container class
+ * (c) 2010 phpgrease.net
+ *
+ * For licensing terms, plese see license.txt which should distribute with this source
+ *
  * @package Pandra
+ * @author Michael Pearson <pandra-support@phpgrease.net>
+ */
+
+/**
  * @abstract
  */
 abstract class PandraColumnFamily extends PandraColumnContainer {
@@ -16,42 +23,40 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
     public $keyID = NULL;
 
     /* @var int column family type (standard or super) */
-    private $_type = PANDRA_CF_STANDARD;
+    const TYPE = PANDRA_STANDARD;
 
-      /* var bool columnfamily marked for deletion */
+    /* var bool columnfamily marked for deletion */
     private $_delete = FALSE;
 
+    /* var bool object was loaded from Cassandra */
     private $_loaded = FALSE;
 
     /**
-     * Constructor, builds column structures
+     * marks the column family for this key, for deletion from the keyspace
+     * operation cascades to columns
+     * @return void
      */
-    public function ___construct($keyID = NULL) {
-        $this->constructColumns();
-        if ($keyID !== NULL) $this->load($keyID);
-    }
-
-    /**
-     * deletes the loaded object from the keyspace, or optionally the supplied columns for the key
-     */
-    public function markDelete() {
+    public function delete() {
         $this->_delete = TRUE;
-        foreach ($this->columns as &$column) {
+        foreach ($this->_columns as &$column) {
             $column->delete();
         }
     }
 
-    public function delete() {
-        $this->markDelete();
-    }
-
+    /**
+     * unmarks column family for deletion
+     * cascades to columns, unsets modified flag
+     */
     public function reset() {
         $this->_delete = FALSE;
-        foreach ($this->columns as &$column) {
+        foreach ($this->_columns as &$column) {
             $column->reset();
         }
     }
 
+    /**
+     * @return bool Column Family is marked for deletion
+     */
     public function isDeleted() {
         return $this->_delete;
     }
@@ -83,10 +88,11 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
     }
 
     /**
-     * Loads a row by it's keyID (all supercolumns and columns)
-     * @todo super columns and slice loads
-     * @param mixed $value value of this rows primary key to load from
-     * @return bool this object has loaded its fields
+     * Loads a row by its keyID
+     * @param string $keyID row key
+     * @param bool $colAutoCreate create columns in the object instance which have not been defined
+     * @param int $consistencyLevel cassandra consistency level
+     * @return bool loaded OK
      */
     public function load($keyID, $colAutoCreate = FALSE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
         $this->_loaded = FALSE;
@@ -95,8 +101,8 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
         if (!empty($result)) {
             foreach ($result as $cObj) {
                 // populate self, skip validators - self trusted
-                if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->columns)) $this->addColumn($cObj->column->name);
-                $this->columns[$cObj->column->name]->value = $cObj->column->value;
+                if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->_columns)) $this->addColumn($cObj->column->name);
+                $this->_columns[$cObj->column->name]->value = $cObj->column->value;
             }
             $this->_loaded = TRUE;
         }
@@ -119,8 +125,10 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
     }
 
     /**
-     * Save all columns in this loaded columnfamily
-     * @return void
+     * Save this column family and any modified columns to Cassandra
+     * @param cassandra_ColumnPath $columnPath
+     * @param int $consistencyLevel Cassandra consistency level
+     * @return bool save ok
      */
     public function save(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
@@ -138,16 +146,19 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
             $client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
         }
 
-        foreach ($this->columns as &$cObj) {
+        foreach ($this->_columns as &$cObj) {
+            if (!$cObj->isModified()) continue;
             if (!$cObj->save()) return FALSE;
         }
+
+        $this->reset();
         return TRUE;
     }
 
-    public function getType() {
-        return $this->_type;
-    }
-
+    /**
+     * accessor method
+     * @return bool this Column Family has been loaded from Cassandra
+     */
     public function isLoaded() {
        return $this->_loaded;
     }

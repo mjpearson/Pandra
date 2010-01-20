@@ -1,14 +1,20 @@
 <?php
 /**
+ * (c) 2010 phpgrease.net
+ *
+ * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
+ * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumn {
+class PandraColumn extends cassandra_Column {
+    
     /* @var string column name */
     public $name = NULL;
 
     /* @var string column value */
-    private $_value = NULL;
+    //private $_value = NULL;
+    public $value = NULL;
 
     /* @var int last changed timestamp */
     public $timestamp = NULL;
@@ -31,18 +37,52 @@ class PandraColumn {
     /* @var PandraColumnFamily column family parent reference */
     private $_parentCF = NULL;
 
-    public function __construct($name, $parentCF, $typeDef = array()) {
-        //parent::__construct(array('name' => $name));
-        $this->_parentCF = $parentCF;
+    /**
+     * Column constructor (extends cassandra_Column)
+     * @param string $name Column name
+     * @param PandraColumnContainer $parentCF parent column family (standard or super), or supercolumn
+     * @param array $typeDef validator type definitions
+     */
+    public function __construct($name, PandraColumnContainer $parentCF, $typeDef = array()) {
+        parent::__construct(array('name' => $name));
+        $this->setParentCF($parentCF);
         $this->typeDef = $typeDef;
     }
 
+    /**
+     * Sets parent ColumnFamily or
+     * @param PandraColumnContainer $parentCF
+     */
+    public function setParentCF(PandraColumnContainer $parentCF) {
+        $this->_parentCF = $parentCF;
+    }
+
+    /**
+     * Gets the current working parent column family
+     * @return <type>
+     */
+    public function getParentCF() {
+        return $this->_parentCF;
+    }
+
+    /**
+     * Binds a timestamp to the column, defaults to current time if no override defined
+     * @param int $timeOverride new stamp
+     * @return int new timestamp
+     */
     public function bindTime($timeOverride = NULL) {
         $this->timestamp = ($timeOverride === NULL) ? time() : $timeOverride;
+        $this->_modified = TRUE;
         return $this->timestamp;
     }
 
-    public function setvalue($value, $validate = TRUE) {
+    /**
+     * Sets the value of the column
+     * @param mixed $value new value
+     * @param bool $validate validate the value, if typeDef is set
+     * @return bool column set ok (check lastError for details)
+     */
+    public function setValue($value, $validate = TRUE) {
         if ($validate && !empty($this->typeDef)) {
             if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->lastError)) {
                 $this->_parentCF->errors[] = $this->lastError[0];
@@ -50,50 +90,14 @@ class PandraColumn {
             }
         }
 
-        $this->_value = $value;
+        $this->value = $value;
         $this->_modified = TRUE;
         return TRUE;
     }
 
-    /**
-     * Magic getter
-     * @param string $colName field name to get
-     * @return string value
-     */
-    public function __get($colName) {
-        if ($colName == 'value') {
-            return $this->_value;
-        }
-        return NULL;
-    }
-
-    /**
-     * Magic setter
-     * @todo propogate an exception for setcolumn if it returns false.  magic __set's are void return type
-     * @param string $colName field name to set
-     * @param string $value  value to set for field
-     * @return bool field set ok
-     */
-    public function __set($colName, $value) {
-        if ($colName == 'value') {
-            return $this->setvalue($value, $this->_validator);
-        }
-        return NULL;
-    }
-
-    public function reset() {
-        $this->_modified = FALSE;
-        $this->_delete = FALSE;
-    }
-
-    public function markDelete() {
-        $this->_delete = TRUE;
-        $this->_modified = TRUE;
-    }
-
     public function callbackvalue() {
         $value = '';
-        eval('$value = '.$this->callback.'("'.$this->_value.'");');
+        eval('$value = '.$this->callback.'("'.$this->value.'");');
         return $value;
     }
 
@@ -109,6 +113,8 @@ class PandraColumn {
 
     public function save(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
+        if (!$this->isModified()) return TRUE;
+
         //if (!$this->_modified) return FALSE;
         $this->_parentCF->checkCFState();
 
@@ -121,17 +127,11 @@ class PandraColumn {
         $columnPath->column_family = $this->_parentCF->name;
         $columnPath->column = $this->name;
 
-        // @todo super writes
-        /*
-		if ($this->_parentCF !== NULL && $this->_parentCF instanceof PandraSuperColumn) {
-			$columnPath->super_column = $this->_parentCF->superColumn;
-		}
-        */
         try {
             if ($this->_delete) {
                 $client->remove($this->_parentCF->keySpace, $this->_parentCF->keyID, $columnPath, $this->bindTime(), $consistencyLevel);
             } else {
-                $client->insert($this->_parentCF->keySpace, $this->_parentCF->keyID, $columnPath, $this->_value, $this->bindTime(), $consistencyLevel);
+                $client->insert($this->_parentCF->keySpace, $this->_parentCF->keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), $consistencyLevel);
             }
         } catch (TException $te) {
             array_push($this->lastError, $te->getMessage());
@@ -141,15 +141,32 @@ class PandraColumn {
         return TRUE;
     }
 
-    public function delete() {
-        $this->markDelete();
-        //$this->save();
+    /**
+     * Removes any modified or delete flags, (does not revert values)
+     */
+    public function reset() {
+        $this->_modified = FALSE;
+        $this->_delete = FALSE;
     }
 
+    /**
+     * Marks this column for deletion
+     */
+    public function delete() {
+        $this->_delete = TRUE;
+        $this->_modified = TRUE;        
+    }
+
+    /**
+     * @return bool Column is marked for deletion
+     */
     public function isDeleted() {
         return $this->_delete;
     }
 
+    /**
+     * @return bool column has been modified since instance construct/load
+     */
     public function isModified() {
         return $this->_modified;
     }

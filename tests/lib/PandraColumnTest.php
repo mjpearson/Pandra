@@ -2,9 +2,7 @@
 require_once 'PHPUnit/Framework.php';
 require_once(dirname(__FILE__).'/../../config.php');
 
-class ColumnFamilyTestObject extends PandraColumnFamily {
-
-}
+class ColumnFamilyTestObject extends PandraColumnFamily { }
 
 /**
  * Test class for PandraColumn.
@@ -46,7 +44,6 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testBindTime() {
-return;
         $time = $this->obj->bindTime();
         $this->assertType(PHPUnit_Framework_Constraint_IsType::TYPE_INT, $time);
         $this->assertEquals($time, $this->obj->timestamp);
@@ -67,11 +64,11 @@ return;
         $this->assertFalse($this->obj->isModified());
     }
 
-    public function testMarkDelete() {
+    public function testDelete() {
         $this->assertFalse($this->obj->isModified());
         $this->assertFalse($this->obj->isDeleted());
         
-        $this->obj->markDelete();
+        $this->obj->delete();
 
         $this->assertTrue($this->obj->isModified());
         $this->assertTrue($this->obj->isDeleted());
@@ -104,26 +101,27 @@ return;
 
     }
 
-    public function testDelete() {
-        $this->assertFalse($this->obj->isModified());
-        $this->assertFalse($this->obj->isDeleted());
-
-        $this->obj->delete();
-
-        $this->assertTrue($this->obj->isModified());
-        $this->assertTrue($this->obj->isDeleted());
-    }
-
     public function testIsModifed() {
         $this->assertFalse($this->obj->isModified());
 
-        $this->obj->value = 'OH HI GREAT TO SEE YOU';
+        $this->obj->setValue('OH HI GREAT TO SEE YOU');
 
         $this->assertTrue($this->obj->isModified());
     }
 
-    public function testSave() {
-        
+    public function testSetParentCF() {
+        $newCF = new ColumnFamilyTestObject();
+        $this->obj->setParentCF($newCF);
+
+        $this->assertEquals($newCF, $this->obj->getParentCF());
+    }
+
+    public function testGetParentCF() {
+        $cf = $this->obj->getParentCF();
+        $this->assertTrue($cf instanceof PandraColumnContainer);
+    }
+
+    public function testSave() {        
     }
 }
 ?>

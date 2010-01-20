@@ -1,7 +1,11 @@
 <?php
 /**
+ * (c) 2010 phpgrease.net
+ *
+ * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
+ * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class PandraValidator {
 
@@ -146,3 +150,4 @@ class PandraValidator {
         return empty($errorMsg);
     }
 }
+?>
