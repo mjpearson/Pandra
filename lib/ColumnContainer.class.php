@@ -25,6 +25,9 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var array container for column objects, indexed to field name */
     protected $_columns = array();
 
+    /* @var int column family type (standard or super) */
+    const TYPE = PANDRA_STANDARD;
+
     /* @var array complete list of errors for this object instance */
     public $errors = array();
 
@@ -54,10 +57,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param mixed $value new column value
      */
     public function offsetSet($offset, $value) {
-        if (!isset($this->_columns[$offset])) {
-            $this->addColumn($offset);
-        }
-        $this->_columns[$offset]->setValue($value, TRUE);
+        $this->__set($offset, $value);
     }
 
     /**
@@ -84,7 +84,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return mixed column value
      */
     public function offsetGet($offset) {
-        return $this->getColumn($offset)->value;
+        return $this->__get($offset);
     }
 
     /**
@@ -122,10 +122,11 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return PandraColumn
      */
     public function getColumn($colName) {
-        if (array_key_exists($colName, $this->_columns)) {
+        if ($this->_gsMutable($colName)) {
             return $this->_columns[$colName];
         }
         return NULL;
+        //return $this->__get($colName);
     }
 
     /**
@@ -148,7 +149,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
-     * 
+     *
      * @return array cassandra_Column objects
      */
 
@@ -218,7 +219,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool field exists
      */
     protected function _gsMutable(&$colName) {
-        $colName = preg_replace("/^".self::_columnNamePrefix."/", "", strtolower($colName));
+        $colName = preg_replace("/^".self::_columnNamePrefix."/", "", $colName);
         return array_key_exists($colName, $this->_columns);
     }
 
@@ -229,10 +230,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
      */
     protected function __get($colName) {
         if ($this->_gsMutable($colName)) {
-            return $this->_columns[$colName]->value;
-        } else {
-            return NULL;
+
+            if ($this->_columns[$colName] instanceof PandraColumnContainer && $this->_columns[$colName]->getType() == PANDRA_SUPER) {
+                return $this->_columns[$colName];
+
+            } else if ($this->_columns[$colName] instanceof PandraColumn) {
+                return $this->_columns[$colName]->value;
+
+            } else {
+                return $this->_columns[$colName];
+            }
         }
+        return NULL;
     }
 
     /**
@@ -243,9 +252,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool field set ok
      */
     protected function __set($colName, $value) {
-        if ($this->_gsMutable($colName)) {
-            $this->setColumn($colName, $value);
+        if (!$this->_gsMutable($colName)) {
+            $this->addColumn($offset);
         }
+        $this->setColumn($colName, $value);
     }
 
     /**

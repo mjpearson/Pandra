@@ -22,9 +22,6 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
     /* @var mixed keyID key for the working row */
     public $keyID = NULL;
 
-    /* @var int column family type (standard or super) */
-    const TYPE = PANDRA_STANDARD;
-
     /* var bool columnfamily marked for deletion */
     private $_delete = FALSE;
 

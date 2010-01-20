@@ -24,8 +24,8 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
      * @param string $colName field name to check
      * @return bool field exists
      */
-    protected function _gsMutable(&$colName) {
-        $colName = preg_replace("/^".self::_superNamePrefix."/", "", strtolower($colName));
+    protected function _gsMutable(&$colName) {     
+        $colName = preg_replace("/^".self::_superNamePrefix."/", "", $colName);
         return array_key_exists($colName, $this->_columns);
     }
 
@@ -40,6 +40,10 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
         $scObj->setParentCF($this);
         $this->_columns[$superName] = $scObj;
 
+        return $this->getColumn($superName);
+    }
+
+    public function getSuper($superName) {
         return $this->getColumn($superName);
     }
 }
