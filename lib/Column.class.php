@@ -8,7 +8,7 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class PandraColumn extends cassandra_Column {
-    
+
     /* @var string column name */
     public $name = NULL;
 
@@ -23,7 +23,7 @@ class PandraColumn extends cassandra_Column {
     public $typeDef = array();
 
     /* @var string last processing error */
-    public $lastError = array();
+    public $errors = array();
 
     /* @var string callback function for this column pre-save */
     public $callback = NULL;
@@ -80,12 +80,12 @@ class PandraColumn extends cassandra_Column {
      * Sets the value of the column
      * @param mixed $value new value
      * @param bool $validate validate the value, if typeDef is set
-     * @return bool column set ok (check lastError for details)
+     * @return bool column set ok (check errors for details)
      */
     public function setValue($value, $validate = TRUE) {
         if ($validate && !empty($this->typeDef)) {
-            if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->lastError)) {
-                $this->_parentCF->errors[] = $this->lastError[0];
+            if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->errors)) {
+                $this->_parentCF->errors[] = $this->errors[0];
                 return FALSE;
             }
         }
@@ -101,44 +101,65 @@ class PandraColumn extends cassandra_Column {
         return $value;
     }
 
-    public function cast($object, $parentCF = NULL) {
-        if (get_class($object) == 'cassandra_Column') {
-            $newObj = new PandraColumn($object->name, ($parentCF === NULL) ? $this->_parentCF : $parentCF);
-            $newObj->value = $object->value;
-            $newObj->timestamp = $object->timestamp;
-            return $newObj;
-        }
-        return NULL;
+    /**
+     * Casts from a cassandra_Column type, to PandraColumn
+     * @param cassandra_Column $object source objct
+     * @param PandraColumnFamily $parentCF parent container
+     * @return PandraColumn new column object
+     */
+    static public function cast(cassandra_Column $object, $parentCF = NULL) {
+        $newObj = new PandraColumn($object->name, ($parentCF === NULL) ? $this->_parentCF : $parentCF);
+        $newObj->value = $object->value;
+        $newObj->timestamp = $object->timestamp;
+        return $newObj;
     }
 
-    public function save(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function save($keyID, $keySpace, $columnFamily, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
         if (!$this->isModified()) return TRUE;
 
-        //if (!$this->_modified) return FALSE;
-        $this->_parentCF->checkCFState();
-
-        $client = Pandra::getClient(TRUE);
-
-        // build the column path
-        if ($columnPath == NULL) {
-            $columnPath = new cassandra_ColumnPath();
-        }
-        $columnPath->column_family = $this->_parentCF->name;
+        // Build the column path for modifying this individual column
+        $columnPath = new cassandra_ColumnPath();
+        $columnPath->column_family = $columnFamily;
         $columnPath->column = $this->name;
 
-        try {
-            if ($this->_delete) {
-                $client->remove($this->_parentCF->keySpace, $this->_parentCF->keyID, $columnPath, $this->bindTime(), $consistencyLevel);
-            } else {
-                $client->insert($this->_parentCF->keySpace, $this->_parentCF->keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), $consistencyLevel);
-            }
-        } catch (TException $te) {
-            array_push($this->lastError, $te->getMessage());
-            $this->_parentCF->errors[] = $this->lastError[0];
-            return FALSE;
+        $ok = FALSE;
+
+        if ($this->_delete) {
+            $ok = Pandra::deleteColumnPath($keySpace, $keyID, $columnPath, $this->bindTime(), $consistencyLevel);
+        } else {
+            $ok = Pandra::saveColumnPath($keySpace, $keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), $consistencyLevel);
         }
-        return TRUE;
+
+        if (!$ok) {
+            if (empty(Pandra::$errors)) {
+                $errorStr = 'Unkown Error';
+            } else {
+                $errorStr = Pandra::$errors;
+            }
+
+            $this->registerError($errorStr);
+        }
+
+        if ($ok) $this->reset();
+        return $ok;
+    }
+
+    public function registerError($errorStr) {
+        if (empty($errorStr)) return;
+        array_push($this->errors, $errorStr);
+        if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+    }
+
+    public function getErrors() {
+        return $this->errors;
+    }
+
+    public function getLastError() {
+        if (count($this->errors)) {
+            return $this->errors[0];
+        }
+        return NULL;
     }
 
     /**
@@ -154,14 +175,14 @@ class PandraColumn extends cassandra_Column {
      */
     public function delete() {
         $this->_delete = TRUE;
-        $this->_modified = TRUE;        
+        $this->_modified = TRUE;
     }
 
     /**
      * @return bool Column is marked for deletion
      */
     public function isDeleted() {
-        return $this->_delete;
+        return ($this->_delete && $this->_modified);
     }
 
     /**
@@ -171,3 +192,4 @@ class PandraColumn extends cassandra_Column {
         return $this->_modified;
     }
 }
+?>

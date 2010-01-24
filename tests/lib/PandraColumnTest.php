@@ -92,7 +92,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $column = new cassandra_Column();
         $column->value = 'THRIFT COLUMN VALUE';
 
-        $pandraColumn = $this->obj->cast($column);
+        $pandraColumn = $this->obj->cast($column, $this->parentCF);
 
         $this->assertEquals(get_class($pandraColumn), 'PandraColumn');
         $this->assertEquals($pandraColumn->value, $column->value);

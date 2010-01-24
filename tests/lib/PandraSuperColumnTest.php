@@ -13,8 +13,12 @@ class TestSuperColumn extends PandraSuperColumn {
 
 // ColumnFamily (SuperColumn Wrapper)
 class TestCFSuper extends PandraColumnFamilySuper {
-    var $keySpace = 'Keyspace1';
-    var $name = 'Super1';
+
+    public function constructColumns() {
+        $this->setKeySpace('Keyspace1');
+        $this->setName('Super1');
+    }
+
 }
 
 /**
@@ -74,7 +78,6 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testSave() {
-
         // this could also be $this->obj->column_city = 'SOME CITY';
         $this->obj->getColumn('city')->setValue('SOME CITY');
         $this->obj->getColumn('street')->setValue('MY STREET');
@@ -84,6 +87,12 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testLoad() {
+
+        unset($this->obj);
+
+        $this->obj = new TestSuperColumn('address1', $this->parentCF);
+        $this->assertTrue($this->obj->load($this->keyID));
+
         
     }
 

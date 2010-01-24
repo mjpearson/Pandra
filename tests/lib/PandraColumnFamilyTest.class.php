@@ -5,10 +5,11 @@ require_once dirname(__FILE__).'/../../lib/ColumnFamily.class.php';
 
 class ColumnFamilyTestObject extends PandraColumnFamily {
 
-    var $keySpace = 'Keyspace1';
-    var $name = 'Standard1';
-
     public function constructColumns() {
+
+        $this->setKeySpace('Keyspace1');
+        $this->setName('Standard1');
+
         $this->addColumn('column1', 'notempty');
         $this->column_column1 = 'VALUE';
     }
@@ -96,20 +97,9 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
-     * @todo Implement testGetRawSlice().
-     */
-    public function testGetRawSlice() {
-        $this->assertTrue($this->obj->save(), $this->obj->lastError());
-        $slice = $this->obj->getRawSlice($this->_keyID);
-
-        $this->assertTrue(is_array($slice));
-        $this->assertEquals(get_class($slice[0]), 'cassandra_ColumnOrSuperColumn');
-    }
-
-    /**
      * @todo Implement testSave().
      */
-    public function testSave() {
+    public function testSaveLoadDelete() {
         $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
         // reload the object, test that column1 is the same

@@ -14,19 +14,24 @@
 abstract class PandraColumnFamily extends PandraColumnContainer {
 
     /* @var string keyspace (or database) for this column family */
-    public $keySpace = NULL;
+    protected $keySpace = NULL;
 
     /* @var this column families name (table name) */
-    public $name = NULL;
+    protected $name = NULL;
 
     /* @var mixed keyID key for the working row */
     public $keyID = NULL;
 
-    /* var bool columnfamily marked for deletion */
-    private $_delete = FALSE;
-
     /* var bool object was loaded from Cassandra */
-    private $_loaded = FALSE;
+    protected $_loaded = FALSE;
+
+    /**
+     * Constructor, builds column structures
+     */
+    public function __construct($keyID = NULL) {
+        parent::__construct();
+        if ($keyID !== NULL) $this->load($keyID);
+    }
 
     /**
      * marks the column family for this key, for deletion from the keyspace
@@ -34,7 +39,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @return void
      */
     public function delete() {
-        $this->_delete = TRUE;
+        $this->setDelete(TRUE);
         foreach ($this->_columns as &$column) {
             $column->delete();
         }
@@ -45,7 +50,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * cascades to columns, unsets modified flag
      */
     public function reset() {
-        $this->_delete = FALSE;
+        $this->setDelete(FALSE);
         foreach ($this->_columns as &$column) {
             $column->reset();
         }
@@ -55,54 +60,28 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @return bool Column Family is marked for deletion
      */
     public function isDeleted() {
-        return $this->_delete;
+        return $this->getDelete();
     }
 
     /**
-     * Gets complete slice of Thrift cassandra_Column objects for keyID
-     *
-     * @return array cassandra_Column objects
-     */
-    public function getRawSlice($keyID, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-        $this->keyID = $keyID;
-
-        $this->checkCFState();
-
-        $client = Pandra::getClient();
-
-        // build the column path
-        $columnParent = new cassandra_ColumnParent();
-        $columnParent->column_family = $this->name;
-        //$columnParent->super_column = $this->superColumn;
-        $columnParent->super_column = null;
-
-        $predicate = new cassandra_SlicePredicate();
-        $predicate->slice_range = new cassandra_SliceRange();
-        $predicate->slice_range->start = '';
-        $predicate->slice_range->finish = '';
-
-        return $client->get_slice($this->keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
-    }
-
-    /**
-     * Loads a row by its keyID
+     * Loads an entire columnfamily by keyid
      * @param string $keyID row key
      * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = FALSE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+
         $this->_loaded = FALSE;
 
-        $result = $this->getRawSlice($keyID, $consistencyLevel);
-        if (!empty($result)) {
-            foreach ($result as $cObj) {
-                // populate self, skip validators - self trusted
-                if ($colAutoCreate && !array_key_exists($cObj->column->name, $this->_columns)) $this->addColumn($cObj->column->name);
-                $this->_columns[$cObj->column->name]->value = $cObj->column->value;
-            }
-            $this->_loaded = TRUE;
+        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
+
+        if ($result !== NULL) {
+            $this->_loaded = $this->populate($result, $colAutoCreate);
+        } else {
+            $this->registerError(Pandra::$lastError);
         }
+
         return $this->_loaded;
     }
 
@@ -115,10 +94,10 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
         if ($this->keyID === NULL) throw new RuntimeException('NULL keyID defined, cannot insert');
 
         // check a Keyspace is defined
-        if ($this->keySpace === NULL) throw new RuntimeException('NULL keySpace defined, cannot insert');
+        if ($this->getKeySpace() === NULL) throw new RuntimeException('NULL keySpace defined, cannot insert');
 
         // check a column family is defined
-        if ($this->name === NULL) throw new RuntimeException('NULL name defined, cannot insert');
+        if ($this->getName() === NULL) throw new RuntimeException('NULL name defined, cannot insert');
     }
 
     /**
@@ -127,29 +106,35 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @param int $consistencyLevel Cassandra consistency level
      * @return bool save ok
      */
-    public function save(cassandra_ColumnPath $columnPath = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
         $this->checkCFState();
 
-        if ($this->_delete === TRUE) {
-            $client = Pandra::getClient(TRUE);
+        $ok = FALSE;
 
-            if ($columnPath === NULL) {
-                $columnPath = new cassandra_ColumnPath();
-                $columnPath->column_family = $this->name;
-            }
+        if ($this->getDelete()) {
+
+            $columnPath = new cassandra_ColumnPath();
+            $columnPath->column_family = $this->getName();
+
+            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time());
+            if (!$ok) $this->registerError(Pandra::$lastError);
+
+        } else {
             
-            // Delete this column family
-            $client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+            foreach ($this->_columns as &$cObj) {
+                if (!$cObj->isModified()) continue;
+                if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), $consistencyLevel)) {
+                    $this->registerError($cObj->getLastError());
+                    return FALSE;
+                }
+            }
+            $ok = TRUE;
         }
 
-        foreach ($this->_columns as &$cObj) {
-            if (!$cObj->isModified()) continue;
-            if (!$cObj->save()) return FALSE;
-        }
+        if ($ok) $this->reset();
 
-        $this->reset();
-        return TRUE;
+        return $ok;
     }
 
     /**
@@ -158,6 +143,30 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      */
     public function isLoaded() {
        return $this->_loaded;
+    }
+
+    public function setName($name) {
+        $this->name = $name;
+    }
+
+    public function getName() {
+        return $this->name;
+    }
+
+    public function setKeySpace($keySpace) {
+        $this->keySpace = $keySpace;
+    }
+
+    public function getKeySpace() {
+        return $this->keySpace;
+    }
+
+    public function setKeyID($keyID) {
+        $this->keyID = $keyID;
+    }
+
+    public function getKeyID() {
+        return $this->keyID;
     }
 }
 ?>

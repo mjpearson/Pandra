@@ -127,6 +127,25 @@ class PandraTest extends PHPUnit_Framework_TestCase {
     public function testLoadConfigXML() {
         $config = Pandra::loadConfigXML();
         $this->assertTrue(get_class($config) == 'SimpleXMLElement');
-    }    
+    }
+
+    /**
+     * @todo
+     */
+    public function testGetCFSlice() {
+    }
+
+    /**
+     * @todo
+     */
+    public function testDeleteColumnPath() {
+    }
+
+    /**
+     * @todo
+     */
+    public function testSaveColumnPath() {
+    }
+
 }
 ?>

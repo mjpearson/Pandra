@@ -14,10 +14,11 @@
 abstract class PandraColumnContainer implements ArrayAccess {
 
     /* @var this column families name (table name) */
-    public $name = NULL;
+    protected $name = NULL;
 
     /* @var mixed keyID key for the working row */
-    public $keyID = NULL;
+    // @todo GET RID OF THIS
+    private $keyID = NULL;
 
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
@@ -32,14 +33,23 @@ abstract class PandraColumnContainer implements ArrayAccess {
     public $errors = array();
 
     /* var bool columnfamily marked for deletion */
-    private $_delete = FALSE;
+    private $_delete = FALSE;    
 
-    /**
-     * Constructor, builds column structures
-     */
-    public function __construct($keyID = NULL) {
+    private $_modified = FALSE;
+
+    protected $_loaded = FALSE;
+
+    public function __construct() {
         $this->constructColumns();
-        if ($keyID !== NULL) $this->load($keyID);
+    }
+
+    public function getName() {
+        return $this->name;
+    }
+
+    public function setName($name) {
+        $this->name = $name;
+
     }
 
     /**
@@ -47,7 +57,24 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * when defining hard schemas.  It is called automatically by the constructor.
      * @return void
      */
-    public function constructColumns() {
+    public function constructColumns() { }
+
+    protected function setModified($modified) {
+        $this->_modified = $modified;
+    }
+
+    protected function setDelete($delete) {
+        $this->setModified(TRUE);
+        $this->_delete = $delete;
+    }
+
+    protected function getDelete() {
+        return $this->_delete;
+    }
+
+    public function registerError($errorStr) {
+        if (empty($errorStr)) return;
+        $this->errors[] = $errorStr;
     }
 
     /**
@@ -136,7 +163,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param bool $validate opt validate from typeDef (default TRUE)
      * @return bool column set ok
      */
-    public function setColumn($colName, $value, $validate = TRUE) {
+    public function setColumn($colName, $value, $validate = TRUE) {       
         return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));
     }
 
@@ -154,32 +181,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
      */
 
     /**
-     * Gets complete slice of Thrift cassandra_Column objects for keyID
-     * @param mixed $keyID key id for row
-     * @param int $consistencyLevel cassandra consistency level
-     * @return cassandra_Cassandra_get_slice_result
-     */
-    public function getRawSlice($keyID, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-        $this->keyID = $keyID;
-
-        $this->_parentCF->checkCFState();
-
-        $client = Pandra::getClient();
-
-        // build the column path
-        $columnParent = new cassandra_ColumnParent();
-        $columnParent->column_family = $this->name;
-        $columnParent->super_column = null;
-
-        $predicate = new cassandra_SlicePredicate();
-        $predicate->slice_range = new cassandra_SliceRange();
-        $predicate->slice_range->start = '';
-        $predicate->slice_range->finish = '';
-
-        return $client->get_slice($this->keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
-    }
-
-    /**
      * Resets deletion states for the column family
      */
     public function reset() {
@@ -192,18 +193,33 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /**
      * Populates container object (ColumnFamily, ColumnFamilySuper or SuperColumn)
-     * @param mixed $data associative array or json string of key => values.
+     * @param mixed $data associative string array, array of cassandra_Column's or JSON string of key => values.
      * @return bool column values set without error
      */
-    public function populate($data) {
+    public function populate($data, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE) {
         if (is_string($data)) {
             $data = json_decode($data, TRUE);
         }
 
-        if (is_array($data)) {
-            foreach ($data as $key => $value) {
-                if (array_key_exists($key, $this->_columns)) {
-                    $this->_columns[$key]->setValue($value);
+        if (is_array($data) && count($data)) {
+            foreach ($data as $idx => $colValue) {
+
+                if ($value instanceof cassandra_Column) {                    
+                    if ($colAutoCreate || array_key_exists($colValue->column->name, $this->_columns)) {
+                        $this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
+                    }
+                    
+                } else {
+                    $colExists = array_key_exists($idx, $this->_columns);
+                    // Create a new named column object
+                    if ($colAutoCreate && !array_key_exists($idx, $this->_columns)) {
+                        $this->addColumn($idx);
+                    }
+
+                    // Set Value
+                    if (array_key_exists($idx, $this->_columns)) {
+                        $this->_columns[$idx]->setValue($colValue);
+                    }
                 }
             }
         } else {
@@ -219,7 +235,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool field exists
      */
     protected function _gsMutable(&$colName) {
-        $colName = preg_replace("/^".self::_columnNamePrefix."/", "", $colName);
+        $colName = preg_replace("/^".constant(get_class($this).'::_columnNamePrefix')."/", "", $colName);
         return array_key_exists($colName, $this->_columns);
     }
 
@@ -241,6 +257,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
                 return $this->_columns[$colName];
             }
         }
+        //echo "$colName mutable <br>";
         return NULL;
     }
 
@@ -253,7 +270,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      */
     protected function __set($colName, $value) {
         if (!$this->_gsMutable($colName)) {
-            $this->addColumn($offset);
+            $this->addColumn($colName);
         }
         $this->setColumn($colName, $value);
     }
@@ -265,4 +282,28 @@ abstract class PandraColumnContainer implements ArrayAccess {
     public function getType() {
         return constant(get_class($this)."::TYPE");
     }
+
+    public function isModified() {
+        foreach ($this->_columns as $column) {
+            if ($column->isModified()) return TRUE;
+        }
+        return FALSE;
+    }
+
+    public function bindTimeModifiedColumns() {
+        foreach ($this->_columns as &$cObj) {
+            if ($cObj->isModified()) {
+                $cObj->bindTime();
+            }
+        }
+    }
+
+    public function getModifiedColumns() {
+        $modColumns = array();
+        foreach ($this->_columns as &$cObj) {
+            if ($cObj->isModified()) $modColumns[] = &$cObj;
+        }
+        return $modColumns;
+    }
 }
+?>

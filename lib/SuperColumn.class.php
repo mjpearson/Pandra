@@ -22,7 +22,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      */
     public function __construct($superName, PandraColumnFamilySuper $parentCF = NULL) {
         // SuperColumn name
-        $this->name = $superName;
+        $this->setName($superName);
 
         // Reference parent ColumnFamilySuper
         if ($parentCF !== NULL) {
@@ -31,68 +31,91 @@ class PandraSuperColumn extends PandraColumnContainer {
         parent::__construct();
     }
 
-     /**
+    /**
      * Save all columns in this loaded columnfamily
+     * @todo DELETES
      * @return void
      */
     public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
+        if (!$this->isModified()) return FALSE;
+
         $this->_parentCF->checkCFState();
 
-        $client = Pandra::getClient(TRUE);
+        $ok = FALSE;
 
-        if ($this->_delete === TRUE) {
+        if ($this->getDelete()) {
+            
             if ($columnPath === NULL) {
                 $columnPath = new cassandra_ColumnPath();
-                $columnPath->column_family = $this->name;
+                $columnPath->column_family = $this->_parentCF->getName();
+                $columnPath->super_column = $this->getName();
+
+                $ok = Pandra::delete($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+                if (!$ok) $this->registerError(Pandra::$lastError);
+
+                return $ok;
             }
 
-            //$client->remove($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
-            echo 'REMOVING WHOLE SUPERCOLUMN '.$this->name.' FOR '.$this->keyID;
-        }
-
-        // Build batch insert/remove clauses
-        $insertColumns = array();
-        $removeColumns = array();
-
-        $scModified = FALSE;
-        foreach ($this->_columns as &$cObj) {
-            if ($cObj->isModified()) {
-                $scModified = TRUE;
-                $cObj->bindTime();
-
-                // Flag Deleting or inserting columns
-                if ($cObj->isDeleted()) {
-                    $removeColumns[] = $cObj;
-                } else {
-                    $insertColumns[] = $cObj;
-                }
-            }
-        }
-        
-        if ($scModified && !empty($insertColumns)) {
+        } else {
+            
+            $this->bindTimeModifiedColumns();            
+            
             try {
                 $mutation = array();
 
+                $client = Pandra::getClient();
+
                 // Cast this supercolumn into a thrift cassandra_SuperColumn()  (YICK!)
                 $thisSuper = new cassandra_SuperColumn();
-                $thisSuper->name = $this->name;
-                $thisSuper->columns = $insertColumns;
+                $thisSuper->name = $this->getName();
+                $thisSuper->columns = $this->getModifiedColumns();
 
                 $scContainer = new cassandra_ColumnOrSuperColumn();
                 $scContainer->super_column = $thisSuper;
 
                 // @todo - move this to the columnfamilysuper class? Looks like it can handle multiple mutations
-                $mutations[$this->_parentCF->name] = array($scContainer);
-                $client->batch_insert($this->_parentCF->keySpace, $this->_parentCF->keyID, $mutations, $consistencyLevel);
+                $mutations[$this->_parentCF->getName()] = array($scContainer);
+                $client->batch_insert($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $mutations, $consistencyLevel);                
+                
+                $this->reset();
+
+                return TRUE;
                 
             } catch (TException $te) {
-                array_push($this->errors, $te->getMessage());
-                $this->_parentCF->errors[] = $this->errors[0];
-                return FALSE;
+                $this->registerError($te->getMessage());
             }
         }
-        return $scModified;
+        return FALSE;
+    }
+
+    /**
+     * Loads a SuperColumn for key
+     *
+     * Load will generate RuntimeException if parent column family has not been set (
+     *
+     * @param string $keyID row key
+     * @param bool $colAutoCreate create columns in the object instance which have not been defined
+     * @param int $consistencyLevel cassandra consistency level
+     * @return bool loaded OK
+     */
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+
+        if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraColumnFamilySuper)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
+
+        $this->_parentCF->checkCFState();
+
+        $this->_loaded = FALSE;
+
+        $result = Pandra::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), $consistencyLevel);
+
+        if ($result !== NULL) {
+            $this->_loaded = $this->populate($result, $colAutoCreate);
+        } else {
+            $this->registerError(Pandra::$lastError);
+        }
+
+        return $this->_loaded;
     }
 
     /**
@@ -100,10 +123,11 @@ class PandraSuperColumn extends PandraColumnContainer {
      * @param PandraColumnContainer $parentCF
      */
     public function setParentCF(PandraColumnContainer $parentCF) {
-        if (!($parentCF instanceof PandraColumnFamily) && !($parentCf instanceof PandraColumnFamilySuper)) {
-            throw new RuntimeException('Parent must be a Column Family');
+        if ($parentCF instanceof PandraColumnFamilySuper) {
+            $this->_parentCF = $parentCF;
+        } else {
+            throw new RuntimeException('Parent must be a Column Family (Super)');
         }
-        $this->_parentCF = $parentCF;
     }
 
     /**
@@ -113,4 +137,11 @@ class PandraSuperColumn extends PandraColumnContainer {
     public function getParentCF() {
         return $this->_parentCF;
     }
+
+    public function registerError($errorStr) {
+        if (empty($errorStr)) return;
+        array_push($this->errors, $errorStr);
+        if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+    }
 }
+?>

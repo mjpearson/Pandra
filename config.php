@@ -31,6 +31,8 @@ define('PANDRA_MODE_RANDOM', 2);	// select random node
 define('PANDRA_STANDARD', 0);
 define('PANDRA_SUPER', 1);
 
+define('PANDRA_DEFAULT_CREATE_MODE', TRUE);
+
 function _pandraAutoLoad($className) {
 
     	if (!preg_match("/^pandra/i", $className)) return;

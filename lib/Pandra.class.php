@@ -149,7 +149,7 @@ class Pandra {
                 return self::$_nodeConns[self::$_activeNode]['client'];
                 break;
             case PANDRA_MODE_RANDOM :
-                $randConn =& array_rand(self::$_nodeConns);            
+                $randConn =& array_rand(self::$_nodeConns);
                 return self::$_nodeConns[$randConn]['client'];
                 break;
             case PANDRA_MODE_ACTIVE :
@@ -172,6 +172,64 @@ class Pandra {
         $conf = simplexml_load_file(CASSANDRA_CONF_PATH);
         return $conf;
     }
+
+    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+        try {
+            $client = Pandra::getClient(TRUE);
+            $client->remove($keySpace, $keyID, $columnPath, $time, $consistencyLevel);
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+        try {
+            $client = Pandra::getClient(TRUE);
+            $client->insert($keySpace, $keyID, $columnPath, $value, $time, $consistencyLevel);
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+     /**
+     * Gets complete slice of Thrift cassandra_Column objects for keyID
+     *
+     * @return array cassandra_Column objects
+     */
+    public function getCFSlice($keyID, $keySpace, $cfName, $superName = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+
+        $client = Pandra::getClient();
+
+        // build the column path
+        $columnParent = new cassandra_ColumnParent();
+        $columnParent->column_family = $cfName;
+        $columnParent->super_column = $superName;
+
+        $predicate = new cassandra_SlicePredicate();
+        $predicate->slice_range = new cassandra_SliceRange();
+        $predicate->slice_range->start = '';
+        $predicate->slice_range->finish = '';
+
+        try {
+            if (is_array($keyID)) {
+                return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+            } else {
+                return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+            }
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+        return NULL;
+    }
+
+
+
+
 
     /*
     static public function buildModels($ks = NULL) {
