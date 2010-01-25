@@ -123,6 +123,8 @@ class Pandra {
                     'client' => new CassandraClient(new TBinaryProtocol($transport))
             );
 
+
+
             // set new connection the active, working master
             self::setActiveNode($connectionID);
             return TRUE;
@@ -173,8 +175,8 @@ class Pandra {
         return $conf;
     }
 
-    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-        try {
+public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    try {
             $client = Pandra::getClient(TRUE);
             $client->remove($keySpace, $keyID, $columnPath, $time, $consistencyLevel);
         } catch (TException $te) {

@@ -18,7 +18,7 @@ class PandraSuperColumn extends PandraColumnContainer {
     /**
      * Supercolumn constructor
      * @param string $superName Super Column name
-     * @param PandraColumnFamilySuper $parentCF 
+     * @param PandraColumnFamilySuper $parentCF
      */
     public function __construct($superName, PandraColumnFamilySuper $parentCF = NULL) {
         // SuperColumn name
@@ -45,7 +45,7 @@ class PandraSuperColumn extends PandraColumnContainer {
         $ok = FALSE;
 
         if ($this->getDelete()) {
-            
+
             if ($columnPath === NULL) {
                 $columnPath = new cassandra_ColumnPath();
                 $columnPath->column_family = $this->_parentCF->getName();
@@ -58,9 +58,9 @@ class PandraSuperColumn extends PandraColumnContainer {
             }
 
         } else {
-            
-            $this->bindTimeModifiedColumns();            
-            
+
+            $this->bindTimeModifiedColumns();
+
             try {
                 $mutation = array();
 
@@ -76,12 +76,12 @@ class PandraSuperColumn extends PandraColumnContainer {
 
                 // @todo - move this to the columnfamilysuper class? Looks like it can handle multiple mutations
                 $mutations[$this->_parentCF->getName()] = array($scContainer);
-                $client->batch_insert($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $mutations, $consistencyLevel);                
-                
+                $client->batch_insert($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $mutations, $consistencyLevel);
+
                 $this->reset();
 
                 return TRUE;
-                
+
             } catch (TException $te) {
                 $this->registerError($te->getMessage());
             }
@@ -110,6 +110,7 @@ class PandraSuperColumn extends PandraColumnContainer {
         $result = Pandra::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), $consistencyLevel);
 
         if ($result !== NULL) {
+            $this->init();
             $this->_loaded = $this->populate($result, $colAutoCreate);
         } else {
             $this->registerError(Pandra::$lastError);
@@ -122,12 +123,8 @@ class PandraSuperColumn extends PandraColumnContainer {
      * Sets parent ColumnFamily or
      * @param PandraColumnContainer $parentCF
      */
-    public function setParentCF(PandraColumnContainer $parentCF) {
-        if ($parentCF instanceof PandraColumnFamilySuper) {
-            $this->_parentCF = $parentCF;
-        } else {
-            throw new RuntimeException('Parent must be a Column Family (Super)');
-        }
+    public function setParentCF(PandraColumnFamilySuper $parentCF) {
+        $this->_parentCF = $parentCF;
     }
 
     /**

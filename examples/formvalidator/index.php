@@ -16,8 +16,8 @@
 session_start();
 
 if (!empty($_SESSION['badAgent'])) {
-    echo 'BAD AGENT';    
-    exit;    // bail on problem agents
+//    echo 'BAD AGENT';
+//    exit;    // bail on problem agents
 }
 
 error_reporting(E_ALL);
@@ -27,7 +27,7 @@ require_once(dirname(__FILE__).'/../../config.php');
  * Simple PandraColumnFamily class with a few columns and type defnitions
  */
 class Customer extends PandraColumnFamily {
-    public function constructColumns() {
+    public function init() {
         $this->addColumn('firstName', array('minlength=3', 'maxlength=20'));
         $this->addColumn('emailAddress', 'email');
         $this->addColumn('age', 'int');
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         
             if ($column != NULL && FALSE === $column->setValue($_POST['fieldValue'])) {
                     // return last error on the column if setValue failed
-                    ajaxResult($_POST['fieldName'], $column->lastError);
+                    ajaxResult($_POST['fieldName'], $column->getErrors());
             } else {
                     // everything OK. (fieldName's which are not columns in customer also being skipped)
                     ajaxResult();
@@ -156,7 +156,7 @@ $colourBad = '#FBADBA';
             }
         </style>
         
-        <script type="text/javascript" src="jquery-1.3.2.js"></script>
+        <script type="text/javascript" src="../jquery-1.3.2.js"></script>
         <script type="text/javascript">
             $(document).ready(function() {
 

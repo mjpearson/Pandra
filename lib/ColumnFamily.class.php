@@ -30,7 +30,9 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      */
     public function __construct($keyID = NULL) {
         parent::__construct();
-        if ($keyID !== NULL) $this->load($keyID);
+        if ($keyID !== NULL) {
+            $this->load($keyID);
+        }
     }
 
     /**
@@ -54,13 +56,14 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
         foreach ($this->_columns as &$column) {
             $column->reset();
         }
+        return (!$this->getDelete() && !$this->isModified());
     }
 
     /**
      * @return bool Column Family is marked for deletion
      */
     public function isDeleted() {
-        return $this->getDelete();
+        return ($this->isModified() && $this->getDelete());
     }
 
     /**
@@ -77,7 +80,9 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
         $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
 
         if ($result !== NULL) {
+            $this->init();
             $this->_loaded = $this->populate($result, $colAutoCreate);
+            if ($this->_loaded) $this->setKeyID($keyID);
         } else {
             $this->registerError(Pandra::$lastError);
         }
@@ -121,7 +126,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
             if (!$ok) $this->registerError(Pandra::$lastError);
 
         } else {
-            
+
             foreach ($this->_columns as &$cObj) {
                 if (!$cObj->isModified()) continue;
                 if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), $consistencyLevel)) {
@@ -142,7 +147,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @return bool this Column Family has been loaded from Cassandra
      */
     public function isLoaded() {
-       return $this->_loaded;
+        return $this->_loaded;
     }
 
     public function setName($name) {

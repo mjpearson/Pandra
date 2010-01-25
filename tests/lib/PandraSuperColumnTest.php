@@ -4,7 +4,7 @@ require_once(dirname(__FILE__).'/../../config.php');
 
 // SuperColumn wrapper
 class TestSuperColumn extends PandraSuperColumn {
-    public function constructColumns() {
+    public function init() {
         $this->addColumn('city', 'string');
         $this->addColumn('street', 'string');
         $this->addColumn('zip', 'int');
@@ -14,7 +14,7 @@ class TestSuperColumn extends PandraSuperColumn {
 // ColumnFamily (SuperColumn Wrapper)
 class TestCFSuper extends PandraColumnFamilySuper {
 
-    public function constructColumns() {
+    public function init() {
         $this->setKeySpace('Keyspace1');
         $this->setName('Super1');
     }

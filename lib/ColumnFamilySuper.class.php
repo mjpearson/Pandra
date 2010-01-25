@@ -17,7 +17,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
     const TYPE = PANDRA_SUPER;
 
     /* @var string magic get/set prefix for Super Columns */
-    const _columnNamePrefix = 'super_';    
+    const _columnNamePrefix = 'super_';
 
     /**
      * Helper function to add a Super Column instance to this Super Column Family
@@ -35,7 +35,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
     }
 
     public function delete() {
-         $this->setDelete(TRUE);
+        $this->setDelete(TRUE);
     }
 
     /**
@@ -59,7 +59,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
         foreach ($this->_columns as $superColumn) {
             if ($superColumn->isModified()) return TRUE;
         }
-        return FALSE;
+        return $this->_modified;
     }
 
     /**
@@ -72,6 +72,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
     }
 
     public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+
         if (!$this->isModified()) return FALSE;
 
         $ok = FALSE;
@@ -81,20 +82,49 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = Pandra::delete($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), $consistencyLevel);
             if (!$ok) $this->registerError(Pandra::$lastError);
 
         } else {
             foreach ($this->_columns as $colName => $superColumn) {
-                $superColumn->save();
+                $ok = $superColumn->save();
+                if (!$ok) {
+                    $this->registerError(Pandra::$lastError);
+                    break;
+                }
             }
         }
 
         return $ok;
     }
 
-    public function load($keyID, $colAutoCreate = FALSE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-    }
+    /**
+     * Loads an entire columnfamily by keyid
+     * @param string $keyID row key
+     * @param bool $colAutoCreate create columns in the object instance which have not been defined
+     * @param int $consistencyLevel cassandra consistency level
+     * @return bool loaded OK
+     */
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
 
+        $this->_loaded = FALSE;
+
+        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
+
+        if ($result !== NULL) {
+            foreach ($result as $superColumn) {
+                $sc = $superColumn->super_column;
+
+                // @todo Should at least 1 successful superload really indicate a successful load state?
+                $this->_loaded = $this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, PANDRA_DEFAULT_CREATE_MODE);
+            }
+            if ($this->_loaded) $this->setKeyID($keyID);
+
+        } else {
+            $this->registerError(Pandra::$lastError);
+        }
+
+        return $this->_loaded;
+    }
 }
 ?>

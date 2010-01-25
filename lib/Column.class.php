@@ -13,7 +13,6 @@ class PandraColumn extends cassandra_Column {
     public $name = NULL;
 
     /* @var string column value */
-    //private $_value = NULL;
     public $value = NULL;
 
     /* @var int last changed timestamp */
@@ -72,7 +71,7 @@ class PandraColumn extends cassandra_Column {
      */
     public function bindTime($timeOverride = NULL) {
         $this->timestamp = ($timeOverride === NULL) ? time() : $timeOverride;
-        $this->_modified = TRUE;
+        $this->setModified();
         return $this->timestamp;
     }
 
@@ -91,7 +90,7 @@ class PandraColumn extends cassandra_Column {
         }
 
         $this->value = $value;
-        $this->_modified = TRUE;
+        $this->setModified();
         return TRUE;
     }
 
@@ -175,7 +174,7 @@ class PandraColumn extends cassandra_Column {
      */
     public function delete() {
         $this->_delete = TRUE;
-        $this->_modified = TRUE;
+        $this->setModified();
     }
 
     /**
@@ -183,6 +182,10 @@ class PandraColumn extends cassandra_Column {
      */
     public function isDeleted() {
         return ($this->_delete && $this->_modified);
+    }
+
+    public function setModified($modified = TRUE) {
+        $this->_modified = $modified;
     }
 
     /**

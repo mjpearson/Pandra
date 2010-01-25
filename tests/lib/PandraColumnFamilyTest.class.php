@@ -5,7 +5,7 @@ require_once dirname(__FILE__).'/../../lib/ColumnFamily.class.php';
 
 class ColumnFamilyTestObject extends PandraColumnFamily {
 
-    public function constructColumns() {
+    public function init() {
 
         $this->setKeySpace('Keyspace1');
         $this->setName('Standard1');

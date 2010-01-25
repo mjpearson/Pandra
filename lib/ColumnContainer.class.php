@@ -16,10 +16,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var this column families name (table name) */
     protected $name = NULL;
 
-    /* @var mixed keyID key for the working row */
-    // @todo GET RID OF THIS
-    private $keyID = NULL;
-
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
 
@@ -33,14 +29,14 @@ abstract class PandraColumnContainer implements ArrayAccess {
     public $errors = array();
 
     /* var bool columnfamily marked for deletion */
-    private $_delete = FALSE;    
+    protected $_delete = FALSE;
 
-    private $_modified = FALSE;
+    protected $_modified = FALSE;
 
     protected $_loaded = FALSE;
 
     public function __construct() {
-        $this->constructColumns();
+        $this->init();
     }
 
     public function getName() {
@@ -57,18 +53,20 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * when defining hard schemas.  It is called automatically by the constructor.
      * @return void
      */
-    public function constructColumns() { }
+    public function init() {
 
-    protected function setModified($modified) {
+    }
+
+    protected function setModified($modified = TRUE) {
         $this->_modified = $modified;
     }
 
     protected function setDelete($delete) {
-        $this->setModified(TRUE);
+        $this->setModified($delete);
         $this->_delete = $delete;
     }
 
-    protected function getDelete() {
+    public function getDelete() {
         return $this->_delete;
     }
 
@@ -163,7 +161,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param bool $validate opt validate from typeDef (default TRUE)
      * @return bool column set ok
      */
-    public function setColumn($colName, $value, $validate = TRUE) {       
+    public function setColumn($colName, $value, $validate = TRUE) {
         return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));
     }
 
@@ -191,6 +189,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
     }
 
+    protected function destroyColumns() {
+        $this->_columns = array();
+    }
+
     /**
      * Populates container object (ColumnFamily, ColumnFamilySuper or SuperColumn)
      * @param mixed $data associative string array, array of cassandra_Column's or JSON string of key => values.
@@ -204,11 +206,12 @@ abstract class PandraColumnContainer implements ArrayAccess {
         if (is_array($data) && count($data)) {
             foreach ($data as $idx => $colValue) {
 
-                if ($value instanceof cassandra_Column) {                    
-                    if ($colAutoCreate || array_key_exists($colValue->column->name, $this->_columns)) {
-                        $this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
+                if ($colValue instanceof cassandra_Column) {
+                    if ($colAutoCreate || array_key_exists($colValue->name, $this->_columns)) {
+                        //$this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
+                        $this->_columns[$colValue->name] = PandraColumn::cast($colValue, $this);
                     }
-                    
+
                 } else {
                     $colExists = array_key_exists($idx, $this->_columns);
                     // Create a new named column object
@@ -287,7 +290,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
         foreach ($this->_columns as $column) {
             if ($column->isModified()) return TRUE;
         }
-        return FALSE;
+        return $this->_modified;
     }
 
     public function bindTimeModifiedColumns() {
