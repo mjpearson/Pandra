@@ -89,7 +89,6 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
 
     public function testSaveLoadDelete() {
 
-return;
         // Save it       
         $this->obj['blog-slug-1']['title'] = 'My First Blog';
         $this->obj['blog-slug-1']['content'] = 'Can I be in the blog-o-club too?';
@@ -97,7 +96,7 @@ return;
         $this->obj['blog-slug-2']['title'] = 'My Second Blog, and maybe the last';
         $this->obj['blog-slug-2']['content'] = 'I promise to write something soon!';
         
-        $this->assertTrue($this->obj->save());
+        $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
         // Grab some konown values to test with
         $colTitleValue = $this->obj['blog-slug-1']['title'];
@@ -105,7 +104,9 @@ return;
 
         // Re-Load, check saved data
         $this->obj = NULL;
-        $this->obj = new TestCFSuper($this->_keyID);
+        $this->obj = new TestCFSuper();
+
+        $this->assertTrue($this->obj->load($this->_keyID), $this->obj->lastError());
 
         // Test at least 2 supercolumns to make sure population is ok
         $this->assertTrue($colTitleValue == $this->obj['blog-slug-1']['title']);
@@ -114,8 +115,13 @@ return;
         // Delete columnfamily
         $this->obj->delete();
 
-        $this->obj->save();
+        $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
+        // Confirm we can't load the key any more
+        $this->obj = NULL;
+        $this->obj = new TestCFSuper();
+
+        $this->assertFalse($this->obj->load($this->_keyID), $this->obj->lastError());
     }
 }
 ?>

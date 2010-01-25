@@ -112,10 +112,11 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
         $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
 
         if ($result !== NULL) {
+            $this->init();
             foreach ($result as $superColumn) {
                 $sc = $superColumn->super_column;
 
-                // @todo Should at least 1 successful superload really indicate a successful load state?
+                // @todo Should at least 1 successful super load really indicate a successful load state?
                 $this->_loaded = $this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, PANDRA_DEFAULT_CREATE_MODE);
             }
             if ($this->_loaded) $this->setKeyID($keyID);
