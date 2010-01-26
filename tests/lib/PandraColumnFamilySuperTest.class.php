@@ -59,10 +59,10 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
         Pandra::disconnectAll();
     }
 
-    public function testAddColumn() {
+    public function testAddGetColumn() {
         $newSuperName = 'newGenericSuper';
         $this->assertTrue($this->obj->addColumn($newSuperName) instanceof PandraSuperColumn);
-        $this->assertTrue($this->obj->getColumn($newSuperName)->getName() == $newSuperName);
+        $this->assertTrue($this->obj->getColumn($newSuperName)->getName() == $newSuperName && $this->obj->getColumn($newSuperName) instanceof PandraSuperColumn);
     }
 
     public function testAddSuper() {
@@ -77,7 +77,7 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
 
     public function testIsModified() {
         $this->assertTrue($this->obj->reset());
-        
+
         $this->obj['blog-slug-1']['title'] = 'NEW TITLE';
         $this->assertTrue($this->obj->isModified());
     }
@@ -89,13 +89,13 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
 
     public function testSaveLoadDelete() {
 
-        // Save it       
+        // Save it
         $this->obj['blog-slug-1']['title'] = 'My First Blog';
         $this->obj['blog-slug-1']['content'] = 'Can I be in the blog-o-club too?';
 
         $this->obj['blog-slug-2']['title'] = 'My Second Blog, and maybe the last';
         $this->obj['blog-slug-2']['content'] = 'I promise to write something soon!';
-        
+
         $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
         // Grab some konown values to test with
@@ -122,6 +122,75 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
         $this->obj = new TestCFSuper();
 
         $this->assertFalse($this->obj->load($this->_keyID), $this->obj->lastError());
+    }
+
+    public function testNotations() {
+
+        $superName = 'blog-slug-3';
+        $colName = 'title';
+        $value = 'Another blog by me';
+
+        // --------- Array Access
+        //
+        // Test Super add
+        $this->obj[$superName] = new TestSuperColumn($superName);
+        $this->assertTrue($this->obj[$superName] instanceof PandraSuperColumn);
+
+        // Check column name and not column name are correctly set
+        $this->obj[$superName][$colName] = $value;
+        $this->assertTrue($this->obj[$superName][$colName] == $value);
+        $this->assertFalse($this->obj[$superName]['NOT_'.$colName] == $value);
+
+        // Unset
+        unset($this->obj[$superName][$colName]);
+        $this->assertTrue($this->obj[$superName][$colName] == NULL);
+
+        unset($this->obj[$superName]);
+        $this->assertTrue($this->obj[$superName] == NULL);
+
+        // --------- Magic Methods
+        // Test Super Add
+        $superPath = PandraColumnFamilySuper::_columnNamePrefix.$superName;
+        $columnPath = PandraColumnFamily::_columnNamePrefix.$colName;
+
+        $this->obj->$superPath = new TestSuperColumn($superName);
+        $this->assertTrue($this->obj->$superPath instanceof PandraSuperColumn);
+
+        // Check column name and not column name are correctly set
+        $this->obj->$superPath->$columnPath = $value;
+        $this->assertTrue($this->obj->$superPath->$columnPath == $value);
+        $nColumnPath = 'NOT_'.$columnPath;
+        $this->assertFalse($this->obj->$superPath->$nColumnPath == $value);
+
+        // Unset
+        //unset($this->obj[$superName][$colName]);
+        $this->obj->$superPath->destroyColumn($colName);
+        $this->assertTrue($this->obj->$superPath->$columnPath == NULL);
+
+        $this->obj->destroyColumn($superName);
+        $this->assertTrue($this->obj->$superPath == NULL);
+
+        // --------- Accessors/Mutators
+        // Test Super Add
+        $superPath = PandraColumnFamilySuper::_columnNamePrefix.$superName;
+        $columnPath = PandraColumnFamily::_columnNamePrefix.$colName;
+
+        $this->obj->addSuper(new TestSuperColumn($superName));
+        $this->assertTrue($this->obj->getSuper($superName) instanceof PandraSuperColumn);
+
+        // Check column name and not column name are correctly set
+        $this->obj->getSuper($superName)->getColumn($colName)->value = $value;
+        $this->assertTrue($this->obj->getSuper($superName)->getColumn($colName)->value == $value);
+        $this->assertFalse($this->obj->getSuper($superName)->getColumn('NOT_'.$colName)->value == $value);
+
+        // Unset
+        unset($this->obj[$superName][$colName]);
+        $this->obj->getSuper($superName)->destroyColumn($colName);
+        $this->assertTrue($this->obj->getSuper($superName)->getColumn($colName) == NULL);
+
+        unset($this->obj[$superName]);
+        $this->obj->destroyColumn($superName);
+        $this->assertTrue($this->obj->getSuper($superName) == NULL);
     }
 }
 ?>

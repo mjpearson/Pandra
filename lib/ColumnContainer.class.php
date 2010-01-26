@@ -162,6 +162,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool column set ok
      */
     public function setColumn($colName, $value, $validate = TRUE) {
+        if (is_object($value)) {
+            $this->_columns[$colName] = $value;
+            return;
+        }
         return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));
     }
 
@@ -189,8 +193,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
     }
 
-    protected function destroyColumns() {
-        $this->_columns = array();
+    public function destroyColumn($colName) {
+        if (array_key_exists($colName, $this->_columns)) {
+            unset($this->_columns[$colName]);
+        }
     }
 
     /**
@@ -260,7 +266,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
                 return $this->_columns[$colName];
             }
         }
-        //echo "$colName mutable <br>";
         return NULL;
     }
 
@@ -275,6 +280,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
         if (!$this->_gsMutable($colName)) {
             $this->addColumn($colName);
         }
+
         $this->setColumn($colName, $value);
     }
 

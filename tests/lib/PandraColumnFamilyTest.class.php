@@ -52,51 +52,6 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
     }
 
     /**
-     * @todo Implement testLastError().
-     */
-    public function testLastError() {
-
-        $this->obj->column_column1 = '';
-        $lastError = $this->obj->lastError();
-
-        $this->assertTrue(isset($lastError['column1']) && !empty($lastError['column1']));
-    }
-
-    /**
-     * @todo Implement testAddColumn().
-     */
-    public function testAddColumn() {
-
-        $columnName = 'newColumn';
-
-        $column = $this->obj->addColumn($columnName);
-        $this->assertTrue(get_class($column) == 'PandraColumn', 'addColumn did not return a PandraColumn');
-
-        $column = $this->obj->getColumn($columnName);
-        $this->assertTrue( ($column->name == $columnName), 'Incorrect column name returned' );
-    }
-
-    /**
-     * @todo Implement testGetColumn().
-     */
-    public function testGetColumn() {
-
-        $columnName = 'column1';
-
-        $column = $this->obj->getColumn($columnName);
-        $this->assertTrue(get_class($column) == 'PandraColumn', 'getColumn did not return a PandraColumn');
-        $this->assertTrue($column->name == $columnName, 'Column name mismatch, expected '.$columnName.', received ',$column->name);
-    }
-
-    /**
-     * @todo Implement testListColumns().
-     */
-    public function testListColumns() {
-        $columns = $this->obj->listColumns();
-        $this->assertTrue(is_array($columns) && !empty($columns));
-    }
-
-    /**
      * @todo Implement testSave().
      */
     public function testSaveLoadDelete() {
@@ -117,7 +72,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
      * Tests that resets() after deletes or column changes revert flags
      */
     public function testReset() {
-        
+
         $this->obj->reset();
         $this->obj->delete();
 
@@ -174,35 +129,66 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
     public function testSetColumn() {
         $c1NewValue = 'TEST POST VALUE';
 
-        $this->obj->getColumn('column1')->reset(); 
+        $this->obj->getColumn('column1')->reset();
         $this->assertFalse($this->obj->getColumn('column1')->isModified());
-        
+
         $this->obj->setColumn('column1', $c1NewValue);
         $this->assertEquals($this->obj->column_column1, $c1NewValue);
         $this->assertTrue($this->obj->getColumn('column1')->isModified());
     }
 
     /**
-     * Tests ColumnFamily for Array Access
+     * @todo Implement testAddColumn().
      */
-    public function testArrayAccess() {
-        $newValue = 'TEST NEW VALUE';
+    public function testAddGetColumn() {
 
-        // test set
-        $this->obj['column1'] = $newValue;
-        $this->assertTrue($this->obj->getColumn('column1')->value == $newValue);
-        $this->assertFalse($this->obj->getColumn('column1')->value != $newValue);
+        $columnName = 'newColumn';
 
-        // test exists
-        $this->assertTrue(isset($this->obj['column1']));
-        $this->assertFalse(isset($this->obj['NOTcolumn1']));
+        // CF
+        $column = $this->obj->addColumn($columnName);
+        $this->assertTrue($column instanceof PandraColumn);
 
-        // test get
-        $this->assertTrue($this->obj['column1'] == $newValue);
+        $column = $this->obj->getColumn($columnName);
+        $this->assertTrue($column->name == $columnName, 'Column name mismatch, expected '.$columnName.', received ',$column->name);
+    }
+
+
+    /**
+     * @todo Implement testListColumns().
+     */
+    public function testListColumns() {
+        $columns = $this->obj->listColumns();
+        $this->assertTrue(is_array($columns) && !empty($columns));
+    }
+
+    /**
+     * Tests notations
+     */
+    public function testNotations() {
+
+        $colName = 'column1';
+
+        // Array Access
+        $newValue = 'ASDKFWIOER23';
+        $this->obj[$colName] = $newValue;
+        $this->assertTrue($this->obj[$colName] == $newValue);
+        $this->assertFalse($this->obj[$colName] != $newValue);
+
+        // Magic Method
+        $newValue = 'OIWERUWINCN@$';
+        $this->obj->column_column1 = $newValue;
+        $this->assertTrue($this->obj->column_column1 == $newValue);
+        $this->assertFalse($this->obj->column_column1 != $newValue);
+
+        // Accessors/Mutators
+        $newValue = 'OIWERUWINCN@$';
+        $this->obj->getColumn($colName)->setValue($newValue);
+        $this->assertTrue($this->obj->getColumn($colName)->value == $newValue);
+        $this->assertFalse($this->obj->getColumn($colName)->value != $newValue);
 
         // test unset
         unset($this->obj['column1']);
-        $this->assertFalse($this->obj->getColumn('column1') instanceof PandraColumn);        
+        $this->assertFalse($this->obj->getColumn('column1') instanceof PandraColumn);
     }
 }
 ?>

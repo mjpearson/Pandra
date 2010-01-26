@@ -87,13 +87,37 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testLoad() {
-
         unset($this->obj);
 
         $this->obj = new TestSuperColumn('address1', $this->parentCF);
-        $this->assertTrue($this->obj->load($this->keyID));
+        $this->assertTrue($this->obj->load($this->keyID));  
+    }
 
-        
+    public function testNotations() {
+
+        $colName = 'column1';
+
+        // Array Access
+        $newValue = 'ASDKFWIOER23';
+        $this->obj[$colName] = $newValue;
+        $this->assertTrue($this->obj[$colName] == $newValue);
+        $this->assertFalse($this->obj[$colName] != $newValue);
+
+        // Magic Method
+        $newValue = 'OIWERUWINCN@$';
+        $this->obj->column_column1 = $newValue;
+        $this->assertTrue($this->obj->column_column1 == $newValue);
+        $this->assertFalse($this->obj->column_column1 != $newValue);
+
+        // Accessors/Mutators
+        $newValue = 'OIWERUWINCN@$';
+        $this->obj->getColumn($colName)->setValue($newValue);
+        $this->assertTrue($this->obj->getColumn($colName)->value == $newValue);
+        $this->assertFalse($this->obj->getColumn($colName)->value != $newValue);
+
+        // test unset
+        unset($this->obj['column1']);
+        $this->assertFalse($this->obj->getColumn('column1') instanceof PandraColumn);
     }
 
 }
