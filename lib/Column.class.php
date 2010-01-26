@@ -94,6 +94,10 @@ class PandraColumn extends cassandra_Column {
         return TRUE;
     }
 
+    /**
+     * returns the callback function value for this->value
+     * @return mixed result of callback eval
+     */
     public function callbackvalue() {
         $value = '';
         eval('$value = '.$this->callback.'("'.$this->value.'");');
@@ -113,7 +117,15 @@ class PandraColumn extends cassandra_Column {
         return $newObj;
     }
 
-    public function save($keyID, $keySpace, $columnFamily, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    /**
+     * Saves this individual column path
+     * @param string $keyID row key
+     * @param sring $keySpace key space
+     * @param string $columnFamily column family name
+     * @param int $consistencyLevel cassandra save consistency level
+     * @return bool save ok
+     */
+    public function save($keyID, $keySpace, $columnFamily, $consistencyLevel = NULL) {
 
         if (!$this->isModified()) return TRUE;
 
@@ -125,9 +137,9 @@ class PandraColumn extends cassandra_Column {
         $ok = FALSE;
 
         if ($this->_delete) {
-            $ok = Pandra::deleteColumnPath($keySpace, $keyID, $columnPath, $this->bindTime(), $consistencyLevel);
+            $ok = Pandra::deleteColumnPath($keySpace, $keyID, $columnPath, $this->bindTime(), Pandra::getConsistency($consistencyLevel));
         } else {
-            $ok = Pandra::saveColumnPath($keySpace, $keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), $consistencyLevel);
+            $ok = Pandra::saveColumnPath($keySpace, $keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), Pandra::getConsistency($consistencyLevel));
         }
 
         if (!$ok) {
@@ -144,16 +156,29 @@ class PandraColumn extends cassandra_Column {
         return $ok;
     }
 
+    /**
+     * Creates an error entry in this column and propogate to parent
+     * @param string $errorStr error string
+     */
     public function registerError($errorStr) {
-        if (empty($errorStr)) return;
-        array_push($this->errors, $errorStr);
-        if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+        if (!empty($errorStr)) {
+            array_push($this->errors, $errorStr);
+            if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+        }
     }
 
+    /**
+     * Grabs all errors for the column instance
+     * @return array all errors
+     */
     public function getErrors() {
         return $this->errors;
     }
 
+    /**
+     * Grabs the last logged error
+     * @return string last error message
+     */
     public function getLastError() {
         if (count($this->errors)) {
             return $this->errors[0];
@@ -170,7 +195,7 @@ class PandraColumn extends cassandra_Column {
     }
 
     /**
-     * Marks this column for deletion
+     * mutator, marks this column for deletion and sets modified
      */
     public function delete() {
         $this->_delete = TRUE;
@@ -178,17 +203,23 @@ class PandraColumn extends cassandra_Column {
     }
 
     /**
+     * Delete accessor
      * @return bool Column is marked for deletion
      */
     public function isDeleted() {
         return ($this->_delete && $this->_modified);
     }
 
+    /**
+     * Modified mutator
+     * @param bool $modified column is modified
+     */
     public function setModified($modified = TRUE) {
         $this->_modified = $modified;
     }
 
     /**
+     * Modified accessor
      * @return bool column has been modified since instance construct/load
      */
     public function isModified() {

@@ -14,7 +14,7 @@
 abstract class PandraColumnContainer implements ArrayAccess {
 
     /* @var this column families name (table name) */
-    protected $name = NULL;
+    protected $_name = NULL;
 
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
@@ -28,48 +28,76 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var array complete list of errors for this object instance */
     public $errors = array();
 
-    /* var bool columnfamily marked for deletion */
+    /* @var bool columnfamily marked for deletion */
     protected $_delete = FALSE;
 
+    /* @var bool container (columns) have been modified */
     protected $_modified = FALSE;
 
+    /* @var bool container columns have been loaded from Cassandra */
     protected $_loaded = FALSE;
 
+    /**
+     * Constructor, calls init()
+     */
     public function __construct() {
         $this->init();
     }
 
+    /**
+     * accessor, container name
+     * @return string container name
+     */
     public function getName() {
-        return $this->name;
+        return $this->_name;
     }
 
+    /**
+     * mutator, container name
+     * @param string $name new name
+     */
     public function setName($name) {
-        $this->name = $name;
+        $this->_name = $name;
 
     }
 
     /**
-     * constructFields builds column objects via addColumn/addSuper methods
-     * when defining hard schemas.  It is called automatically by the constructor.
+     * init is is always called by the constructor.  Child classes can implement
+     * constructor logic, schemas, defaults validators etc. here
      * @return void
      */
     public function init() {
-
     }
 
+    /**
+     * mutator, modified
+     * @param bool $modified
+     */
     protected function setModified($modified = TRUE) {
         $this->_modified = $modified;
     }
 
+    /**
+     * mutator, marks this column for deletion and sets modified
+     * @param bool $delete
+     */
     protected function setDelete($delete) {
         $this->setModified($delete);
         $this->_delete = $delete;
     }
 
+    /**
+     * accessor, delete
+     * @return bool container is marked for deletion
+     */
     public function getDelete() {
         return $this->_delete;
     }
 
+    /**
+     * Creates an error entry in this column and propogate to parent
+     * @param string $errorStr error string
+     */
     public function registerError($errorStr) {
         if (empty($errorStr)) return;
         $this->errors[] = $errorStr;
@@ -151,7 +179,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
             return $this->_columns[$colName];
         }
         return NULL;
-        //return $this->__get($colName);
     }
 
     /**
@@ -178,11 +205,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
-     *
-     * @return array cassandra_Column objects
-     */
-
-    /**
      * Resets deletion states for the column family
      */
     public function reset() {
@@ -193,6 +215,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
     }
 
+    /**
+     * removes a column from the container (does not delete from Cassandra)
+     * @param string $colName column name
+     */
     public function destroyColumn($colName) {
         if (array_key_exists($colName, $this->_columns)) {
             unset($this->_columns[$colName]);
@@ -214,7 +240,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
                 if ($colValue instanceof cassandra_Column) {
                     if ($colAutoCreate || array_key_exists($colValue->name, $this->_columns)) {
-                        //$this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
                         $this->_columns[$colValue->name] = PandraColumn::cast($colValue, $this);
                     }
 
@@ -292,6 +317,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return constant(get_class($this)."::TYPE");
     }
 
+    /**
+     * accessor, checks if container has been explicitly modified, or it sub columns
+     * @return <type>
+     */
     public function isModified() {
         foreach ($this->_columns as $column) {
             if ($column->isModified()) return TRUE;
@@ -299,14 +328,22 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return $this->_modified;
     }
 
-    public function bindTimeModifiedColumns() {
+    /**
+     * Binds current time to all modified columns
+     * @param int $timeOverride optional timestamp, will default to time() if NULL
+     */
+    public function bindTimeModifiedColumns($timeOverride = NULL) {
         foreach ($this->_columns as &$cObj) {
             if ($cObj->isModified()) {
-                $cObj->bindTime();
+                $cObj->bindTime($timeOverride);
             }
         }
     }
 
+    /**
+     * Returns all columns which have been modified
+     * @return array array of  modified columns
+     */
     public function getModifiedColumns() {
         $modColumns = array();
         foreach ($this->_columns as &$cObj) {

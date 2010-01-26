@@ -20,7 +20,7 @@ class Pandra {
 
     static public $lastError = '';
 
-    static public $consistencyLevel = cassandra_ConsistencyLevel::ZERO;
+    static private $_consistencyLevel = PANDRA_DEFAULT_CONSISTENCY;
 
     static private $_nodeConns = array();
 
@@ -131,7 +131,7 @@ class Pandra {
         } catch (TException $tx) {
             self::$lastError = 'TException: '.$tx->getMessage() . "\n";
         }
-       return FALSE;
+        return FALSE;
 
     }
 
@@ -166,6 +166,17 @@ class Pandra {
         return $client->describe_keyspace($keySpace);
     }
 
+    static public function getConsistency($override = NULL) {
+        if ($override !== NULL) {
+            return $override;
+        }
+        return self::$_consistencyLevel;
+    }
+
+    static public function setConsistency(int $consistencyLevel) {
+        self::$_consistencyLevel = $consistencyLevel;
+    }
+
     static public function loadConfigXML() {
         if (!file_exists(CASSANDRA_CONF_PATH)) {
             throw new RuntimeException('Cannot build models, file not found ('.CASSANDRA_CONF_PATH.')\n');
@@ -175,21 +186,10 @@ class Pandra {
         return $conf;
     }
 
-public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
-    try {
-            $client = Pandra::getClient(TRUE);
-            $client->remove($keySpace, $keyID, $columnPath, $time, $consistencyLevel);
-        } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
-            return FALSE;
-        }
-        return TRUE;
-    }
-
-    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = NULL) {
         try {
             $client = Pandra::getClient(TRUE);
-            $client->insert($keySpace, $keyID, $columnPath, $value, $time, $consistencyLevel);
+            $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
             return FALSE;
@@ -197,12 +197,44 @@ public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $column
         return TRUE;
     }
 
-     /**
+    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time, $consistencyLevel = NULL) {
+        try {
+            $client = Pandra::getClient(TRUE);
+            $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    public function saveSuperColumn($keySpace, $keyID, $superCFName, $superName, array $columns, $consistencyLevel = NULL) {
+        try {
+            $client = Pandra::getClient(TRUE);
+
+            $scContainer = new cassandra_ColumnOrSuperColumn();
+            $scContainer->super_column = new cassandra_SuperColumn();
+            $scContainer->super_column->name = $superName;
+            $scContainer->super_column->columns = $columns;
+
+            $mutation = array();
+            $mutations[$superCFName] = array($scContainer);
+
+            $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
+
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    /**
      * Gets complete slice of Thrift cassandra_Column objects for keyID
      *
      * @return array cassandra_Column objects
      */
-    public function getCFSlice($keyID, $keySpace, $cfName, $superName = NULL, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function getCFSlice($keyID, $keySpace, $cfName, $superName = NULL, $consistencyLevel = NULL) {
 
         $client = Pandra::getClient();
 
@@ -218,11 +250,12 @@ public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $column
 
         try {
             if (is_array($keyID)) {
-                return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+                return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
             } else {
-                return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, $consistencyLevel);
+                return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
             }
         } catch (TException $te) {
+            var_dump($te);
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
             return NULL;
         }

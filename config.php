@@ -33,6 +33,9 @@ define('PANDRA_SUPER', 1);
 
 define('PANDRA_DEFAULT_CREATE_MODE', TRUE);
 
+define('PANDRA_DEFAULT_CONSISTENCY', cassandra_ConsistencyLevel::ONE);
+
+
 function _pandraAutoLoad($className) {
 
     	if (!preg_match("/^pandra/i", $className)) return;

@@ -73,7 +73,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
 
         $this->_loaded = FALSE;
 
@@ -111,7 +111,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @param int $consistencyLevel Cassandra consistency level
      * @return bool save ok
      */
-    public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function save($consistencyLevel = NULL) {
 
         $this->checkCFState();
 
@@ -129,7 +129,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
 
             foreach ($this->_columns as &$cObj) {
                 if (!$cObj->isModified()) continue;
-                if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), $consistencyLevel)) {
+                if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), Pandra::getConsistency($consistencyLevel))) {
                     $this->registerError($cObj->getLastError());
                     return FALSE;
                 }

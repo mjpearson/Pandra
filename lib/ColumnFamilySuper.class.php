@@ -71,7 +71,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
         return $this->getColumn($superName);
     }
 
-    public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function save($consistencyLevel = NULL) {
 
         if (!$this->isModified()) return FALSE;
 
@@ -82,7 +82,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), $consistencyLevel);
+            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), Pandra::getConsistency($consistencyLevel));
             if (!$ok) $this->registerError(Pandra::$lastError);
 
         } else {
@@ -105,11 +105,11 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
+        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, Pandra::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();

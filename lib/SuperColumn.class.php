@@ -5,7 +5,7 @@
  * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
- * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @author Michael Pearson <Pandra-support@phpgrease.net>
  */
 class PandraSuperColumn extends PandraColumnContainer {
 
@@ -33,10 +33,9 @@ class PandraSuperColumn extends PandraColumnContainer {
 
     /**
      * Save all columns in this loaded columnfamily
-     * @todo DELETES
      * @return void
      */
-    public function save($consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function save($consistencyLevel = NULL) {
 
         if (!$this->isModified()) return FALSE;
 
@@ -51,7 +50,7 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $columnPath->column_family = $this->_parentCF->getName();
                 $columnPath->super_column = $this->getName();
 
-                $ok = Pandra::delete($this->keySpace, $this->keyID, $columnPath, time(), $consistencyLevel);
+                $ok = Pandra::delete($this->keySpace, $this->keyID, $columnPath, time(), Pandra::getConsistency($consistencyLevel));
                 if (!$ok) $this->registerError(Pandra::$lastError);
 
                 return $ok;
@@ -60,31 +59,17 @@ class PandraSuperColumn extends PandraColumnContainer {
         } else {
 
             $this->bindTimeModifiedColumns();
+            $ok = Pandra::saveSuperColumn(  $this->_parentCF->getKeySpace(),
+                                            $this->_parentCF->keyID,
+                                            $this->_parentCF->getName(),
+                                            $this->getName(),
+                                            $this->getModifiedColumns(),
+                                            Pandra::getConsistency($consistencyLevel));
 
-            try {
-                $mutation = array();
+            if (!$ok) $this->registerError(Pandra::$lastError);
 
-                $client = Pandra::getClient();
-
-                // Cast this supercolumn into a thrift cassandra_SuperColumn()  (YICK!)
-                $thisSuper = new cassandra_SuperColumn();
-                $thisSuper->name = $this->getName();
-                $thisSuper->columns = $this->getModifiedColumns();
-
-                $scContainer = new cassandra_ColumnOrSuperColumn();
-                $scContainer->super_column = $thisSuper;
-
-                // @todo - move this to the columnfamilysuper class? Looks like it can handle multiple mutations
-                $mutations[$this->_parentCF->getName()] = array($scContainer);
-                $client->batch_insert($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $mutations, $consistencyLevel);
-
-                $this->reset();
-
-                return TRUE;
-
-            } catch (TException $te) {
-                $this->registerError($te->getMessage());
-            }
+            if ($ok) $this->reset();
+            return $ok;
         }
         return FALSE;
     }
@@ -99,7 +84,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = cassandra_ConsistencyLevel::ONE) {
+    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
 
         if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraColumnFamilySuper)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
 
@@ -107,11 +92,12 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), $consistencyLevel);
+        $result = Pandra::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), Pandra::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();
             $this->_loaded = $this->populate($result, $colAutoCreate);
+            if ($this->_loaded) $this->keyID = $keyID;
         } else {
             $this->registerError(Pandra::$lastError);
         }
@@ -135,10 +121,15 @@ class PandraSuperColumn extends PandraColumnContainer {
         return $this->_parentCF;
     }
 
+    /**
+     * Creates an error entry in this column and propogate to parent
+     * @param string $errorStr error string
+     */
     public function registerError($errorStr) {
-        if (empty($errorStr)) return;
-        array_push($this->errors, $errorStr);
-        if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+        if (!empty($errorStr)) {
+            array_push($this->errors, $errorStr);
+            if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+        }
     }
 }
 ?>
