@@ -31,10 +31,13 @@ define('PANDRA_MODE_RANDOM', 2);	// select random node
 define('PANDRA_STANDARD', 0);
 define('PANDRA_SUPER', 1);
 
+// When loading data from Cassandra, Pandra can either honour the existing columns
+// created in the object 1:1 on load, or create whatever columns exist in the row
+// as needed.  This can be overriden for specific CF child objects via setAutoCreate(bool)
 define('PANDRA_DEFAULT_CREATE_MODE', TRUE);
 
+// Consistency level can be overloaded on load or save operations, but this is the default
 define('PANDRA_DEFAULT_CONSISTENCY', cassandra_ConsistencyLevel::ONE);
-
 
 function _pandraAutoLoad($className) {
 

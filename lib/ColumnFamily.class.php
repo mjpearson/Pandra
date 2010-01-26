@@ -73,7 +73,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
+    public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
         $this->_loaded = FALSE;
 
@@ -81,7 +81,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
 
         if ($result !== NULL) {
             $this->init();
-            $this->_loaded = $this->populate($result, $colAutoCreate);
+            $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
             if ($this->_loaded) $this->setKeyID($keyID);
         } else {
             $this->registerError(Pandra::$lastError);

@@ -44,12 +44,12 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 	* Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
 
-	* Hard schema aware, or build factory objects on the fly
+	* Schema aware, or build factory objects on the fly
 
 - Dependencies
 
-	* Cassandra >=0.4
+	* Cassandra >= 0.5.0
 
-	* Thrift Interface  (thrift binary + cassandra.thrift, or pre generated php sources)
+	* Thrift Interface (cassandra.thrift and pre-generated files are packaged)
 
-	* PHP >=5.2 (requires APC module)
+	* PHP >= 5.3

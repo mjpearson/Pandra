@@ -84,7 +84,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
+    public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
         if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraColumnFamilySuper)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
 
@@ -96,7 +96,7 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         if ($result !== NULL) {
             $this->init();
-            $this->_loaded = $this->populate($result, $colAutoCreate);
+            $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
             if ($this->_loaded) $this->keyID = $keyID;
         } else {
             $this->registerError(Pandra::$lastError);

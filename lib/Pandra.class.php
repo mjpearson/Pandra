@@ -164,7 +164,6 @@ class Pandra {
         }
 
         return $consistency;
-
     }
 
     static public function setConsistency(int $consistencyLevel) {

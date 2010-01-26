@@ -105,7 +105,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE, $consistencyLevel = NULL) {
+    public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
         $this->_loaded = FALSE;
 
@@ -117,7 +117,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
                 $sc = $superColumn->super_column;
 
                 // @todo Should at least 1 successful super load really indicate a successful load state?
-                $this->_loaded = $this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, PANDRA_DEFAULT_CREATE_MODE);
+                $this->_loaded = $this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, $this->getAutoCreate($colAutoCreate));
             }
             if ($this->_loaded) $this->setKeyID($keyID);
 

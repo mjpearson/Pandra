@@ -37,6 +37,9 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var bool container columns have been loaded from Cassandra */
     protected $_loaded = FALSE;
 
+    /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
+    protected $_autoCreate = PANDRA_DEFAULT_CREATE_MODE;
+
     /**
      * Constructor, calls init()
      */
@@ -228,11 +231,34 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
+     * Get working autocreate mode (either this set autocreate or overriden)
+     * @param bool $override
+     * @return bool working autocreate mode
+     */
+    public function getAutoCreate($override = NULL) {
+        $autoCreate = $this->_autoCreate;
+
+        if ($override !== NULL) {
+            $autoCreate = $override;
+        }
+
+        return $autoCreate;
+    }
+
+    /**
+     * autoCreate mutator
+     * @param bool $autoCreate new mode
+     */
+    public function setAutoCreate(bool $autoCreate) {
+        $this->$_autoCreate = $autoCreate;
+    }
+
+    /**
      * Populates container object (ColumnFamily, ColumnFamilySuper or SuperColumn)
      * @param mixed $data associative string array, array of cassandra_Column's or JSON string of key => values.
      * @return bool column values set without error
      */
-    public function populate($data, $colAutoCreate = PANDRA_DEFAULT_CREATE_MODE) {
+    public function populate($data, $colAutoCreate = NULL) {
         if (is_string($data)) {
             $data = json_decode($data, TRUE);
         }
@@ -241,14 +267,14 @@ abstract class PandraColumnContainer implements ArrayAccess {
             foreach ($data as $idx => $colValue) {
 
                 if ($colValue instanceof cassandra_Column) {
-                    if ($colAutoCreate || array_key_exists($colValue->name, $this->_columns)) {
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->name, $this->_columns)) {
                         $this->_columns[$colValue->name] = PandraColumn::cast($colValue, $this);
                     }
 
                 } else {
                     $colExists = array_key_exists($idx, $this->_columns);
                     // Create a new named column object
-                    if ($colAutoCreate && !array_key_exists($idx, $this->_columns)) {
+                    if ($this->getAutoCreate($colAutoCreate) && !array_key_exists($idx, $this->_columns)) {
                         $this->addColumn($idx);
                     }
 
