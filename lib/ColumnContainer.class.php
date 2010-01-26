@@ -195,7 +195,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
     public function setColumn($colName, $value, $validate = TRUE) {
         if (is_object($value)) {
             $this->_columns[$colName] = $value;
-            return;
+            return TRUE;
         }
 
         return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));

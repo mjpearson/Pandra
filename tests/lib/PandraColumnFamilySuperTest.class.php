@@ -137,7 +137,11 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj[$superName] instanceof PandraSuperColumn);
 
         // Check column name and not column name are correctly set
+        $this->obj->reset();
+        $this->assertFalse($this->obj->isModified());
         $this->obj[$superName][$colName] = $value;
+        $this->assertTrue($this->obj->isModified());
+
         $this->assertTrue($this->obj[$superName][$colName] == $value);
         $this->assertFalse($this->obj[$superName]['NOT_'.$colName] == $value);
 
@@ -157,8 +161,13 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->$superPath instanceof PandraSuperColumn);
 
         // Check column name and not column name are correctly set
+        $this->obj->reset();
+        $this->assertFalse($this->obj->isModified());
         $this->obj->$superPath->$columnPath = $value;
+        $this->assertTrue($this->obj->isModified());
+
         $this->assertTrue($this->obj->$superPath->$columnPath == $value);
+
         $nColumnPath = 'NOT_'.$columnPath;
         $this->assertFalse($this->obj->$superPath->$nColumnPath == $value);
 
@@ -179,8 +188,13 @@ class PandraColumnFamilySuperTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->getSuper($superName) instanceof PandraSuperColumn);
 
         // Check column name and not column name are correctly set
-        $this->obj->getSuper($superName)->getColumn($colName)->value = $value;
+        $this->obj->reset();
+        $this->assertFalse($this->obj->isModified());
+        $this->obj->getSuper($superName)->getColumn($colName)->setValue($value);
+        $this->assertTrue($this->obj->isModified());
+
         $this->assertTrue($this->obj->getSuper($superName)->getColumn($colName)->value == $value);
+
         $this->assertFalse($this->obj->getSuper($superName)->getColumn('NOT_'.$colName)->value == $value);
 
         // Unset
