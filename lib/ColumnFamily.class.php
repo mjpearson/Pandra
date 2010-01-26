@@ -77,7 +77,7 @@ abstract class PandraColumnFamily extends PandraColumnContainer {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, $consistencyLevel);
+        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, Pandra::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();

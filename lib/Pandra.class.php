@@ -9,15 +9,6 @@
  */
 class Pandra {
 
-    /*
-    const FORMAT_OBJ = 1;
-    const FORMAT_ASSOC = 2;
-    const FORMAT_XML = 3;
-    const FORMAT_JSON = 4;
-
-    const APC_EXPIRE_SECONDS = 60;
-    */
-
     static public $lastError = '';
 
     static private $_consistencyLevel = PANDRA_DEFAULT_CONSISTENCY;
@@ -142,8 +133,8 @@ class Pandra {
         if (empty(self::$_activeNode)) throw new Exception('Not Connected');
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
-            case PANDRA_MODE_ROUND_APC :
             // @todo, APC store of activeNode
+            case PANDRA_MODE_ROUND_APC :
             case PANDRA_MODE_ROUND :
                 if (!current(self::$_nodeConns)) reset(self::$_nodeConns);
                 $curConn = each(self::$_nodeConns);
@@ -167,10 +158,13 @@ class Pandra {
     }
 
     static public function getConsistency($override = NULL) {
+        $consistency = self::$_consistencyLevel;
         if ($override !== NULL) {
-            return $override;
+            $consistency = $override;
         }
-        return self::$_consistencyLevel;
+
+        return $consistency;
+
     }
 
     static public function setConsistency(int $consistencyLevel) {
@@ -262,40 +256,21 @@ class Pandra {
         return NULL;
     }
 
+    /**
+     * Grabs locally defined columnfamilies (debug tool)
+     */
+    static public function getConfColumnFamilies() {
 
-
-
-
-    /*
-    static public function buildModels($ks = NULL) {
         $conf = self::loadConfigXML();
 
+        $columnFamiles = array();
+
         foreach ($conf->Keyspaces as $keySpace) {
-
-            var_dump($keySpace);
-
             $ksName = $keySpace->attributes()->Name;
-            var_dump($ksName);
-
-            $columnFamilies = $keySpace->xpath('Keyspace/ColumnFamily');
-            var_dump($columnFamilies);
-
-      //  var_dump($keySpace);
+            $columnFamilies[] = $keySpace->xpath('Keyspace/ColumnFamily');
         }
 
+        return $columnFamiles;
     }
-
-    static public function toJSON(&$results) {
-    }
-
-    static public function toXML(&$results) {
-    }
-
-    static public function toSerialised(&$results) {
-    }
-
-    static public function toArray(&$results) {
-    }
-    */
 }
 ?>

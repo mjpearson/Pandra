@@ -11,19 +11,25 @@ $GLOBALS['cassandra_E_ConsistencyLevel'] = array(
   'ZERO' => 0,
   'ONE' => 1,
   'QUORUM' => 2,
-  'ALL' => 3,
+  'DCQUORUM' => 3,
+  'DCQUORUMSYNC' => 4,
+  'ALL' => 5,
 );
 
 final class cassandra_ConsistencyLevel {
   const ZERO = 0;
   const ONE = 1;
   const QUORUM = 2;
-  const ALL = 3;
+  const DCQUORUM = 3;
+  const DCQUORUMSYNC = 4;
+  const ALL = 5;
   static public $__names = array(
     0 => 'ZERO',
     1 => 'ONE',
     2 => 'QUORUM',
-    3 => 'ALL',
+    3 => 'DCQUORUM',
+    4 => 'DCQUORUMSYNC',
+    5 => 'ALL',
   );
 }
 
@@ -533,6 +539,56 @@ class cassandra_UnavailableException extends TException {
 
 }
 
+class cassandra_TimedOutException extends TException {
+  static $_TSPEC;
+
+
+  public function __construct() {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        );
+    }
+  }
+
+  public function getName() {
+    return 'TimedOutException';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('TimedOutException');
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
 class cassandra_ColumnParent {
   static $_TSPEC;
 
@@ -983,6 +1039,126 @@ class cassandra_SlicePredicate {
       }
       $xfer += $output->writeFieldBegin('slice_range', TType::STRUCT, 2);
       $xfer += $this->slice_range->write($output);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_KeySlice {
+  static $_TSPEC;
+
+  public $key = null;
+  public $columns = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'key',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'columns',
+          'type' => TType::LST,
+          'etype' => TType::STRUCT,
+          'elem' => array(
+            'type' => TType::STRUCT,
+            'class' => 'cassandra_ColumnOrSuperColumn',
+            ),
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['key'])) {
+        $this->key = $vals['key'];
+      }
+      if (isset($vals['columns'])) {
+        $this->columns = $vals['columns'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'KeySlice';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->key);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 2:
+          if ($ftype == TType::LST) {
+            $this->columns = array();
+            $_size14 = 0;
+            $_etype17 = 0;
+            $xfer += $input->readListBegin($_etype17, $_size14);
+            for ($_i18 = 0; $_i18 < $_size14; ++$_i18)
+            {
+              $elem19 = null;
+              $elem19 = new cassandra_ColumnOrSuperColumn();
+              $xfer += $elem19->read($input);
+              $this->columns []= $elem19;
+            }
+            $xfer += $input->readListEnd();
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('KeySlice');
+    if ($this->key !== null) {
+      $xfer += $output->writeFieldBegin('key', TType::STRING, 1);
+      $xfer += $output->writeString($this->key);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->columns !== null) {
+      if (!is_array($this->columns)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('columns', TType::LST, 2);
+      {
+        $output->writeListBegin(TType::STRUCT, count($this->columns));
+        {
+          foreach ($this->columns as $iter20)
+          {
+            $xfer += $iter20->write($output);
+          }
+        }
+        $output->writeListEnd();
+      }
       $xfer += $output->writeFieldEnd();
     }
     $xfer += $output->writeFieldStop();

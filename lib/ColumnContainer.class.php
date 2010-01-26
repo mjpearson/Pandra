@@ -175,6 +175,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return PandraColumn
      */
     public function getColumn($colName) {
+
         if ($this->_gsMutable($colName)) {
             return $this->_columns[$colName];
         }
@@ -193,6 +194,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
             $this->_columns[$colName] = $value;
             return;
         }
+
         return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));
     }
 

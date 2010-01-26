@@ -16,7 +16,7 @@ require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 
 // Config xml path for Cassandra
-define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.4.0/conf/storage-conf.xml');
+define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/conf/storage-conf.xml');
 
 // Default Thrift port
 define('PANDRA_PORT_DEFAULT', 9160);

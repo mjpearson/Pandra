@@ -26,7 +26,7 @@ abstract class PandraColumnFamilySuper extends PandraColumnFamily {
      */
     public function addSuper(PandraSuperColumn $scObj) {
 
-        $superName = $scObj->name;
+        $superName = $scObj->getName();
 
         $scObj->setParentCF($this);
         $this->_columns[$superName] = $scObj;

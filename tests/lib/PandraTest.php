@@ -112,13 +112,11 @@ class PandraTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(is_array($ks) && !empty($ks));
 
         // While we don't care about the individual ColumnFamilies, we should
-        // at least be able to pull out their basic attributes
-        $expectedKeys = array('FlushPeriodInMinutes', 'Type', 'Desc');
+        // at least be able to pull out the default Standard1 CF Cassandra rolls out with
+        $expectedKeys = array('CompareWith', 'Type', 'Desc');
+        $diff = array_diff($expectedKeys, array_keys($ks['Standard1']));
 
-        foreach ($ks as $columnFamily => $attributes) {
-            $diff = array_diff($expectedKeys, array_keys($attributes    ));
-            $this->assertTrue(empty($diff));
-        }
+        $this->assertTrue(empty($diff));
     }
 
     /**
