@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+  <html xmlns="http://www.w3.org/1999/xhtml">
+		<head>
+			<!-- template designed by Marco Von Ballmoos -->
+			<title>Docs For Class PandraColumnFamilySuper</title>
+			<link rel="stylesheet" href="../media/stylesheet.css" />
+			<meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'/>
+		</head>
+		<body>
+			<div class="page-body">			
+<h2 class="class-name">Class PandraColumnFamilySuper</h2>
+
+<a name="sec-description"></a>
+<div class="info-box">
+	<div class="info-box-title">Description</div>
+	<div class="nav-bar">
+					<span class="disabled">Description</span> |
+													<a href="#sec-vars">Vars</a>
+						|											<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+						
+											<a href="#sec-const-summary">Constants</a> (<a href="#sec-consts">details</a>)
+						
+			</div>
+	<div class="info-box-body">
+        		<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">abstract:</span> </li>
+			</ul>
+		<p class="notes">
+			Located in <a class="field" href="_ColumnFamilySuper.class.php.html">/ColumnFamilySuper.class.php</a> (line <span class="field">14</span>)
+		</p>
+		
+				
+		<pre><a href="../Pandra/PandraColumnContainer.html">PandraColumnContainer</a>
+   |
+   --<a href="../Pandra/PandraColumnFamily.html">PandraColumnFamily</a>
+      |
+      --PandraColumnFamilySuper</pre>
+	
+			</div>
+</div>
+
+
+	<a name="sec-const-summary"></a>
+	<div class="info-box">
+		<div class="info-box-title">Class Constant Summary</span></div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+						<span class="disabled">Constants</span> (<a href="#sec-consts">details</a>)
+												<a href="#sec-vars">Vars</a>
+				 
+				|
+										| 
+									<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+							
+					</div>
+		<div class="info-box-body">
+			<div class="const-summary">
+								<div class="const-title">
+					<img src="../media/images/Constant.png" alt=" " />
+					<a href="#TYPE" title="details" class="const-name">TYPE</a> = 					<span class="var-type"> PANDRA_SUPER</span>
+
+				</div>
+								<div class="const-title">
+					<img src="../media/images/Constant.png" alt=" " />
+					<a href="#_columnNamePrefix" title="details" class="const-name">_columnNamePrefix</a> = 					<span class="var-type"> 'super_'</span>
+
+				</div>
+							</div>
+		</div>
+	</div>
+
+
+	<a name="sec-method-summary"></a>
+	<div class="info-box">
+		<div class="info-box-title">Method Summary</span></div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+															<a href="#sec-const-summary">Constants</a> (<a href="#sec-consts">details</a>)
+							
+															<a href="#sec-vars">Vars</a>
+				 
+				|
+						<span class="disabled">Methods</span> (<a href="#sec-methods">details</a>)
+		</div>
+		<div class="info-box-body">			
+			<div class="method-summary">
+																																																												
+												<div class="method-definition">
+											<span class="method-result"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>
+										<a href="#addColumn" title="details" class="method-name">addColumn</a>
+											(<span class="var-type">string</span>&nbsp;<span class="var-name">$superName</span>)
+									</div>
+																<div class="method-definition">
+											<span class="method-result"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>
+										<a href="#addSuper" title="details" class="method-name">addSuper</a>
+											(<span class="var-type"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>&nbsp;<span class="var-name">$scObj</span>)
+									</div>
+																<div class="method-definition">
+											<span class="method-result">void</span>
+										<a href="#delete" title="details" class="method-name">delete</a>
+										()
+									</div>
+																<div class="method-definition">
+											<span class="method-result"><type></span>
+										<a href="#getSuper" title="details" class="method-name">getSuper</a>
+											(<span class="var-type"><type></span>&nbsp;<span class="var-name">$superName</span>)
+									</div>
+																<div class="method-definition">
+											<span class="method-result">void</span>
+										<a href="#isModified" title="details" class="method-name">isModified</a>
+										()
+									</div>
+																<div class="method-definition">
+											<span class="method-result">bool</span>
+										<a href="#load" title="details" class="method-name">load</a>
+											(<span class="var-type">string</span>&nbsp;<span class="var-name">$keyID</span>, [<span class="var-type">bool</span>&nbsp;<span class="var-name">$colAutoCreate</span> = <span class="var-default">NULL</span>], [<span class="var-type">int</span>&nbsp;<span class="var-name">$consistencyLevel</span> = <span class="var-default">NULL</span>])
+									</div>
+																<div class="method-definition">
+											<span class="method-result">void</span>
+										<a href="#save" title="details" class="method-name">save</a>
+											([<span class="var-type"></span>&nbsp;<span class="var-name">$consistencyLevel</span> = <span class="var-default">NULL</span>])
+									</div>
+								</div>
+		</div>
+	</div>		
+
+	<a name="sec-vars"></a>
+	<div class="info-box">
+		<div class="info-box-title">Variables</div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+										<a href="#sec-var-summary">Vars</a> (<span class="disabled">details</span>)
+						
+			
+												<a href="#sec-const-summary">Constants</a> (<a href="#sec-consts">details</a>)
+							
+										| 
+									<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+							
+					</div>
+		<div class="info-box-body">
+										<h4>Inherited Variables</h4>
+				<A NAME='inherited_vars'><!-- --></A>
+									<p>Inherited from <span class="classname"><a href="../Pandra/PandraColumnFamily.html">PandraColumnFamily</a></span></p>
+					<blockquote>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnFamily.html#var$keyID">PandraColumnFamily::$keyID</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnFamily.html#var$keySpace">PandraColumnFamily::$keySpace</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnFamily.html#var$name">PandraColumnFamily::$name</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnFamily.html#var$_loaded">PandraColumnFamily::$_loaded</a></span><br>
+							</span>
+											</blockquote> 
+									<p>Inherited from <span class="classname"><a href="../Pandra/PandraColumnContainer.html">PandraColumnContainer</a></span></p>
+					<blockquote>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$errors">PandraColumnContainer::$errors</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$_autoCreate">PandraColumnContainer::$_autoCreate</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$_columns">PandraColumnContainer::$_columns</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$_delete">PandraColumnContainer::$_delete</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$_modified">PandraColumnContainer::$_modified</a></span><br>
+							</span>
+													<span class="var-title">
+								<span class="var-name"><a href="../Pandra/PandraColumnContainer.html#var$_name">PandraColumnContainer::$_name</a></span><br>
+							</span>
+											</blockquote> 
+										
+		</div>
+	</div>
+	
+	<a name="sec-methods"></a>
+	<div class="info-box">
+		<div class="info-box-title">Methods</div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+															<a href="#sec-vars">Vars</a>
+																			<a href="#sec-const-summary">Constants</a> (<a href="#sec-consts">details</a>)
+							
+										<a href="#sec-method-summary">Methods</a> (<span class="disabled">details</span>)
+						
+		</div>
+		<div class="info-box-body">
+			<A NAME='method_detail'></A>
+
+<a name="methodaddColumn" id="addColumn"><!-- --></a>
+<div class="evenrow">
+	
+	<div class="method-header">
+		<span class="method-title">addColumn</span> (line <span class="line-number">48</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">Define a new named SuperColumn, anologous to ColumnFamily-&gt;addColumn</p>
+<p class="description"><p>The only real difference between addColumn and addSuper in a SuperColumn  context, is addColumn will not overwrite the column with a new named instance</p></p>
+	<ul class="tags">
+				<li><span class="field">return:</span> reference to created column</li>
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>
+		<span class="method-name">
+			addColumn
+		</span>
+					(<span class="var-type">string</span>&nbsp;<span class="var-name">$superName</span>)
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type">string</span>
+				<span class="var-name">$superName</span><span class="var-description">: super column name</span>			</li>
+				</ul>
+		
+			<hr class="separator" />
+		<div class="notes">Redefinition of:</div>
+		<dl>
+			<dt><a href="../Pandra/PandraColumnContainer.html#methodaddColumn">PandraColumnContainer::addColumn()</a></dt>
+						<dd>Define a new column, type definition and callback</dd>
+					</dl>
+			
+	</div>
+<a name="methodaddSuper" id="addSuper"><!-- --></a>
+<div class="oddrow">
+	
+	<div class="method-header">
+		<span class="method-title">addSuper</span> (line <span class="line-number">27</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">Helper function to add a Super Column instance to this Super Column Family</p>
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>
+		<span class="method-name">
+			addSuper
+		</span>
+					(<span class="var-type"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>&nbsp;<span class="var-name">$scObj</span>)
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type"><a href="../Pandra/PandraSuperColumn.html">PandraSuperColumn</a></span>
+				<span class="var-name">$scObj</span>			</li>
+				</ul>
+		
+			
+	</div>
+<a name="methoddelete" id="delete"><!-- --></a>
+<div class="evenrow">
+	
+	<div class="method-header">
+		<span class="method-title">delete</span> (line <span class="line-number">37</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result">void</span>
+		<span class="method-name">
+			delete
+		</span>
+				()
+			</div>
+	
+		
+			<hr class="separator" />
+		<div class="notes">Redefinition of:</div>
+		<dl>
+			<dt><a href="../Pandra/PandraColumnFamily.html#methoddelete">PandraColumnFamily::delete()</a></dt>
+						<dd>marks the column family for this key, for deletion from the keyspace</dd>
+					</dl>
+			
+	</div>
+<a name="methodgetSuper" id="getSuper"><!-- --></a>
+<div class="oddrow">
+	
+	<div class="method-header">
+		<span class="method-title">getSuper</span> (line <span class="line-number">70</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result"><type></span>
+		<span class="method-name">
+			getSuper
+		</span>
+					(<span class="var-type"><type></span>&nbsp;<span class="var-name">$superName</span>)
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type"><type></span>
+				<span class="var-name">$superName</span>			</li>
+				</ul>
+		
+			
+	</div>
+<a name="methodisModified" id="isModified"><!-- --></a>
+<div class="evenrow">
+	
+	<div class="method-header">
+		<span class="method-title">isModified</span> (line <span class="line-number">58</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result">void</span>
+		<span class="method-name">
+			isModified
+		</span>
+				()
+			</div>
+	
+		
+			<hr class="separator" />
+		<div class="notes">Redefinition of:</div>
+		<dl>
+			<dt><a href="../Pandra/PandraColumnContainer.html#methodisModified">PandraColumnContainer::isModified()</a></dt>
+						<dd>accessor, checks if container has been explicitly modified, or it sub columns</dd>
+					</dl>
+			
+	</div>
+<a name="methodload" id="load"><!-- --></a>
+<div class="oddrow">
+	
+	<div class="method-header">
+		<span class="method-title">load</span> (line <span class="line-number">108</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">Loads an entire columnfamily by keyid</p>
+	<ul class="tags">
+				<li><span class="field">return:</span> loaded OK</li>
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result">bool</span>
+		<span class="method-name">
+			load
+		</span>
+					(<span class="var-type">string</span>&nbsp;<span class="var-name">$keyID</span>, [<span class="var-type">bool</span>&nbsp;<span class="var-name">$colAutoCreate</span> = <span class="var-default">NULL</span>], [<span class="var-type">int</span>&nbsp;<span class="var-name">$consistencyLevel</span> = <span class="var-default">NULL</span>])
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type">string</span>
+				<span class="var-name">$keyID</span><span class="var-description">: row key</span>			</li>
+					<li>
+				<span class="var-type">bool</span>
+				<span class="var-name">$colAutoCreate</span><span class="var-description">: create columns in the object instance which have not been defined</span>			</li>
+					<li>
+				<span class="var-type">int</span>
+				<span class="var-name">$consistencyLevel</span><span class="var-description">: cassandra consistency level</span>			</li>
+				</ul>
+		
+			<hr class="separator" />
+		<div class="notes">Redefinition of:</div>
+		<dl>
+			<dt><a href="../Pandra/PandraColumnFamily.html#methodload">PandraColumnFamily::load()</a></dt>
+						<dd>Loads an entire columnfamily by keyid</dd>
+					</dl>
+			
+	</div>
+<a name="methodsave" id="save"><!-- --></a>
+<div class="evenrow">
+	
+	<div class="method-header">
+		<span class="method-title">save</span> (line <span class="line-number">74</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+		<span class="method-result">void</span>
+		<span class="method-name">
+			save
+		</span>
+					([<span class="var-type"></span>&nbsp;<span class="var-name">$consistencyLevel</span> = <span class="var-default">NULL</span>])
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type"></span>
+				<span class="var-name">$consistencyLevel</span>			</li>
+				</ul>
+		
+			<hr class="separator" />
+		<div class="notes">Redefinition of:</div>
+		<dl>
+			<dt><a href="../Pandra/PandraColumnFamily.html#methodsave">PandraColumnFamily::save()</a></dt>
+						<dd>Save this column family and any modified columns to Cassandra</dd>
+					</dl>
+			
+	</div>
+							<h4>Inherited Methods</h4>
+				<a name='inherited_methods'><!-- --></a>	
+									<!-- =========== Summary =========== -->
+					<p>Inherited From <span class="classname"><a href="../Pandra/PandraColumnFamily.html">PandraColumnFamily</a></span></p>
+					<blockquote>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#method__construct">PandraColumnFamily::__construct()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodcheckCFState">PandraColumnFamily::checkCFState()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methoddelete">PandraColumnFamily::delete()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodgetKeyID">PandraColumnFamily::getKeyID()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodgetKeySpace">PandraColumnFamily::getKeySpace()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodgetName">PandraColumnFamily::getName()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodisDeleted">PandraColumnFamily::isDeleted()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodisLoaded">PandraColumnFamily::isLoaded()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodload">PandraColumnFamily::load()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodreset">PandraColumnFamily::reset()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodsave">PandraColumnFamily::save()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodsetKeyID">PandraColumnFamily::setKeyID()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodsetKeySpace">PandraColumnFamily::setKeySpace()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnFamily.html#methodsetName">PandraColumnFamily::setName()</a></span><br>
+											</blockquote>
+									<!-- =========== Summary =========== -->
+					<p>Inherited From <span class="classname"><a href="../Pandra/PandraColumnContainer.html">PandraColumnContainer</a></span></p>
+					<blockquote>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#method__construct">PandraColumnContainer::__construct()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodaddColumn">PandraColumnContainer::addColumn()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodbindTimeModifiedColumns">PandraColumnContainer::bindTimeModifiedColumns()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methoddestroyColumn">PandraColumnContainer::destroyColumn()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetAutoCreate">PandraColumnContainer::getAutoCreate()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetColumn">PandraColumnContainer::getColumn()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetDelete">PandraColumnContainer::getDelete()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetModifiedColumns">PandraColumnContainer::getModifiedColumns()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetName">PandraColumnContainer::getName()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodgetType">PandraColumnContainer::getType()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodinit">PandraColumnContainer::init()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodisModified">PandraColumnContainer::isModified()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodlastError">PandraColumnContainer::lastError()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodlistColumns">PandraColumnContainer::listColumns()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodoffsetExists">PandraColumnContainer::offsetExists()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodoffsetGet">PandraColumnContainer::offsetGet()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodoffsetSet">PandraColumnContainer::offsetSet()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodoffsetUnset">PandraColumnContainer::offsetUnset()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodpopulate">PandraColumnContainer::populate()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodregisterError">PandraColumnContainer::registerError()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodreset">PandraColumnContainer::reset()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodsetAutoCreate">PandraColumnContainer::setAutoCreate()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodsetColumn">PandraColumnContainer::setColumn()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodsetDelete">PandraColumnContainer::setDelete()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodsetModified">PandraColumnContainer::setModified()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#methodsetName">PandraColumnContainer::setName()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#method_gsMutable">PandraColumnContainer::_gsMutable()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#method__get">PandraColumnContainer::__get()</a></span><br>
+													<span class="method-name"><a href="../Pandra/PandraColumnContainer.html#method__set">PandraColumnContainer::__set()</a></span><br>
+											</blockquote>
+										
+		</div>
+	</div>
+
+	<a name="sec-consts"></a>
+	<div class="info-box">
+		<div class="info-box-title">Class Constants</div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+										<a href="#sec-var-summary">Constants</a> (<span class="disabled">details</span>)
+						
+			
+												<a href="#sec-vars">Vars</a>
+														| 
+									<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+							
+					</div>
+		<div class="info-box-body">
+			<a name="constTYPE" id="TYPE"><!-- --></A>
+<div class="oddrow">
+
+	<div class="const-header">
+		<img src="../media/images/Variable.png" />
+		<span class="const-title">
+			<span class="const-name">TYPE</span>
+			 = <span class="const-default"> PANDRA_SUPER</span>
+			(line <span class="line-number">17</span>)
+		</span>
+	</div>
+
+	<!-- ========== Info from phpDoc block ========= -->
+	
+	
+</div>
+<a name="const_columnNamePrefix" id="_columnNamePrefix"><!-- --></A>
+<div class="evenrow">
+
+	<div class="const-header">
+		<img src="../media/images/Variable.png" />
+		<span class="const-title">
+			<span class="const-name">_columnNamePrefix</span>
+			 = <span class="const-default"> 'super_'</span>
+			(line <span class="line-number">20</span>)
+		</span>
+	</div>
+
+	<!-- ========== Info from phpDoc block ========= -->
+	
+	
+</div>
+							<h4>Inherited Constants</h4>
+				<A NAME='inherited_vars'><!-- --></A>
+									<p>Inherited from <span class="classname"><a href="../Pandra/PandraColumnContainer.html">PandraColumnContainer</a></span></p>
+					<blockquote>
+													<img src="../media/images/Variable.png" />
+							<span class="const-title">
+								<span class="const-name"><a href="../Pandra/PandraColumnContainer.html#constTYPE">PandraColumnContainer::TYPE</a></span><br>
+							</span>
+													<img src="../media/images/Variable.png" />
+							<span class="const-title">
+								<span class="const-name"><a href="../Pandra/PandraColumnContainer.html#const_columnNamePrefix">PandraColumnContainer::_columnNamePrefix</a></span><br>
+							</span>
+											</blockquote> 
+										
+		</div>
+	</div>
+
+	<p class="notes" id="credit">
+		Documentation generated on Tue, 26 Jan 2010 23:07:40 +1000 by <a href="http://www.phpdoc.org" target="_blank">phpDocumentor 1.4.3</a>
+	</p>
+	</div></body>
+</html>

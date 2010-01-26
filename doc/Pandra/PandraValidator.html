@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+  <html xmlns="http://www.w3.org/1999/xhtml">
+		<head>
+			<!-- template designed by Marco Von Ballmoos -->
+			<title>Docs For Class PandraValidator</title>
+			<link rel="stylesheet" href="../media/stylesheet.css" />
+			<meta http-equiv='Content-Type' content='text/html; charset=iso-8859-1'/>
+		</head>
+		<body>
+			<div class="page-body">			
+<h2 class="class-name">Class PandraValidator</h2>
+
+<a name="sec-description"></a>
+<div class="info-box">
+	<div class="info-box-title">Description</div>
+	<div class="nav-bar">
+					<span class="disabled">Description</span> |
+													<a href="#sec-var-summary">Vars</a> (<a href="#sec-vars">details</a>)
+						|											<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+						
+					</div>
+	<div class="info-box-body">
+        		<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">(c) 2010 phpgrease.net</p>
+<p class="description"><p>For licensing terms, plese see license.txt which should distribute with this source</p></p>
+	<ul class="tags">
+				<li><span class="field">author:</span> Michael Pearson &lt;<a href="mailto:pandra-support@phpgrease.net">pandra-support@phpgrease.net</a>&gt;</li>
+			</ul>
+		<p class="notes">
+			Located in <a class="field" href="_Validator.class.php.html">/Validator.class.php</a> (line <span class="field">10</span>)
+		</p>
+		
+				
+		<pre></pre>
+	
+			</div>
+</div>
+
+
+
+	<a name="sec-var-summary"></a>
+	<div class="info-box">
+		<div class="info-box-title">Variable Summary</span></div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+						<span class="disabled">Vars</span> (<a href="#sec-vars">details</a>)
+							| 
+									<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+							
+								</div>
+		<div class="info-box-body">
+			<div class="var-summary">
+												<div class="var-title">
+					static <span class="var-type">mixed</span>
+					<a href="#$_complex" title="details" class="var-name">$_complex</a>
+				</div>
+																<div class="var-title">
+					static <span class="var-type">mixed</span>
+					<a href="#$_primitive" title="details" class="var-name">$_primitive</a>
+				</div>
+																															</div>
+		</div>
+	</div>
+
+	<a name="sec-method-summary"></a>
+	<div class="info-box">
+		<div class="info-box-title">Method Summary</span></div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+																		<a href="#sec-var-summary">Vars</a> (<a href="#sec-vars">details</a>)
+				 
+				|
+						<span class="disabled">Methods</span> (<a href="#sec-methods">details</a>)
+		</div>
+		<div class="info-box-body">			
+			<div class="method-summary">
+												<div class="method-definition">
+					static 						<span class="method-result">bool</span>
+										<a href="#check" title="details" class="method-name">check</a>
+											(<span class="var-type"></span>&nbsp;<span class="var-name">$value</span>, <span class="var-type"></span>&nbsp;<span class="var-name">$label</span>, <span class="var-type"></span>&nbsp;<span class="var-name">$typeDefs</span>, <span class="var-type"></span>&nbsp;<span class="var-name">&$errors</span>, <span class="var-type">string</span>&nbsp;<span class="var-name">$errorMsg</span>)
+									</div>
+								
+												</div>
+		</div>
+	</div>		
+
+	<a name="sec-vars"></a>
+	<div class="info-box">
+		<div class="info-box-title">Variables</div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+										<a href="#sec-var-summary">Vars</a> (<span class="disabled">details</span>)
+						
+			
+										| 
+									<a href="#sec-method-summary">Methods</a> (<a href="#sec-methods">details</a>)
+							
+					</div>
+		<div class="info-box-body">
+			<a name="var$_complex" id="$_complex"><!-- --></A>
+<div class="evenrow">
+
+	<div class="var-header">
+		<span class="var-title">
+			static <span class="var-type">mixed</span>
+			<span class="var-name">$_complex</span>
+			 = <span class="var-default">array(<br />            'stringregular' =&gt; array('string', 'notempty'),'string20'=&gt;array('stringregular','maxlength=20'),)</span>			(line <span class="line-number">34</span>)
+		</span>
+	</div>
+
+	<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">Complex types are aggregates of the predefined primitive type definitions. Similarly,  the type definitions can also be aggregated to build even more complex types (try not to get crazy with the stack yo).</p>
+<p class="description"><p>In cases where there appears to be collision between types (aggregate types with different maxlength options for example)  the first type will be viewed as authoritive.</p></p>
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	
+		
+		
+
+</div>
+<a name="var$_primitive" id="$_primitive"><!-- --></A>
+<div class="oddrow">
+
+	<div class="var-header">
+		<span class="var-title">
+			static <span class="var-type">mixed</span>
+			<span class="var-name">$_primitive</span>
+			 = <span class="var-default">array(<br />            'notempty',<br />            'isempty',          // honeypot<br />            'int',<br />            'float',<br />            'numeric',<br />            'string',<br />            'bool',             // PHP bool types or strings 'true', 'false', 't', 'f', '1', '0', 'y', 'n'<br />            'maxlength',	// =[length]<br />            'minlength',	// =[length]<br />            'enum',		// =[comma,delimitered,enumerates]<br />            'email',<br />            'url'<br />    )</span>			(line <span class="line-number">13</span>)
+		</span>
+	</div>
+
+	<!-- ========== Info from phpDoc block ========= -->
+	<ul class="tags">
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	
+		
+		
+
+</div>
+						
+		</div>
+	</div>
+	
+	<a name="sec-methods"></a>
+	<div class="info-box">
+		<div class="info-box-title">Methods</div>
+		<div class="nav-bar">
+			<a href="#sec-description">Description</a> |
+															<a href="#sec-var-summary">Vars</a> (<a href="#sec-vars">details</a>)
+																	<a href="#sec-method-summary">Methods</a> (<span class="disabled">details</span>)
+						
+		</div>
+		<div class="info-box-body">
+			<A NAME='method_detail'></A>
+<a name="methodcheck" id="check"><!-- --></a>
+<div class="evenrow">
+	
+	<div class="method-header">
+		<span class="method-title">static method check</span> (line <span class="line-number">77</span>)
+	</div> 
+	
+	<!-- ========== Info from phpDoc block ========= -->
+<p class="short-description">Validates a field</p>
+	<ul class="tags">
+				<li><span class="field">return:</span> field validated correctly</li>
+				<li><span class="field">access:</span> public</li>
+			</ul>
+	
+	<div class="method-signature">
+	    static
+		<span class="method-result">bool</span>
+		<span class="method-name">
+			check
+		</span>
+					(<span class="var-type"></span>&nbsp;<span class="var-name">$value</span>, <span class="var-type"></span>&nbsp;<span class="var-name">$label</span>, <span class="var-type"></span>&nbsp;<span class="var-name">$typeDefs</span>, <span class="var-type"></span>&nbsp;<span class="var-name">&$errors</span>, <span class="var-type">string</span>&nbsp;<span class="var-name">$errorMsg</span>)
+			</div>
+	
+			<ul class="parameters">
+					<li>
+				<span class="var-type">string</span>
+				<span class="var-name">$errorMsg</span><span class="var-description">: custom error message for field validation error</span>			</li>
+					<li>
+				<span class="var-type"></span>
+				<span class="var-name">$value</span>			</li>
+					<li>
+				<span class="var-type"></span>
+				<span class="var-name">$label</span>			</li>
+					<li>
+				<span class="var-type"></span>
+				<span class="var-name">$typeDefs</span>			</li>
+					<li>
+				<span class="var-type"></span>
+				<span class="var-name">&$errors</span>			</li>
+				</ul>
+		
+			
+	</div>
+
+						
+		</div>
+	</div>
+
+
+	<p class="notes" id="credit">
+		Documentation generated on Tue, 26 Jan 2010 23:07:40 +1000 by <a href="http://www.phpdoc.org" target="_blank">phpDocumentor 1.4.3</a>
+	</p>
+	</div></body>
+</html>
