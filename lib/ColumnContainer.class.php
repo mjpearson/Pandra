@@ -334,7 +334,9 @@ abstract class PandraColumnContainer implements ArrayAccess {
             $this->addColumn($colName);
         }
 
-        $this->setColumn($colName, $value);
+        if (!$this->setColumn($colName, $value)) {
+            throw new RuntimeException($colName.' set but does not exist in container');
+        }
     }
 
     /**
