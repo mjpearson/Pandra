@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 	}
 } else {
 	$_SESSION['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'];
-	$_SESSION['StartTime'] = mktime();
+	$_SESSION['StartTime'] = time();
 
         // init
         foreach ($cColumns as $colName) $_POST[$colName] = '';

@@ -12,9 +12,6 @@ class PandraSuperColumn extends PandraColumnContainer {
     /* @var PandraColumnFamily column family parent reference */
     private $_parentCF = NULL;
 
-    /* @var int column family type (standard or super) */
-    const TYPE = PANDRA_SUPER;
-
     /**
      * Supercolumn constructor
      * @param string $superName Super Column name

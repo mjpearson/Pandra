@@ -1,4 +1,5 @@
 <?php
+
 /**
  * (c) 2010 phpgrease.net
  *
@@ -11,21 +12,28 @@ class Pandra {
 
     static public $lastError = '';
 
-    static private $_consistencyLevel = PANDRA_DEFAULT_CONSISTENCY;
+    static private $_consistencyLevel = cassandra_ConsistencyLevel::ONE;
 
     static private $_nodeConns = array();
 
     static private $_activeNode = NULL;
 
-    static private $readMode = PANDRA_MODE_ACTIVE;
+    const MODE_ACTIVE = 0; // Active client only
 
-    static private $writeMode = PANDRA_MODE_ACTIVE;
+    const MODE_ROUND = 1; // sequentially select configured clients
+
+    const MODE_RANDOM = 2; // select random node
+
+    const THRIFT_PORT_DEFAULT = 9160;
+
+    static private $readMode = self::MODE_ACTIVE;
+
+    static private $writeMode = self::MODE_ACTIVE;
 
     static private $_supportedModes = array(
-            PANDRA_MODE_ACTIVE,
-            PANDRA_MODE_ROUND,
-            //PANDRA_MODE_ROUND_APC,
-            PANDRA_MODE_RANDOM,
+            self::MODE_ACTIVE,
+            self::MODE_ROUND,
+            self::MODE_RANDOM,
     );
 
     static public function getSupportedModes() {
@@ -95,7 +103,7 @@ class Pandra {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connect($connectionID, $host = NULL, $port = PANDRA_PORT_DEFAULT) {
+    static public function connect($connectionID, $host = NULL, $port = self::THRIFT_PORT_DEFAULT) {
         try {
             // if the connection exists but it is closed, then re-open
             if (array_key_exists($connectionID, self::$_nodeConns)) {
@@ -133,19 +141,17 @@ class Pandra {
         if (empty(self::$_activeNode)) throw new Exception('Not Connected');
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
-            // @todo, APC store of activeNode
-            case PANDRA_MODE_ROUND_APC :
-            case PANDRA_MODE_ROUND :
+            case self::MODE_ROUND :
                 if (!current(self::$_nodeConns)) reset(self::$_nodeConns);
                 $curConn = each(self::$_nodeConns);
                 self::$_activeNode = $curConn['key'];		// store current working node
                 return self::$_nodeConns[self::$_activeNode]['client'];
                 break;
-            case PANDRA_MODE_RANDOM :
+            case self::MODE_RANDOM :
                 $randConn =& array_rand(self::$_nodeConns);
                 return self::$_nodeConns[$randConn]['client'];
                 break;
-            case PANDRA_MODE_ACTIVE :
+            case self::MODE_ACTIVE :
             default :
                 return self::$_nodeConns[self::$_activeNode]['client'];
                 break;

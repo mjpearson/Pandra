@@ -42,9 +42,12 @@ class PandraColumn extends cassandra_Column {
      * @param PandraColumnContainer $parentCF parent column family (standard or super), or supercolumn
      * @param array $typeDef validator type definitions
      */
-    public function __construct($name, PandraColumnContainer $parentCF, $typeDef = array()) {
+    public function __construct($name, $parentCF = NULL, $typeDef = array()) {
         parent::__construct(array('name' => $name));
-        $this->setParentCF($parentCF);
+        if ($parentCF instanceof PandraColumnContainer) {
+            $this->setParentCF($parentCF);
+        }
+
         $this->typeDef = $typeDef;
     }
 
@@ -84,7 +87,9 @@ class PandraColumn extends cassandra_Column {
     public function setValue($value, $validate = TRUE) {
         if ($validate && !empty($this->typeDef)) {
             if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->errors)) {
-                $this->_parentCF->errors[] = $this->errors[0];
+                if ($this->_parentCF instanceof PandraColumnContainer) {
+                    $this->_parentCF->errors[] = $this->errors[0];
+                }
                 return FALSE;
             }
         }
@@ -163,7 +168,7 @@ class PandraColumn extends cassandra_Column {
     public function registerError($errorStr) {
         if (!empty($errorStr)) {
             array_push($this->errors, $errorStr);
-            if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+            if ($this->_parentCF instanceof PandraColumnContainer) $this->_parentCF->registerError($errorStr);
         }
     }
 

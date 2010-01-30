@@ -11,7 +11,7 @@
 /**
  * @abstract
  */
-abstract class PandraColumnFamily extends PandraColumnContainer {
+class PandraColumnFamily extends PandraColumnContainer {
 
     /* @var string keyspace (or database) for this column family */
     protected $keySpace = NULL;

@@ -11,7 +11,7 @@
 /**
  * @abstract
  */
-abstract class PandraColumnContainer implements ArrayAccess {
+abstract class PandraColumnContainer extends ArrayObject {
 
     /* @var this column families name (table name) */
     protected $_name = NULL;
@@ -21,9 +21,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /* @var array container for column objects, indexed to field name */
     protected $_columns = array();
-
-    /* @var int column family type (standard or super) */
-    const TYPE = PANDRA_STANDARD;
 
     /* @var array complete list of errors for this object instance */
     public $errors = array();
@@ -38,7 +35,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
     protected $_loaded = FALSE;
 
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
-    protected $_autoCreate = PANDRA_DEFAULT_CREATE_MODE;
+    protected $_autoCreate = TRUE;
 
     /**
      * Constructor, calls init()
@@ -306,16 +303,13 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param string $colName field name to get
      * @return string value
      */
-    protected function __get($colName) {
+    public function __get($colName) {
         if ($this->_gsMutable($colName)) {
 
-            if ($this->_columns[$colName] instanceof PandraColumnContainer && $this->_columns[$colName]->getType() == PANDRA_SUPER) {
-                return $this->_columns[$colName];
-
-            } else if ($this->_columns[$colName] instanceof PandraColumn) {
+            if ($this->_columns[$colName] instanceof PandraColumn) {
                 return $this->_columns[$colName]->value;
 
-            } else {
+            } else if ($this->_columns[$colName] instanceof PandraColumnContainer) {
                 return $this->_columns[$colName];
             }
         }
@@ -329,7 +323,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param string $value  value to set for field
      * @return bool field set ok
      */
-    protected function __set($colName, $value) {
+    public function __set($colName, $value) {
         if (!$this->_gsMutable($colName)) {
             $this->addColumn($colName);
         }
@@ -337,14 +331,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
         if (!$this->setColumn($colName, $value)) {
             throw new RuntimeException($colName.' set but does not exist in container');
         }
-    }
-
-    /**
-     * Helper to determine if containr is a standard or super type
-     * @return int PANDRA_SUPER or PANDRA_STANDARD
-     */
-    public function getType() {
-        return constant(get_class($this)."::TYPE");
     }
 
     /**

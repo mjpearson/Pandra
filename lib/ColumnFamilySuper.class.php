@@ -11,10 +11,7 @@
 /**
  * @abstract
  */
-abstract class PandraColumnFamilySuper extends PandraColumnFamily {
-
-    /* @var int column family type (standard or super) */
-    const TYPE = PANDRA_SUPER;
+class PandraColumnFamilySuper extends PandraColumnFamily {
 
     /* @var string magic get/set prefix for Super Columns */
     const _columnNamePrefix = 'super_';
