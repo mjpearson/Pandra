@@ -15,9 +15,9 @@ class PandraSuperColumn extends PandraColumnContainer {
     /**
      * Supercolumn constructor
      * @param string $superName Super Column name
-     * @param PandraColumnFamilySuper $parentCF
+     * @param PandraSuperColumnFamily $parentCF
      */
-    public function __construct($superName, PandraColumnFamilySuper $parentCF = NULL) {
+    public function __construct($superName, PandraSuperColumnFamily $parentCF = NULL) {
         // SuperColumn name
         $this->setName($superName);
 
@@ -83,7 +83,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      */
     public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
-        if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraColumnFamilySuper)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
+        if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraSuperColumnFamily)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
 
         $this->_parentCF->checkCFState();
 
@@ -106,7 +106,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      * Sets parent ColumnFamily or
      * @param PandraColumnContainer $parentCF
      */
-    public function setParentCF(PandraColumnFamilySuper $parentCF) {
+    public function setParentCF(PandraSuperColumnFamily $parentCF) {
         $this->_parentCF = $parentCF;
     }
 

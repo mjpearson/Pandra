@@ -11,7 +11,7 @@
 /**
  * @abstract
  */
-abstract class PandraColumnContainer extends ArrayObject {
+abstract class PandraColumnContainer implements ArrayAccess {
 
     /* @var this column families name (table name) */
     protected $_name = NULL;
@@ -182,6 +182,10 @@ abstract class PandraColumnContainer extends ArrayObject {
         return NULL;
     }
 
+    public function getColumns() {
+        return $this->_columns;
+    }
+
     /**
      * Sets a columns value for this slice
      * @param string $colName Column name to set
@@ -261,6 +265,9 @@ abstract class PandraColumnContainer extends ArrayObject {
         }
 
         if (is_array($data) && count($data)) {
+
+            // Check depth, take first few keys as keyspace/columnfamily/key
+
             foreach ($data as $idx => $colValue) {
 
                 if ($colValue instanceof cassandra_Column) {
@@ -277,7 +284,9 @@ abstract class PandraColumnContainer extends ArrayObject {
 
                     // Set Value
                     if (array_key_exists($idx, $this->_columns)) {
-                        $this->_columns[$idx]->setValue($colValue);
+                        if ($this->_columns[$idx] instanceof PandraColumn) {
+                            $this->_columns[$idx]->setValue($colValue);
+                        }
                     }
                 }
             }
@@ -366,6 +375,29 @@ abstract class PandraColumnContainer extends ArrayObject {
             if ($cObj->isModified()) $modColumns[] = &$cObj;
         }
         return $modColumns;
+    }
+
+    public function toJSON($keyPath = FALSE) {
+        return json_encode($this->toArray($keyPath));
+    }
+
+    public function toArray($keyPath = FALSE) {
+        $retArr = array();
+        foreach ($this->_columns as $column) {
+            if ($column instanceof PandraColumn) {
+                $retArr[$column->name] = $column->value;
+            } else {
+                // keyspace/CF/key/{column or supercolumn}
+                if ($keyPath) {
+                    $retArr[$this->getKeySpace()][$this->getName()][$this->keyID][$column->getName()] = $column->toArray();
+                } else {
+                    $retArr[$column->getName()] = $column->toArray($keyPath);
+                }
+
+            }
+        }
+
+        return $retArr;
     }
 }
 ?>

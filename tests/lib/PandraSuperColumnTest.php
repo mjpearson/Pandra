@@ -12,7 +12,7 @@ class TestSuperColumn extends PandraSuperColumn {
 }
 
 // ColumnFamily (SuperColumn Wrapper)
-class TestCFSuper extends PandraColumnFamilySuper {
+class TestCFSuper extends PandraSuperColumnFamily {
 
     public function init() {
         $this->setKeySpace('Keyspace1');

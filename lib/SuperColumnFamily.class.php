@@ -11,7 +11,7 @@
 /**
  * @abstract
  */
-class PandraColumnFamilySuper extends PandraColumnFamily {
+class PandraSuperColumnFamily extends PandraColumnFamily {
 
     /* @var string magic get/set prefix for Super Columns */
     const _columnNamePrefix = 'super_';
@@ -123,6 +123,40 @@ class PandraColumnFamilySuper extends PandraColumnFamily {
         }
 
         return $this->_loaded;
+    }
+
+    /**
+     * Populates container object (ColumnFamily, ColumnFamilySuper or SuperColumn)
+     * @param mixed $data associative string array, array of cassandra_Column's or JSON string of key => values.
+     * @return bool column values set without error
+     */
+    public function populate($data, $colAutoCreate = NULL) {
+        if (is_string($data)) {
+            $data = json_decode($data, TRUE);
+        }
+
+        if (is_array($data) && count($data)) {
+
+            foreach ($data as $idx => $colValue) {
+
+                // Allow named SuperColumns to be populated into this CF
+                if ($colValue instanceof PandraSuperColumn) {
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
+                        $this->_columns[$idx] = $colValue;
+                    }
+
+                } else {
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
+                        $this->addSuper(new PandraSuperColumn($idx), $this);
+                        $this->getSuper($idx)->populate($colValue);
+                    }
+                }
+            }
+        } else {
+            return FALSE;
+        }
+
+        return empty($this->errors);
     }
 }
 ?>
