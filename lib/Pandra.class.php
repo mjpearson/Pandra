@@ -119,10 +119,8 @@ class Pandra {
 
             self::$_nodeConns[$connectionID] = array(
                     'transport' => $transport,
-                    'client' => new CassandraClient(new TBinaryProtocol($transport))
+                    'client' => new CassandraClient((function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)))
             );
-
-
 
             // set new connection the active, working master
             self::setActiveNode($connectionID);
