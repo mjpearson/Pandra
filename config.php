@@ -22,7 +22,7 @@ function _pandraAutoLoad($className) {
 
     if (!preg_match("/^pandra/i", $className)) return;
 
-    if ($className != 'Pandra') $className = preg_replace('/^pandra/i', '', $className);
+    $className = preg_replace('/^pandra/i', '', $className);
 
     // class path relative to config
     $classPath = dirname(__FILE__)."/lib/";

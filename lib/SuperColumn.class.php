@@ -47,8 +47,8 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $columnPath->column_family = $this->_parentCF->getName();
                 $columnPath->super_column = $this->getName();
 
-                $ok = Pandra::delete($this->keySpace, $this->keyID, $columnPath, time(), Pandra::getConsistency($consistencyLevel));
-                if (!$ok) $this->registerError(Pandra::$lastError);
+                $ok = PandraCore::delete($this->keySpace, $this->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
+                if (!$ok) $this->registerError(PandraCore::$lastError);
 
                 return $ok;
             }
@@ -56,14 +56,14 @@ class PandraSuperColumn extends PandraColumnContainer {
         } else {
 
             $this->bindTimeModifiedColumns();
-            $ok = Pandra::saveSuperColumn(  $this->_parentCF->getKeySpace(),
+            $ok = PandraCore::saveSuperColumn(  $this->_parentCF->getKeySpace(),
                                             $this->_parentCF->keyID,
                                             $this->_parentCF->getName(),
                                             $this->getName(),
                                             $this->getModifiedColumns(),
-                                            Pandra::getConsistency($consistencyLevel));
+                                            PandraCore::getConsistency($consistencyLevel));
 
-            if (!$ok) $this->registerError(Pandra::$lastError);
+            if (!$ok) $this->registerError(PandraCore::$lastError);
 
             if ($ok) $this->reset();
             return $ok;
@@ -89,14 +89,14 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), Pandra::getConsistency($consistencyLevel));
+        $result = PandraCore::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), PandraCore::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();
             $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
             if ($this->_loaded) $this->keyID = $keyID;
         } else {
-            $this->registerError(Pandra::$lastError);
+            $this->registerError(PandraCore::$lastError);
         }
 
         return $this->_loaded;

@@ -77,14 +77,14 @@ class PandraColumnFamily extends PandraColumnContainer {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, Pandra::getConsistency($consistencyLevel));
+        $result = PandraCore::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();
             $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
             if ($this->_loaded) $this->setKeyID($keyID);
         } else {
-            $this->registerError(Pandra::$lastError);
+            $this->registerError(PandraCore::$lastError);
         }
 
         return $this->_loaded;
@@ -122,14 +122,14 @@ class PandraColumnFamily extends PandraColumnContainer {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time());
-            if (!$ok) $this->registerError(Pandra::$lastError);
+            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time());
+            if (!$ok) $this->registerError(PandraCore::$lastError);
 
         } else {
 
             foreach ($this->_columns as &$cObj) {
                 if (!$cObj->isModified()) continue;
-                if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), Pandra::getConsistency($consistencyLevel))) {
+                if (!$cObj->save($this->keyID, $this->getKeySpace(), $this->getName(), PandraCore::getConsistency($consistencyLevel))) {
                     $this->registerError($cObj->getLastError());
                     return FALSE;
                 }

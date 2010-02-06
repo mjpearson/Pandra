@@ -8,7 +8,7 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class Pandra {
+class PandraCore {
 
     static public $lastError = '';
 
@@ -185,7 +185,7 @@ class Pandra {
 
     public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = NULL) {
         try {
-            $client = Pandra::getClient(TRUE);
+            $client = self::getClient(TRUE);
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -196,7 +196,7 @@ class Pandra {
 
     public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time, $consistencyLevel = NULL) {
         try {
-            $client = Pandra::getClient(TRUE);
+            $client = self::getClient(TRUE);
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -207,7 +207,7 @@ class Pandra {
 
     public function saveSuperColumn($keySpace, $keyID, $superCFName, $superName, array $columns, $consistencyLevel = NULL) {
         try {
-            $client = Pandra::getClient(TRUE);
+            $client = self::getClient(TRUE);
 
             $scContainer = new cassandra_ColumnOrSuperColumn();
             $scContainer->super_column = new cassandra_SuperColumn();
@@ -233,7 +233,7 @@ class Pandra {
      */
     public function getCFSlice($keyID, $keySpace, $cfName, $superName = NULL, $consistencyLevel = NULL) {
 
-        $client = Pandra::getClient();
+        $client = self::getClient();
 
         // build the column path
         $columnParent = new cassandra_ColumnParent();

@@ -14,8 +14,8 @@ session_start();
 error_reporting(E_ALL);
 require_once(dirname(__FILE__).'/../config.php');
 
-if (!Pandra::connect('default', 'localhost')) {
-    die(Pandra::$lastError);
+if (!PandraCore::connect('default', 'localhost')) {
+    die(PandraCore::$lastError);
 }
 
 // hard code the row key for this example

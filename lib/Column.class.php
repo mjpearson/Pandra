@@ -142,16 +142,16 @@ class PandraColumn extends cassandra_Column {
         $ok = FALSE;
 
         if ($this->_delete) {
-            $ok = Pandra::deleteColumnPath($keySpace, $keyID, $columnPath, $this->bindTime(), Pandra::getConsistency($consistencyLevel));
+            $ok = PandraCore::deleteColumnPath($keySpace, $keyID, $columnPath, $this->bindTime(), PandraCore::getConsistency($consistencyLevel));
         } else {
-            $ok = Pandra::saveColumnPath($keySpace, $keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), Pandra::getConsistency($consistencyLevel));
+            $ok = PandraCore::saveColumnPath($keySpace, $keyID, $columnPath, ($this->callback === NULL) ? $this->value : $this->callbackvalue(), $this->bindTime(), PandraCore::getConsistency($consistencyLevel));
         }
 
         if (!$ok) {
-            if (empty(Pandra::$errors)) {
+            if (empty(PandraCore::$errors)) {
                 $errorStr = 'Unkown Error';
             } else {
-                $errorStr = Pandra::$errors;
+                $errorStr = PandraCore::$errors;
             }
 
             $this->registerError($errorStr);

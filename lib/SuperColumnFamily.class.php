@@ -79,14 +79,14 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = Pandra::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), Pandra::getConsistency($consistencyLevel));
-            if (!$ok) $this->registerError(Pandra::$lastError);
+            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
+            if (!$ok) $this->registerError(PandraCore::$lastError);
 
         } else {
             foreach ($this->_columns as $colName => $superColumn) {
                 $ok = $superColumn->save();
                 if (!$ok) {
-                    $this->registerError(Pandra::$lastError);
+                    $this->registerError(PandraCore::$lastError);
                     break;
                 }
             }
@@ -106,7 +106,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
 
         $this->_loaded = FALSE;
 
-        $result = Pandra::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, Pandra::getConsistency($consistencyLevel));
+        $result = PandraCore::getCFSlice($keyID, $this->getKeySpace(), $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
 
         if ($result !== NULL) {
             $this->init();
@@ -119,7 +119,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
             if ($this->_loaded) $this->setKeyID($keyID);
 
         } else {
-            $this->registerError(Pandra::$lastError);
+            $this->registerError(PandraCore::$lastError);
         }
 
         return $this->_loaded;

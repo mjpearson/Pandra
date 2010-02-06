@@ -37,7 +37,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
     protected function setUp() {
         $this->obj = new ColumnFamilyTestObject();
         $this->obj->keyID = $this->_keyID;
-        Pandra::connect('default', 'localhost');
+        PandraCore::connect('default', 'localhost');
     }
 
     /**
@@ -48,7 +48,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
      */
     protected function tearDown() {
 
-        Pandra::disconnectAll();
+        PandraCore::disconnectAll();
     }
 
     /**
