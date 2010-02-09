@@ -333,7 +333,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool field set ok
      */
     public function __set($colName, $value) {
-        if (!$this->_gsMutable($colName)) {
+        if (!$this->_gsMutable($colName) && $this->getAutoCreate()) {
             $this->addColumn($colName);
         }
 
