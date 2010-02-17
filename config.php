@@ -1,4 +1,4 @@
-<?
+<?php
 /**
  * (c) 2010 phpgrease.net
  *
