@@ -122,7 +122,7 @@ class PandraColumnFamily extends PandraColumnContainer {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time());
+            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
             if (!$ok) $this->registerError(PandraCore::$lastError);
 
         } else {

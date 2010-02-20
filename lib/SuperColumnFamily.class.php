@@ -29,7 +29,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
         $this->_columns[$superName] = $scObj;
 
         return $this->getColumn($superName);
-    }    
+    }
 
     /**
      * Define a new named SuperColumn, anologous to ColumnFamily->addColumn
@@ -75,7 +75,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
             $columnPath = new cassandra_ColumnPath();
             $columnPath->column_family = $this->getName();
 
-            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
+            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
             if (!$ok) $this->registerError(PandraCore::$lastError);
 
         } else {

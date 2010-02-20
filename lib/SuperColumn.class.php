@@ -47,7 +47,7 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $columnPath->column_family = $this->_parentCF->getName();
                 $columnPath->super_column = $this->getName();
 
-                $ok = PandraCore::deleteColumnPath($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
+                $ok = PandraCore::deleteColumnPath($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
                 if (!$ok) $this->registerError(PandraCore::$lastError);                
             }
             return $ok;

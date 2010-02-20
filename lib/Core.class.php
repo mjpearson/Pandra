@@ -38,7 +38,7 @@ class PandraCore {
     );
 
     static private $_memcachedAvailable = FALSE;
-    
+
     static private $_apcAvailable = FALSE;
 
     static public function getSupportedModes() {
@@ -203,9 +203,20 @@ class PandraCore {
         return $conf;
     }
 
-    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time, $consistencyLevel = NULL) {
+    /**
+     * getTime stub will generate microsecond time (waiting on tbinaryprotocolaccellerated fix)
+     * @return <type>
+     */
+    static public function getTime() {
+        return time();
+    }
+
+    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time = NULL, $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
+            if ($time === NULL) {
+                $time = self::getTime();
+            }
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -214,9 +225,12 @@ class PandraCore {
         return TRUE;
     }
 
-    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time, $consistencyLevel = NULL) {
+    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time = NULL, $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
+            if ($time === NULL) {
+                $time = self::getTime();
+            }
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -270,7 +284,7 @@ class PandraCore {
         try {
             if (is_array($keyID)) {
                 return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-            } else {               
+            } else {
                 return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
             }
         } catch (TException $te) {
@@ -313,8 +327,8 @@ class PandraCore {
                 list($keySpace, $extension) = explode('.', $fileName);
 
                 $extension = strtolower($extension);
-                if ($extension == 'json') {                    
-                    $c = file_get_contents($filePath);                    
+                if ($extension == 'json') {
+                    $c = file_get_contents($filePath);
                     $schema = json_decode(file_get_contents($filePath));
                 } else if ($extension == 'yaml') {
                     if (!function_exists('syck_load')) {
@@ -328,12 +342,12 @@ class PandraCore {
                     throw new RuntimeException('Schema failed to parse ('.$filePath.')');
                 } else {
 
-                }             
+                }
             }
         } else {
             throw new RuntimeException('Defined SCHEMA_PATH not found ('.SCHEMA_PATH.')');
         }
-        
+
         // Check if syck module is available
         //if (!function_exists('syck_load')) {
         //}
