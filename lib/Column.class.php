@@ -65,7 +65,6 @@ class PandraColumn extends cassandra_Column {
      * @return int new timestamp
      */
     public function bindTime($time = NULL) {
-        //$this->timestamp = ($time === NULL) ? round(microtime(true) * 1000, 3) : intval($time);
         $this->timestamp = ($time === NULL) ? PandraCore::getTime() : intval($time);
         $this->setModified();
         return $this->timestamp;

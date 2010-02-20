@@ -108,7 +108,7 @@ class PandraCore {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connect($connectionID, $host = NULL, $port = self::THRIFT_PORT_DEFAULT) {
+    static public function connect($connectionID, $host = NULL, $poolName = 'default', $port = self::THRIFT_PORT_DEFAULT) {
         try {
             // if the connection exists but it is closed, then re-open
             if (array_key_exists($connectionID, self::$_nodeConns)) {
@@ -208,6 +208,11 @@ class PandraCore {
      * @return <type>
      */
     static public function getTime() {
+        // use microtime where possible
+        if (PHP_INT_SIZE == 8) {
+            return round(microtime(true) * 1000, 3);
+        }
+
         return time();
     }
 
@@ -231,6 +236,7 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
+
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -352,7 +358,7 @@ class PandraCore {
         //if (!function_exists('syck_load')) {
         //}
     }
-*/
+    */
 }
 
 // Setup our capabilities
