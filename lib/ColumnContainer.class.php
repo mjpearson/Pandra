@@ -86,6 +86,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         $this->_delete = $delete;
     }
 
+    public function delete() {
+        $this->setDelete(TRUE);
+    }
+
     /**
      * accessor, delete
      * @return bool container is marked for deletion
@@ -136,8 +140,11 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @param string $offset column name
      * @return mixed column value
      */
-    public function offsetGet($offset) {
-        return $this->__get($offset);
+    public function offsetGet($columnName) {
+        if ($columnName instanceof PandraClause) {
+            return $this->getColumn($columnName);
+        }
+        return $this->__get($columnName);
     }
 
     /**
@@ -153,31 +160,46 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /**
      * Define a new column, type definition and callback
-     * @param string $colName column name
+     * @param string $columnName column name
      * @param array $typeDef validator type definitions
      * @param string $callbackOnSave callback function pre-save
      * @return PandraColumn reference to created column
      */
-    public function addColumn($colName, $typeDef = array(), $callbackOnSave = NULL) {
-        if (!array_key_exists($colName, $this->_columns)) {
-            $this->_columns[$colName] = new PandraColumn($colName, $this, $typeDef);
+    public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
+        if (!array_key_exists($columnName, $this->_columns)) {
+            $this->_columns[$columnName] = new PandraColumn($columnName, $this, $typeDef);
         }
 
         // pre-save callback
-        if (!empty($callbackOnSave)) $this->_columns[$colName]->callback = $callbackOnSave;
+        if (!empty($callbackOnSave)) $this->_columns[$columnName]->callback = $callbackOnSave;
 
-        return $this->getColumn($colName);
+        return $this->getColumn($columnName);
     }
 
     /**
      * Get reference to named PandraColumn
-     * @param string $colName column name
+     * @param string $columnName column name
      * @return PandraColumn
      */
-    public function getColumn($colName) {
+    public function getColumn($columnMatch) {
 
-        if ($this->_gsMutable($colName)) {
-            return $this->_columns[$colName];
+        // Extract matching named columns based on clause
+        if ($columnMatch instanceof PandraClause) {
+
+            $container = new PandraQuery();
+
+            $matches = array();
+
+            foreach ($this->_columns as $columnName => &$column) {
+                if ($columnMatch->match($columnName)) {
+                    $container->columns[$columnName] = $column;
+                }
+            }
+            return $container;
+        }
+
+        if ($this->_gsMutable($columnMatch)) {
+            return $this->_columns[$columnMatch];
         }
         return NULL;
     }
@@ -188,18 +210,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /**
      * Sets a columns value for this slice
-     * @param string $colName Column name to set
+     * @param string $columnName Column name to set
      * @param string $value New value for column
      * @param bool $validate opt validate from typeDef (default TRUE)
      * @return bool column set ok
      */
-    public function setColumn($colName, $value, $validate = TRUE) {
+    public function setColumn($columnName, $value, $validate = TRUE) {
         if (is_object($value)) {
-            $this->_columns[$colName] = $value;
+            $this->_columns[$columnName] = $value;
             return TRUE;
         }
 
-        return (array_key_exists($colName, $this->_columns) && $this->_columns[$colName]->setValue($value, $validate));
+        return (array_key_exists($columnName, $this->_columns) && $this->_columns[$columnName]->setValue($value, $validate));
     }
 
     /**
@@ -223,11 +245,11 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /**
      * removes a column from the container (does not delete from Cassandra)
-     * @param string $colName column name
+     * @param string $columnName column name
      */
-    public function destroyColumn($colName) {
-        if (array_key_exists($colName, $this->_columns)) {
-            unset($this->_columns[$colName]);
+    public function destroyColumn($columnName) {
+        if (array_key_exists($columnName, $this->_columns)) {
+            unset($this->_columns[$columnName]);
         }
     }
 
@@ -260,6 +282,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool column values set without error
      */
     public function populate($data, $colAutoCreate = NULL) {
+
         if (is_string($data)) {
             $data = json_decode($data, TRUE);
         }
@@ -299,27 +322,27 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /**
      * determine if get/set field exists/is mutable, strips field prefix from magic get/setters
-     * @param string $colName field name to check
+     * @param string $columnName field name to check
      * @return bool field exists
      */
-    protected function _gsMutable(&$colName) {
-        $colName = preg_replace("/^".constant(get_class($this).'::_columnNamePrefix')."/", "", $colName);
-        return array_key_exists($colName, $this->_columns);
+    protected function _gsMutable(&$columnName) {
+        $columnName = preg_replace("/^".constant(get_class($this).'::_columnNamePrefix')."/", "", $columnName);
+        return array_key_exists($columnName, $this->_columns);
     }
 
     /**
      * Magic getter
-     * @param string $colName field name to get
+     * @param string $columnName field name to get
      * @return string value
      */
-    public function __get($colName) {
-        if ($this->_gsMutable($colName)) {
+    public function __get($columnName) {
+        if ($this->_gsMutable($columnName)) {
 
-            if ($this->_columns[$colName] instanceof PandraColumn) {
-                return $this->_columns[$colName]->value;
+            if ($this->_columns[$columnName] instanceof PandraColumn) {
+                return $this->_columns[$columnName]->value;
 
-            } else if ($this->_columns[$colName] instanceof PandraColumnContainer) {
-                return $this->_columns[$colName];
+            } else if ($this->_columns[$columnName] instanceof PandraColumnContainer) {
+                return $this->_columns[$columnName];
             }
         }
         return NULL;
@@ -328,17 +351,17 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /**
      * Magic setter
      * @todo propogate an exception for setcolumn if it returns false.  magic __set's are void return type
-     * @param string $colName field name to set
+     * @param string $columnName field name to set
      * @param string $value  value to set for field
      * @return bool field set ok
      */
-    public function __set($colName, $value) {
-        if (!$this->_gsMutable($colName) && $this->getAutoCreate()) {
-            $this->addColumn($colName);
+    public function __set($columnName, $value) {
+        if (!$this->_gsMutable($columnName) && $this->getAutoCreate()) {
+            $this->addColumn($columnName);
         }
 
-        if (!$this->setColumn($colName, $value)) {
-            throw new RuntimeException($colName.' set but does not exist in container');
+        if (!$this->setColumn($columnName, $value)) {
+            throw new RuntimeException($columnName.' set but does not exist in container');
         }
     }
 

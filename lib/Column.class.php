@@ -5,18 +5,10 @@
  * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
+ * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class PandraColumn extends cassandra_Column {
-
-    /* @var string column name */
-    public $name = NULL;
-
-    /* @var string column value */
-    public $value = NULL;
-
-    /* @var int last changed timestamp */
-    public $timestamp = NULL;
 
     /* @var array validator type definitions for this colun */
     public $typeDef = array();
@@ -69,11 +61,12 @@ class PandraColumn extends cassandra_Column {
 
     /**
      * Binds a timestamp to the column, defaults to current time if no override defined
-     * @param int $timeOverride new stamp
+     * @param int $time new time stamp, microtime assumed (optional)
      * @return int new timestamp
      */
-    public function bindTime($timeOverride = NULL) {
-        $this->timestamp = ($timeOverride === NULL) ? time() : $timeOverride;
+    public function bindTime($time = NULL) {
+        //$this->timestamp = ($time === NULL) ? round(microtime(true) * 1000, 3) : intval($time);
+        $this->timestamp = ($time === NULL) ? time() : intval($time);
         $this->setModified();
         return $this->timestamp;
     }
@@ -104,9 +97,7 @@ class PandraColumn extends cassandra_Column {
      * @return mixed result of callback eval
      */
     public function callbackvalue() {
-        $value = '';
-        eval('$value = '.$this->callback.'("'.$this->value.'");');
-        return $value;
+        return call_user_func($this->callback, $this->value);
     }
 
     /**
@@ -161,6 +152,8 @@ class PandraColumn extends cassandra_Column {
         return $ok;
     }
 
+    // ----------------- ERROR HANDLING
+
     /**
      * Creates an error entry in this column and propogate to parent
      * @param string $errorStr error string
@@ -190,6 +183,8 @@ class PandraColumn extends cassandra_Column {
         }
         return NULL;
     }
+
+    // ----------------- MODIFY/DELETE MUTATORS AND ACCESSORS
 
     /**
      * Removes any modified or delete flags, (does not revert values)

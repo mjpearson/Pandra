@@ -2,24 +2,6 @@
 require_once 'PHPUnit/Framework.php';
 require_once(dirname(__FILE__).'/../../config.php');
 
-// SuperColumn wrapper
-class TestSuperColumn extends PandraSuperColumn {
-    public function init() {
-        $this->addColumn('city', 'string');
-        $this->addColumn('street', 'string');
-        $this->addColumn('zip', 'int');
-    }
-}
-
-// ColumnFamily (SuperColumn Wrapper)
-class TestCFSuper extends PandraSuperColumnFamily {
-
-    public function init() {
-        $this->setKeySpace('Keyspace1');
-        $this->setName('Super1');
-    }
-
-}
 
 /**
  * Test class for PandraColumn.
@@ -31,7 +13,7 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
     public $obj = NULL;
 
     // parent column family
-    public $parentCF = NULL;
+    public $superColumnFamily = NULL;
 
     // key id
     public $keyID = 'PandraCFTest_Super';
@@ -48,10 +30,17 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-        $this->parentCF = new TestCFSuper();
-        $this->parentCF->keyID = $this->keyID;
-        $this->obj = new TestSuperColumn($this->superName, $this->parentCF);
-        
+        $this->superColumnFamily = new PandraSuperColumnFamily();
+        $this->superColumnFamily->setKeySpace('Keyspace1');
+        $this->superColumnFamily->setName('Super1');
+
+        $this->superColumnFamily->keyID = $this->keyID;
+
+        $this->obj = new PandraSuperColumn($this->superName, $this->superColumnFamily);
+        $this->obj->addColumn('city', 'string');
+        $this->obj->addColumn('street', 'string');
+        $this->obj->addColumn('zip', 'int');
+
         PandraCore::connect('default', 'localhost');
     }
 
@@ -66,7 +55,9 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testSetParentCF() {
-        $newCF = new TestCFSuper();
+        $newCF = new PandraSuperColumnFamily();
+        $newCF->setKeySpace('Keyspace1');
+        $newCF->setName('Super1');
         $this->obj->setParentCF($newCF);
 
         $this->assertEquals($newCF, $this->obj->getParentCF());
@@ -77,20 +68,27 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($cf instanceof PandraColumnContainer);
     }
 
-    public function testSave() {
+    public function testSaveLoadDelete() {
         // this could also be $this->obj->column_city = 'SOME CITY';
         $this->obj->getColumn('city')->setValue('SOME CITY');
         $this->obj->getColumn('street')->setValue('MY STREET');
         $this->obj->getColumn('zip')->setValue('123654');
 
-        $this->assertTrue($this->obj->save());
-    }
+        $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
-    public function testLoad() {
+        // Test Load
         unset($this->obj);
+        $this->setUp();
+        $this->assertTrue($this->obj->load($this->keyID), $this->obj->lastError());
 
-        $this->obj = new TestSuperColumn('address1', $this->parentCF);
-        $this->assertTrue($this->obj->load($this->keyID));  
+        // Delete supercolumn
+        $this->obj->delete();
+        $this->assertTrue($this->obj->save(), $this->obj->lastError());
+
+        // Confirm we can't load the key any more
+        unset($this->obj);
+        $this->setUp();
+        $this->assertFalse($this->obj->load($this->_keyID), $this->obj->lastError());
     }
 
     public function testNotations() {
@@ -110,7 +108,7 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($this->obj->column_column1 != $newValue);
 
         // Accessors/Mutators
-        $newValue = 'OIWERUWINCN@$';
+        $newValue = 'ASDWOIU@NCN';
         $this->obj->getColumn($colName)->setValue($newValue);
         $this->assertTrue($this->obj->getColumn($colName)->value == $newValue);
         $this->assertFalse($this->obj->getColumn($colName)->value != $newValue);
@@ -118,6 +116,14 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         // test unset
         unset($this->obj['column1']);
         $this->assertFalse($this->obj->getColumn('column1') instanceof PandraColumn);
+    }
+
+    public function testRegisterError() {
+        $errorMsg = 'An error has occurred';
+        $this->obj->registerError($errorMsg);
+
+        $this->assertTrue($errorMsg == $this->obj->lastError());
+
     }
 
 }

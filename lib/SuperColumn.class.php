@@ -5,7 +5,7 @@
  * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
- * @author Michael Pearson <Pandra-support@phpgrease.net>
+ * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class PandraSuperColumn extends PandraColumnContainer {
 
@@ -47,11 +47,10 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $columnPath->column_family = $this->_parentCF->getName();
                 $columnPath->super_column = $this->getName();
 
-                $ok = PandraCore::delete($this->keySpace, $this->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
-                if (!$ok) $this->registerError(PandraCore::$lastError);
-
-                return $ok;
+                $ok = PandraCore::deleteColumnPath($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $columnPath, time(), PandraCore::getConsistency($consistencyLevel));
+                if (!$ok) $this->registerError(PandraCore::$lastError);                
             }
+            return $ok;
 
         } else {
 
@@ -68,7 +67,6 @@ class PandraSuperColumn extends PandraColumnContainer {
             if ($ok) $this->reset();
             return $ok;
         }
-        return FALSE;
     }
 
     /**
@@ -91,7 +89,8 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         $result = PandraCore::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), PandraCore::getConsistency($consistencyLevel));
 
-        if ($result !== NULL) {
+        if (!empty($result)) {
+            var_dump($result);
             $this->init();
             $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
             if ($this->_loaded) $this->keyID = $keyID;

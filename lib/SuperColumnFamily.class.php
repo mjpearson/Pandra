@@ -29,11 +29,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
         $this->_columns[$superName] = $scObj;
 
         return $this->getColumn($superName);
-    }
-
-    public function delete() {
-        $this->setDelete(TRUE);
-    }
+    }    
 
     /**
      * Define a new named SuperColumn, anologous to ColumnFamily->addColumn

@@ -27,6 +27,8 @@ function _pandraAutoLoad($className) {
     // class path relative to config
     $classPath = dirname(__FILE__)."/lib/";
 
+    if (preg_match('/^(Query|Clause)/', $className)) $classPath .= 'query/';
+
     // class file suffix
     $cSuffix = ".class.php";
 

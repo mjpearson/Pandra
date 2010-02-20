@@ -6,6 +6,7 @@
  * For licensing terms, plese see license.txt which should distribute with this source
  *
  * @package Pandra
+ * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 class PandraCore {
@@ -35,6 +36,10 @@ class PandraCore {
             self::MODE_ROUND,
             self::MODE_RANDOM,
     );
+
+    static private $_memcachedAvailable = FALSE;
+    
+    static private $_apcAvailable = FALSE;
 
     static public function getSupportedModes() {
         return self::$_supportedModes;
@@ -129,7 +134,22 @@ class PandraCore {
             self::$lastError = 'TException: '.$tx->getMessage() . "\n";
         }
         return FALSE;
+    }
 
+    static public function setmemcachedAvailable($memcachedAvailable) {
+        self::$_memcachedAvailable = $memcachedAvailable;
+    }
+
+    static public function getmemcachedAvailable() {
+        return self::$_memcachedAvailable;
+    }
+
+    static public function setAPCAvailable($apcAvailable) {
+        self::$_apcAvailable = $apcAvailable;
+    }
+
+    static public function getAPCAvailable() {
+        return self::$_apcAvailable;
     }
 
     /**
@@ -214,6 +234,8 @@ class PandraCore {
             $scContainer->super_column->name = $superName;
             $scContainer->super_column->columns = $columns;
 
+            //var_dump($scContainer); exit;
+
             $mutation = array();
             $mutations[$superCFName] = array($scContainer);
 
@@ -248,7 +270,7 @@ class PandraCore {
         try {
             if (is_array($keyID)) {
                 return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-            } else {
+            } else {               
                 return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
             }
         } catch (TException $te) {
@@ -262,6 +284,7 @@ class PandraCore {
     /**
      * Grabs locally defined columnfamilies (debug tool)
      */
+    /*
     static public function getConfColumnFamilies() {
 
         $conf = self::loadConfigXML();
@@ -275,5 +298,51 @@ class PandraCore {
 
         return $columnFamiles;
     }
+
+    static public function buildModels() {
+        // check the schemas directory
+        if (file_exists(SCHEMA_PATH)) {
+
+            // Grab config, check our available keyspaces
+            $dir = scandir(SCHEMA_PATH);
+            foreach ($dir as $fileName) {
+                if (preg_match('/^\./', $fileName)) continue;
+                $filePath = SCHEMA_PATH.'/'.$fileName;
+                $schema = NULL;
+
+                list($keySpace, $extension) = explode('.', $fileName);
+
+                $extension = strtolower($extension);
+                if ($extension == 'json') {                    
+                    $c = file_get_contents($filePath);                    
+                    $schema = json_decode(file_get_contents($filePath));
+                } else if ($extension == 'yaml') {
+                    if (!function_exists('syck_load')) {
+                        throw new RuntimeException('YAML schema found but syck module not supported');
+                    } else {
+                        $schema = syck_load($filePath);
+                    }
+                }
+
+                if ($schema === NULL) {
+                    throw new RuntimeException('Schema failed to parse ('.$filePath.')');
+                } else {
+
+                }             
+            }
+        } else {
+            throw new RuntimeException('Defined SCHEMA_PATH not found ('.SCHEMA_PATH.')');
+        }
+        
+        // Check if syck module is available
+        //if (!function_exists('syck_load')) {
+        //}
+    }
+*/
 }
+
+// Setup our capabilities
+PandraCore::setMemcachedAvailable(class_exists('Memcached'));
+
+PandraCore::setAPCAvailable(function_exists('apc_sma_info') && apc_sma_info() !== FALSE);
 ?>

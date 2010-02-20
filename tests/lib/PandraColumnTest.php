@@ -2,7 +2,12 @@
 require_once 'PHPUnit/Framework.php';
 require_once(dirname(__FILE__).'/../../config.php');
 
-class ColumnFamilyTestObject extends PandraColumnFamily { }
+class ColumnFamilyTestObject extends PandraColumnFamily {
+    public function init() {
+        $this->setKeySpace('Keyspace1');
+        $this->setName('Standard1');
+    }
+}
 
 /**
  * Test class for PandraColumn.
@@ -26,6 +31,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
     protected function setUp() {
         $this->parentCF = new ColumnFamilyTestObject();
         $this->obj = new PandraColumn($this->columnName, $this->parentCF);
+        PandraCore::connect('default', 'localhost');
     }
 
     /**
@@ -39,8 +45,19 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testSetValue() {
+        $this->obj->reset();
         $this->assertTrue($this->obj->setValue('NEW VALUE'));
         $this->assertTrue($this->obj->isModified());
+    }
+
+    public function testSetValueValidated() {
+        $this->obj->reset();
+        $this->obj->typeDef = array('string');
+        $this->assertFalse($this->obj->setValue(1));
+
+
+        $this->assertTrue(array_key_exists($this->columnName, $this->obj->getLastError()));
+        $this->assertFalse($this->obj->isModified());
     }
 
     public function testBindTime() {
@@ -62,16 +79,6 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
         $this->obj->reset();
         $this->assertFalse($this->obj->isModified());
-    }
-
-    public function testDelete() {
-        $this->assertFalse($this->obj->isModified());
-        $this->assertFalse($this->obj->isDeleted());
-        
-        $this->obj->delete();
-
-        $this->assertTrue($this->obj->isModified());
-        $this->assertTrue($this->obj->isDeleted());
     }
 
     public function testCallbackValue() {
@@ -103,9 +110,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
     public function testIsModifed() {
         $this->assertFalse($this->obj->isModified());
-
         $this->obj->setValue('OH HI GREAT TO SEE YOU');
-
         $this->assertTrue($this->obj->isModified());
     }
 
@@ -121,7 +126,36 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($cf instanceof PandraColumnContainer);
     }
 
-    public function testSave() {        
+    public function testSaveLoadDelete() {
+        $keyID = 'PandraColumnTest';
+        $keySpace = 'Keyspace1';
+        $columnFamily = 'Standard1';
+
+        $value = 'test value';
+        $this->obj->setValue($value);
+        $this->assertTrue($this->obj->isModified());
+        $this->assertTrue($this->obj->save($keyID, $keySpace, $columnFamily), $this->obj->getLastError());
+
+        $column = array_pop(PandraCore::getCFSlice($keyID, $keySpace, $columnFamily))->column;
+        $this->assertTrue($column->value == $value && $column->name = $this->obj->name);
+
+        $this->obj->delete();
+        $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
+        $this->assertTrue($this->obj->save($keyID, $keySpace, $columnFamily), $this->obj->getLastError());
+
+        $result = PandraCore::getCFSlice($keyID, $keySpace, $columnFamily);
+        $this->assertTrue(empty($result));
     }
+
+    public function testRegisterError() {
+        $errorMsg = 'ERROR STRING';
+        $this->obj->registerError($errorMsg);
+        $this->assertTrue($this->obj->getLastError() == $errorMsg);
+
+        $errors = $this->obj->getErrors();
+        $this->assertTrue(array_pop($errors) == $errorMsg);
+
+    }
+
 }
 ?>
