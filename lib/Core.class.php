@@ -11,6 +11,16 @@
  */
 class PandraCore {
 
+    const MODE_ACTIVE = 0; // Active client only
+
+    const MODE_ROUND = 1; // sequentially select configured clients
+
+    const MODE_RANDOM = 2; // select random node
+
+    const DEFAULT_ROW_LIMIT = 100;
+
+    const THRIFT_PORT_DEFAULT = 9160;
+
     static public $lastError = '';
 
     static private $_consistencyLevel = cassandra_ConsistencyLevel::ONE;
@@ -18,14 +28,6 @@ class PandraCore {
     static private $_nodeConns = array();
 
     static private $_activeNode = NULL;
-
-    const MODE_ACTIVE = 0; // Active client only
-
-    const MODE_ROUND = 1; // sequentially select configured clients
-
-    const MODE_RANDOM = 2; // select random node
-
-    const THRIFT_PORT_DEFAULT = 9160;
 
     static private $readMode = self::MODE_ACTIVE;
 
@@ -136,11 +138,11 @@ class PandraCore {
         return FALSE;
     }
 
-    static public function setmemcachedAvailable($memcachedAvailable) {
+    static public function setMemcachedAvailable($memcachedAvailable) {
         self::$_memcachedAvailable = $memcachedAvailable;
     }
 
-    static public function getmemcachedAvailable() {
+    static public function getMemcachedAvailable() {
         return self::$_memcachedAvailable;
     }
 
@@ -176,7 +178,7 @@ class PandraCore {
         }
     }
 
-    static public function getKeyspace($keySpace) {
+    static public function describeKeyspace($keySpace) {
         $client = self::getClient();
         return $client->describe_keyspace($keySpace);
     }
@@ -245,16 +247,14 @@ class PandraCore {
         return TRUE;
     }
 
-    public function saveSuperColumn($keySpace, $keyID, $superCFName, $superName, array $columns, $consistencyLevel = NULL) {
+    public function saveSuperColumn($keySpace, $keyID, $superCFName, $superColumnName, array $columns, $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
 
             $scContainer = new cassandra_ColumnOrSuperColumn();
             $scContainer->super_column = new cassandra_SuperColumn();
-            $scContainer->super_column->name = $superName;
+            $scContainer->super_column->name = $superColumnName;
             $scContainer->super_column->columns = $columns;
-
-            //var_dump($scContainer); exit;
 
             $mutation = array();
             $mutations[$superCFName] = array($scContainer);
@@ -273,14 +273,16 @@ class PandraCore {
      *
      * @return array cassandra_Column objects
      */
-    public function getCFSlice($keyID, $keySpace, $cfName, $superName = NULL, $consistencyLevel = NULL) {
+    public function getCFSlice($keyID, $keySpace, $columnFamilyName, $superColumnName = NULL, $consistencyLevel = NULL) {
+
+        if (is_array($keyID)) return self::getRangeKeys($keyID, $keySpace, $columnFamilyName, $superColumnName, NULL, NULL, NULL, $consistencyLevel);
 
         $client = self::getClient();
 
         // build the column path
         $columnParent = new cassandra_ColumnParent();
-        $columnParent->column_family = $cfName;
-        $columnParent->super_column = $superName;
+        $columnParent->column_family = $columnFamilyName;
+        $columnParent->super_column = $superColumnName;
 
         $predicate = new cassandra_SlicePredicate();
         $predicate->slice_range = new cassandra_SliceRange();
@@ -288,18 +290,117 @@ class PandraCore {
         $predicate->slice_range->finish = '';
 
         try {
-            if (is_array($keyID)) {
-                return $client->multiget_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-            } else {
-                return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-            }
+            return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            var_dump($te);
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
             return NULL;
         }
         return NULL;
     }
+
+    public function getCFRange($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = NULL, $rangeStart = NULL, $rangeFinish = NULL, $consistencyLevel = NULL) {
+
+        $client = self::getClient();
+
+        $columnParent = new cassandra_ColumnParent(array(
+                        'column_family' => $columnFamilyName,
+                        'super_column' => $superColumnName
+        ));
+        $predicate = new cassandra_SlicePredicate(array(
+                        'column_names' => $columnNames,
+                        'slice_range' => new cassandra_SliceRange()
+        ));
+
+        if ($rangeStart !== NULL) $predicate->slice_range->start = $rangeStart;
+        if ($rangeFinish !== NULL) $predicate->slice_range->finish = $rangeFinish;
+
+        try {
+            return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+    }
+
+    /**
+     * Returns by key, the column count in a column family (or a single CF/SuperColumn pair)
+     * @param string $keyID row key id
+     * @param string $keySpace keyspace of key
+     * @param string $columnFamilyName column family name
+     * @param string $superColumnName optional super column name
+     * @param int $consistencyLevel response consistency level
+     * @return int number of rows or null on error
+     */
+    public function getCFColumnCount($keySpace, $keyID, $columnFamilyName, $superColumnName = NULL, $consistencyLevel = NULL) {
+        $client = self::getClient();
+
+        $columnParent = new cassandra_ColumnParent(array(
+                        'column_family' => $columnFamilyName,
+                        'super_column' => $superColumnName
+        ));
+        try {
+            return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+    }
+
+    public function getColumn($keySpace, $keyID, $columnFamilyName, $columnName, $superColumnName = NULL, $consistencyLevel = NULL) {
+
+        $client = self::getClient();
+
+        $columnPath = new cassandra_ColumnPath(array(
+                        'column_family' => $columnFamilyName,
+                        'super_column' => $superColumnName,
+                        'column' => $columnName
+        ));
+
+        try {
+            return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+    }
+
+    /**
+     *
+     * @param <type> $keySpace
+     * @param <type> $columnFamilyName
+     * @param <type> $columnName
+     * @param <type> $keyStart
+     * @param <type> $keyFinish
+     * @param <type> $superColumnName
+     * @param <type> $numRows
+     * @param <type> $consistencyLevel
+     * @return <type>
+     */
+    public function getRangeKeys($keySpace, $columnFamilyName, $columnNames, $superColumnName = NULL, $keyStart = '', $keyFinish = '', $numRows = self::DEFAULT_ROW_LIMIT, $consistencyLevel = NULL) {
+
+        $client = self::getClient();
+
+        $columnParent = new cassandra_ColumnParent(array(
+                        'column_family' => $columnFamilyName,
+                        'super_column' => $superColumnName
+        ));
+        $predicate = new cassandra_SlicePredicate(array(
+                        'column_names' => $columnNames,
+                        'slice_range' => new cassandra_SliceRange()
+        ));
+
+        if ($rangeStart !== NULL) $predicate->slice_range->start = $rangeStart;
+        if ($rangeFinish !== NULL) $predicate->slice_range->finish = $rangeFinish;
+
+        try {
+            return $client->get_range_slice($keySpace, $columnParent, $predicate, $keyStart, $keyFinish, $numRows, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+
+    }
+
 
     /**
      * Grabs locally defined columnfamilies (debug tool)
