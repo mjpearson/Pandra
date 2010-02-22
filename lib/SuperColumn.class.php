@@ -48,7 +48,7 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $columnPath->super_column = $this->getName();
 
                 $ok = PandraCore::deleteColumnPath($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
-                if (!$ok) $this->registerError(PandraCore::$lastError);                
+                if (!$ok) $this->registerError(PandraCore::$lastError);
             }
             return $ok;
 
@@ -56,11 +56,10 @@ class PandraSuperColumn extends PandraColumnContainer {
 
             $this->bindTimeModifiedColumns();
             $ok = PandraCore::saveSuperColumn(  $this->_parentCF->getKeySpace(),
-                                            $this->_parentCF->keyID,
-                                            $this->_parentCF->getName(),
-                                            $this->getName(),
-                                            $this->getModifiedColumns(),
-                                            PandraCore::getConsistency($consistencyLevel));
+                    $this->_parentCF->keyID,
+                    $this->_parentCF->getName(),
+                    array($this->getName() => $this->getModifiedColumns()),
+                    PandraCore::getConsistency($consistencyLevel));
 
             if (!$ok) $this->registerError(PandraCore::$lastError);
 
@@ -87,7 +86,7 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         $this->_loaded = FALSE;
 
-        $result = PandraCore::getCFSlice($keyID, $this->_parentCF->getKeySpace(), $this->_parentCF->getName(), $this->getName(), PandraCore::getConsistency($consistencyLevel));
+        $result = PandraCore::getCFSlice($this->_parentCF->getKeySpace(), $keyID, $this->_parentCF->getName(), $this->getName(), PandraCore::getConsistency($consistencyLevel));
 
         if (!empty($result)) {
             var_dump($result);

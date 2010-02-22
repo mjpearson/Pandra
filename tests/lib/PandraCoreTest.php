@@ -106,8 +106,8 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
     /**
      * Describe a named keyspace
      */
-    public function testGetKeyspace() {
-        $ks = PandraCore::getKeyspace('Keyspace1');
+    public function testDescribeKeyspace() {
+        $ks = PandraCore::describeKeyspace('Keyspace1');
 
         $this->assertTrue(is_array($ks) && !empty($ks));
 
@@ -131,6 +131,15 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * @todo
      */
     public function testGetCFSlice() {
+    }
+
+    public function testGetCFSliceMulti() {
+    }
+
+    public function testGetCFColumnCount() {
+    }
+
+    public function testGetRangeKeys() {
     }
 
     /**

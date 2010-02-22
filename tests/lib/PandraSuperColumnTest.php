@@ -83,12 +83,13 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
 
         // Delete supercolumn
         $this->obj->delete();
+        $this->assertTrue($this->obj->getDelete());
         $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
         // Confirm we can't load the key any more
         unset($this->obj);
         $this->setUp();
-        $this->assertFalse($this->obj->load($this->_keyID), $this->obj->lastError());
+        $this->assertFalse($this->obj->load($this->keyID), $this->obj->lastError());
     }
 
     public function testNotations() {
