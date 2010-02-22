@@ -1,6 +1,4 @@
-version: 0.1
-
-== Welcome to the Pandra Toolkit ==
+== Welcome to the Pandra toolkit (0.1) ==
 
 Copyright (C) 2010 Michael Pearson <pandra-support@phpgrease.net>
 
@@ -14,10 +12,20 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-The Pandra homepage is http://www.phpgrease.net/projects/Pandra
+- Community 
+
+	The Pandra homepage is http://www.phpgrease.net/projects/Pandra
+
+	For feedback, bugs and general support discussion see http://groups.google.com/group/pandra-user
+
+	Developers : http://groups.google.com/group/pandra-dev
+
+	Github users may also log bugs directly via http://github.com/mjpearson/pandra/issues
+
+	Thankyou for your support.
 
 - What is it?
 
@@ -46,10 +54,12 @@ The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
 	* Schema aware, or build factory objects on the fly
 
+	* Simple yet powerful, caching, object query language (OQL)
+
 - Dependencies
 
 	* Cassandra >= 0.5.0
 
-	* Thrift Interface (cassandra.thrift and pre-generated files are packaged)
+	* Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
 
-	* PHP >= 5.3
+	* PHP >= 5.3 (APC and Memcached suggested)
