@@ -1,5 +1,4 @@
 <?php
-
 /**
  * (c) 2010 phpgrease.net
  *
@@ -61,27 +60,45 @@ class PandraCore {
         return self::$_supportedModes;
     }
 
+    /**
+     * readmode mutator
+     * @param int $newMode new mode
+     */
     static public function setReadMode($newMode) {
         if (!array_key_exists($newMode, self::$_supportedModes)) throw new RuntimeExcpetion("Unsupported Read Mode");
         self::$readMode = $newMode;
     }
 
+    /**
+     * readmode accessor
+     * @return int read mode
+     */
     static public function getReadMode() {
         return self::$readMode;
     }
 
+    /**
+     * readmode mutator
+     * @param int $newMode new mode
+     */
     static public function setWriteMode($newMode) {
         if (!array_key_exists($newMode, self::$_supportedModes)) throw new RuntimeExcpetion("Unsupported Write Mode");
         self::$writeMode = $newMode;
     }
 
+    /**
+     * readmode accessor
+     * @return int read mode
+     */
     static public function getWriteMode() {
         return self::$writeMode;
     }
 
 
     /**
-     *
+     * Sets connectionid as active node
+     * @param string $connectionID named connection
+     * @return bool connection id exists and has been set
      */
     static public function setActiveNode($connectionID) {
         if (array_key_exists($connectionID, self::$_nodeConns) && self::$_nodeConns[$connectionID]['transport']->isOpen()) {
@@ -92,7 +109,9 @@ class PandraCore {
     }
 
     /**
-     *
+     * Disconnects a named connection
+     * @param string $connectionID named connection
+     * @return bool disconnected OK
      */
     static public function disconnect($connectionID) {
         if (array_key_exists($connectionID, self::$_nodeConns)) {
@@ -105,7 +124,8 @@ class PandraCore {
     }
 
     /**
-     *
+     * Disconnects all nodes
+     * @return bool disconnected OK
      */
     static public function disconnectAll() {
 
@@ -152,18 +172,34 @@ class PandraCore {
         return FALSE;
     }
 
+    /**
+     * memcached mutator
+     * @param bool memcached is available
+     */
     static public function setMemcachedAvailable($memcachedAvailable) {
         self::$_memcachedAvailable = $memcachedAvailable;
     }
 
+    /**
+     * memcached accessor
+     * @return bool memcached has been detected
+     */
     static public function getMemcachedAvailable() {
         return self::$_memcachedAvailable;
     }
 
+    /**
+     * apc mutator
+     * @param bool apc is available
+     */
     static public function setAPCAvailable($apcAvailable) {
         self::$_apcAvailable = $apcAvailable;
     }
 
+    /**
+     * apc available accessor
+     * @return bool apc has been detected
+     */
     static public function getAPCAvailable() {
         return self::$_apcAvailable;
     }
@@ -192,11 +228,21 @@ class PandraCore {
         }
     }
 
+    /**
+     * Returns description of keyspace
+     * @param string $keySpace keyspace name
+     * @return array keyspace structure
+     */
     static public function describeKeyspace($keySpace) {
         $client = self::getClient();
         return $client->describe_keyspace($keySpace);
     }
 
+    /**
+     * consistency accessor
+     * @param int $override overrides the return, or returns default if NULL
+     * @return int consistency level
+     */
     static public function getConsistency($override = NULL) {
         $consistency = self::$_consistencyLevel;
         if ($override !== NULL) {
@@ -206,10 +252,18 @@ class PandraCore {
         return $consistency;
     }
 
+    /**
+     * consistency mutator
+     * @param int $consistencyLevel new consistency level
+     */
     static public function setConsistency(int $consistencyLevel) {
         self::$_consistencyLevel = $consistencyLevel;
     }
 
+    /**
+     * Loads the local cassandra conf file for use
+     * @return SimpleXMLElement SimpleXML config structure
+     */
     static public function loadConfigXML() {
         if (!file_exists(CASSANDRA_CONF_PATH)) {
             throw new RuntimeException('Cannot build models, file not found ('.CASSANDRA_CONF_PATH.')\n');
@@ -364,13 +418,14 @@ class PandraCore {
                         'column_family' => $columnFamilyName,
                         'super_column' => $superColumnName
         ));
-        $predicate = new cassandra_SlicePredicate(array(
-                        'column_names' => $columnNames,
-                        'slice_range' => new cassandra_SliceRange()
-        ));
+        $predicate = new cassandra_SlicePredicate();
 
-        $predicate->slice_range->start = '';
-        $predicate->slice_range->finish = '';
+        if ($columnNames !== NULL) {
+            $predicate->column_names = $columnNames;
+        } else {
+            $predicate->slice_range->start = '';
+            $predicate->slice_range->finish = '';
+        }
 
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
@@ -423,6 +478,17 @@ class PandraCore {
                         'super_column' => $superColumnName,
                         'column' => $columnName
         ));
+
+        try {
+            return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
+        } catch (TException $te) {
+            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            return NULL;
+        }
+    }
+
+    public function getColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $consistencyLevel = NULL) {
+        $client = self::getClient();
 
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
