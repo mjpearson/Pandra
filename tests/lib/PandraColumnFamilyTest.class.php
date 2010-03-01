@@ -36,7 +36,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
      */
     protected function setUp() {
         $this->obj = new ColumnFamilyTestObject();
-        $this->obj->keyID = $this->_keyID;
+        $this->obj->setKeyID($this->_keyID);
         PandraCore::connect('default', 'localhost');
     }
 
@@ -47,7 +47,6 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function tearDown() {
-
         PandraCore::disconnectAll();
     }
 
@@ -59,6 +58,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
 
         // reload the object, test that column1 is the same
         $newObj = new ColumnFamilyTestObject($this->_keyID);
+        $newObj->load();
         $this->assertTrue($this->obj->column_column1 == $newObj->column_column1,
                             "Column didn't match after reload.  Expected '".$this->obj->column_column1."', received '".$newObj->column_column1."'");
 
@@ -82,6 +82,8 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
             $this->obj->getColumn($column)->delete();
         }
 
+        $this->assertTrue($this->obj->isModified());
+
         // make sure everything is marked for delete
         $columns = $this->obj->listColumns();
         foreach ($columns as $column) {
@@ -89,9 +91,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
             $this->assertTrue($this->obj->getColumn($column)->isDeleted());
         }
 
-        $this->assertTrue($this->obj->isDeleted());
-
-        $this->obj->reset();
+        $this->assertTrue($this->obj->reset());
 
         $columns = $this->obj->listColumns();
         foreach ($columns as $column) {

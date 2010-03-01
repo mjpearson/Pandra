@@ -4,6 +4,9 @@
  *
  * For licensing terms, plese see license.txt which should distribute with this source
  *
+ * Column Container abstract for (Super) Column Families and Super Columns, which contain our
+ * working columns
+ *
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
@@ -15,6 +18,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
     /* @var this column families name (table name) */
     protected $_name = NULL;
+
+    protected $_keyID = NULL;
+
+    protected $_keySpace = NULL;
 
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
@@ -45,6 +52,14 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
+     * init is is always called by the constructor.  Child classes can implement
+     * constructor logic, schemas, defaults validators etc. here
+     * @return void
+     */
+    public function init() {
+    }
+
+    /**
      * accessor, container name
      * @return string container name
      */
@@ -58,15 +73,28 @@ abstract class PandraColumnContainer implements ArrayAccess {
      */
     public function setName($name) {
         $this->_name = $name;
-
     }
 
-    /**
-     * init is is always called by the constructor.  Child classes can implement
-     * constructor logic, schemas, defaults validators etc. here
-     * @return void
-     */
-    public function init() {
+    public function setKeySpace($keySpace) {
+        $this->_keySpace = $keySpace;
+    }
+
+    public function getKeySpace() {
+        return $this->_keySpace;
+    }
+
+    public function setKeyID($keyID) {
+        $this->_keyID = $keyID;
+    }
+
+    public function getKeyID() {
+        return $this->_keyID;
+    }
+
+    public function pathOK($keyID = NULL) {
+        $ok = ( ($keyID !== NULL || $this->getKeyID() !== NULL) && $this->getKeySpace() !== NULL && $this->getName() !== NULL);
+        if (!$ok) $this->registerError('Required field (Keyspace, ColumnFamily or KeyID) not present');
+        return $ok;
     }
 
     /**
@@ -78,17 +106,25 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
+     * marks the container and subcolumns (or subcontainers) for deletion
+     * operation cascades to columns
+     * @return void
+     */
+    public function delete() {
+        $this->setDelete(TRUE);
+        foreach ($this->_columns as &$column) {
+            $column->delete();
+        }
+    }
+
+    /**
      * mutator, marks this column for deletion and sets modified
      * @param bool $delete
      */
     protected function setDelete($delete) {
-        $this->setModified($delete);
         $this->_delete = $delete;
     }
 
-    public function delete() {
-        $this->setDelete(TRUE);
-    }
 
     /**
      * accessor, delete
@@ -192,7 +228,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
 
             foreach ($this->_columns as $columnName => &$column) {
                 if ($columnMatch->match($columnName)) {
-                    $container->columns[$columnName] = $column;
+                    $container->setColumn($columnName, $column);
                 }
             }
             return $container;
@@ -233,14 +269,19 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
-     * Resets deletion states for the column family
+     * unmarks container and subcolumns (or subcontainers) for deletion
+     * cascades to columns, unsets modified flag
      */
     public function reset() {
-        // undo any deletion marks
-        $this->_delete = FALSE;
-        foreach  ($this->_columns as &$cObj) {
-            $cObj->reset();
+        $this->setDelete(FALSE);
+        $this->setModified(FALSE);
+        $cReset = FALSE;
+        foreach ($this->_columns as &$column) {
+            $cReset = $column->reset();
+            if ($cReset == FALSE) break;
         }
+
+        return (!$this->_delete && !$this->_modified && $cReset);
     }
 
     /**
@@ -272,8 +313,8 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * autoCreate mutator
      * @param bool $autoCreate new mode
      */
-    public function setAutoCreate(bool $autoCreate) {
-        $this->$_autoCreate = $autoCreate;
+    public function setAutoCreate($autoCreate) {
+        $this->_autoCreate = $autoCreate;
     }
 
     /**
@@ -282,22 +323,25 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool column values set without error
      */
     public function populate($data, $colAutoCreate = NULL) {
-
+        
         if (is_string($data)) {
             $data = json_decode($data, TRUE);
         }
 
         if (is_array($data) && count($data)) {
-
+            
             // Check depth, take first few keys as keyspace/columnfamily/key
-
             foreach ($data as $idx => $colValue) {
-
                 if ($colValue instanceof cassandra_Column) {
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->name, $this->_columns)) {
                         $this->_columns[$colValue->name] = PandraColumn::cast($colValue, $this);
                     }
 
+                    // circular dependency?
+                } elseif ($colValue instanceof cassandra_ColumnOrSuperColumn && !empty($colValue->column)) {
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->column->name, $this->_columns)) {
+                        $this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
+                    }
                 } else {
                     $colExists = array_key_exists($idx, $this->_columns);
                     // Create a new named column object
@@ -365,6 +409,14 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
     }
 
+    protected function setLoaded($loaded) {
+        $this->_loaded = $loaded;
+    }
+
+    public function isLoaded() {
+        return $this->_loaded;
+    }
+
     /**
      * accessor, checks if container has been explicitly modified, or it sub columns
      * @return <type>
@@ -374,6 +426,13 @@ abstract class PandraColumnContainer implements ArrayAccess {
             if ($column->isModified()) return TRUE;
         }
         return $this->_modified;
+    }
+
+    /**
+     * @return bool Column Family is marked for deletion
+     */
+    public function isDeleted() {
+        return ($this->_modified && $this->_delete);
     }
 
     /**

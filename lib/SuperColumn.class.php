@@ -10,22 +10,31 @@
 class PandraSuperColumn extends PandraColumnContainer {
 
     /* @var PandraColumnFamily column family parent reference */
-    private $_parentCF = NULL;
+    private $_parent = NULL;
+
+    private $_columnFamilyName = NULL;
 
     /**
      * Supercolumn constructor
      * @param string $superName Super Column name
-     * @param PandraSuperColumnFamily $parentCF
+     * @param PandraSuperColumnFamily $parent
      */
-    public function __construct($superName, PandraSuperColumnFamily $parentCF = NULL) {
+    public function __construct($superName, PandraSuperColumnFamily $parent = NULL) {
         // SuperColumn name
         $this->setName($superName);
 
         // Reference parent ColumnFamilySuper
-        if ($parentCF !== NULL) {
-            $this->_parentCF = $parentCF;
+        if ($parent !== NULL) {
+            $this->setParent($parent);
         }
         parent::__construct();
+    }
+
+    public function pathOK($keyID = NULL) {
+        if ($this->_parent === NULL) {
+            return $this->pathOK($keyID);
+        }
+        return $this->_parent->pathOK($keyID);
     }
 
     /**
@@ -36,36 +45,38 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         if (!$this->isModified()) return FALSE;
 
-        $this->_parentCF->checkCFState();
+        $ok = $this->pathOK();
 
-        $ok = FALSE;
+        if ($ok) {
+            if ($this->getDelete()) {
 
-        if ($this->getDelete()) {
-
-            if ($columnPath === NULL) {
                 $columnPath = new cassandra_ColumnPath();
-                $columnPath->column_family = $this->_parentCF->getName();
+                $columnPath->column_family = $this->_parent->getName();
                 $columnPath->super_column = $this->getName();
+                $ok = PandraCore::deleteColumnPath($this->_parent->getKeySpace(),
+                        $this->_parent->getKeyID(),
+                        $columnPath,
+                        NULL,
+                        PandraCore::getConsistency($consistencyLevel));
 
-                $ok = PandraCore::deleteColumnPath($this->_parentCF->getKeySpace(), $this->_parentCF->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
-                if (!$ok) $this->registerError(PandraCore::$lastError);
+            } else {
+
+                $this->bindTimeModifiedColumns();
+                $ok = PandraCore::saveSuperColumn(  $this->_parent->getKeySpace(),
+                        $this->_parent->getKeyID(),
+                        $this->_parent->getName(),
+                        array($this->getName() => $this->getModifiedColumns()),
+                        PandraCore::getConsistency($consistencyLevel));
             }
-            return $ok;
 
-        } else {
-
-            $this->bindTimeModifiedColumns();
-            $ok = PandraCore::saveSuperColumn(  $this->_parentCF->getKeySpace(),
-                    $this->_parentCF->keyID,
-                    $this->_parentCF->getName(),
-                    array($this->getName() => $this->getModifiedColumns()),
-                    PandraCore::getConsistency($consistencyLevel));
-
-            if (!$ok) $this->registerError(PandraCore::$lastError);
-
-            if ($ok) $this->reset();
-            return $ok;
+            if ($ok) {
+                $this->reset();
+            } else {
+                $this->registerError(PandraCore::$lastError);
+            }
         }
+
+        return $ok;
     }
 
     /**
@@ -78,42 +89,63 @@ class PandraSuperColumn extends PandraColumnContainer {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
+    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
-        if ($this->_parentCF == NULL || !($this->_parentCF instanceof PandraSuperColumnFamily)) throw new RuntimeException('SuperColumn Requires a ColumnFamilySuper parent');
+        if ($keyID === NULL) $keyID = $this->getKeyID();
 
-        $this->_parentCF->checkCFState();
+        $ok = $this->pathOK($keyID);
 
-        $this->_loaded = FALSE;
+        $this->setLoaded(FALSE);
 
-        $result = PandraCore::getCFSlice($this->_parentCF->getKeySpace(), $keyID, $this->_parentCF->getName(), $this->getName(), PandraCore::getConsistency($consistencyLevel));
+        if ($ok) {
+            $result = PandraCore::getCFSlice(
+                    ($this->getKeySpace() === NULL ? $this->_parent->getKeySpace() : $this->getKeySpace()),
+                    $keyID,
+                    ($this->getColumnFamilyName() === NULL ? $this->_parent->getName() : $this->getColumnFamilyName()),
+                    $this->getName(),
+                    PandraCore::getConsistency($consistencyLevel));
 
-        if (!empty($result)) {
-            var_dump($result);
-            $this->init();
-            $this->_loaded = $this->populate($result, $this->getAutoCreate($colAutoCreate));
-            if ($this->_loaded) $this->keyID = $keyID;
-        } else {
-            $this->registerError(PandraCore::$lastError);
+            if (!empty($result)) {
+                $this->init();
+                $this->setLoaded($this->populate($result, $this->getAutoCreate($colAutoCreate)));
+                if ($this->isLoaded()) $this->keyID = $keyID;
+            } else {
+                $this->registerError(PandraCore::$lastError);
+            }
         }
-
-        return $this->_loaded;
+        return ($ok && $this->isLoaded());
     }
 
     /**
      * Sets parent ColumnFamily or
-     * @param PandraColumnContainer $parentCF
+     * @param PandraColumnContainer $parent
      */
-    public function setParentCF(PandraSuperColumnFamily $parentCF) {
-        $this->_parentCF = $parentCF;
+    public function setParent(PandraSuperColumnFamily $parent) {
+        $this->_parent = $parent;
     }
 
     /**
      * Gets the current working parent column family
      * @return <type>
      */
-    public function getParentCF() {
-        return $this->_parentCF;
+    public function getParent() {
+        return $this->_parent;
+    }
+
+    /**
+     * accessor, container name
+     * @return string container name
+     */
+    public function getColumnFamilyName() {
+        return $this->_columnFamilyName;
+    }
+
+    /**
+     * mutator, container name
+     * @param string $name new name
+     */
+    public function setColumnFamilyName($columnFamilyName) {
+        $this->_columnFamilyName = $columnFamilyName;
     }
 
     /**
@@ -123,7 +155,7 @@ class PandraSuperColumn extends PandraColumnContainer {
     public function registerError($errorStr) {
         if (!empty($errorStr)) {
             array_push($this->errors, $errorStr);
-            if ($this->_parentCF !== NULL) $this->_parentCF->registerError($errorStr);
+            if ($this->_parent !== NULL) $this->_parent->registerError($errorStr);
         }
     }
 }

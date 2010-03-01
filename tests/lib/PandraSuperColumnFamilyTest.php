@@ -45,7 +45,7 @@ class PandraSuperColumnFamilyTest extends PHPUnit_Framework_TestCase {
      */
     protected function setUp() {
         $this->obj = new TestCFSuper();
-        $this->obj->keyID = $this->_keyID;
+        $this->obj->setKeyID($this->_keyID);
         PandraCore::connect('default', 'localhost');
     }
 

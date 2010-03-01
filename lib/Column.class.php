@@ -26,18 +26,18 @@ class PandraColumn extends cassandra_Column {
     private $_delete = FALSE;
 
     /* @var PandraColumnFamily column family parent reference */
-    private $_parentCF = NULL;
+    private $_parent = NULL;
 
     /**
      * Column constructor (extends cassandra_Column)
      * @param string $name Column name
-     * @param PandraColumnContainer $parentCF parent column family (standard or super), or supercolumn
+     * @param PandraColumnContainer $parent parent column family (standard or super), or supercolumn
      * @param array $typeDef validator type definitions
      */
-    public function __construct($name, $parentCF = NULL, $typeDef = array()) {
+    public function __construct($name, PandraColumnContainer $parent = NULL, $typeDef = array()) {
         parent::__construct(array('name' => $name));
-        if ($parentCF instanceof PandraColumnContainer) {
-            $this->setParentCF($parentCF);
+        if ($parent instanceof PandraColumnContainer) {
+            $this->setParent($parent);
         }
 
         $this->typeDef = $typeDef;
@@ -45,18 +45,18 @@ class PandraColumn extends cassandra_Column {
 
     /**
      * Sets parent ColumnFamily or
-     * @param PandraColumnContainer $parentCF
+     * @param PandraColumnContainer $parent
      */
-    public function setParentCF(PandraColumnContainer $parentCF) {
-        $this->_parentCF = $parentCF;
+    public function setParent(PandraColumnContainer $parent) {
+        $this->_parent = $parent;
     }
 
     /**
      * Gets the current working parent column family
      * @return <type>
      */
-    public function getParentCF() {
-        return $this->_parentCF;
+    public function getParent() {
+        return $this->_parent;
     }
 
     /**
@@ -79,8 +79,8 @@ class PandraColumn extends cassandra_Column {
     public function setValue($value, $validate = TRUE) {
         if ($validate && !empty($this->typeDef)) {
             if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->errors)) {
-                if ($this->_parentCF instanceof PandraColumnContainer) {
-                    $this->_parentCF->errors[] = $this->errors[0];
+                if ($this->_parent instanceof PandraColumnContainer) {
+                    $this->_parent->errors[] = $this->errors[0];
                 }
                 return FALSE;
             }
@@ -100,13 +100,19 @@ class PandraColumn extends cassandra_Column {
     }
 
     /**
-     * Casts from a cassandra_Column type, to PandraColumn
+     * Casts from a cassandra_ColumnOrSuperColumn->column or cassandra_Column types, to PandraColumn
      * @param cassandra_Column $object source objct
-     * @param PandraColumnFamily $parentCF parent container
+     * @param PandraColumnContainer $parent parent container
      * @return PandraColumn new column object
      */
-    static public function cast(cassandra_Column $object, $parentCF = NULL) {
-        $newObj = new PandraColumn($object->name, ($parentCF === NULL) ? $this->_parentCF : $parentCF);
+    static public function cast($object, PandraColumnContainer $parent = NULL) {
+        if ($object instanceof cassandra_ColumnOrSuperColumn) {
+            $object = $object->column;
+        } elseif (!($object instanceof cassandra_Column)) {
+            throw new RuntimeException('Cast expected cassandra_Column[OrSuperColumn], recieved '.get_class($object));
+        }
+        
+        $newObj = new PandraColumn($object->name, ($parent === NULL) ? $this->_parent : $parent);
         $newObj->value = $object->value;
         $newObj->timestamp = $object->timestamp;
         return $newObj;
@@ -122,7 +128,7 @@ class PandraColumn extends cassandra_Column {
      */
     public function save($keyID, $keySpace, $columnFamily, $consistencyLevel = NULL) {
 
-        if (!$this->isModified()) return TRUE;
+        if (!$this->getModified()) return TRUE;
 
         // Build the column path for modifying this individual column
         $columnPath = new cassandra_ColumnPath();
@@ -160,7 +166,7 @@ class PandraColumn extends cassandra_Column {
     public function registerError($errorStr) {
         if (!empty($errorStr)) {
             array_push($this->errors, $errorStr);
-            if ($this->_parentCF instanceof PandraColumnContainer) $this->_parentCF->registerError($errorStr);
+            if ($this->_parent !== NULL) $this->_parent->registerError($errorStr);
         }
     }
 
@@ -191,6 +197,7 @@ class PandraColumn extends cassandra_Column {
     public function reset() {
         $this->_modified = FALSE;
         $this->_delete = FALSE;
+        return TRUE;
     }
 
     /**
@@ -198,7 +205,15 @@ class PandraColumn extends cassandra_Column {
      */
     public function delete() {
         $this->_delete = TRUE;
-        $this->setModified();
+        $this->_modified = TRUE;
+    }
+
+    public function setDelete($delete) {
+        $this->_delete = $delete;
+    }
+
+    public function getDelete() {
+        return $this->_delete;
     }
 
     /**
@@ -207,6 +222,10 @@ class PandraColumn extends cassandra_Column {
      */
     public function isDeleted() {
         return ($this->_delete && $this->_modified);
+    }
+
+    public function isModified() {
+        return $this->_modified;
     }
 
     /**
@@ -221,7 +240,7 @@ class PandraColumn extends cassandra_Column {
      * Modified accessor
      * @return bool column has been modified since instance construct/load
      */
-    public function isModified() {
+    public function getModified() {
         return $this->_modified;
     }
 }

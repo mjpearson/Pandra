@@ -18,14 +18,15 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
 
     /**
      * Helper function to add a Super Column instance to this Super Column Family
+     * addSuper overrides the parent container reference in the object instance
+     * To add the same supercolumn instance to multiple columnfamilies, use object clones
+     * instead.
      * @param PandraSuperColumn $scObj
      * @return PandraSuperColumn
      */
     public function addSuper(PandraSuperColumn $scObj) {
-
         $superName = $scObj->getName();
-
-        $scObj->setParentCF($this);
+        $scObj->setParent($this);
         $this->_columns[$superName] = $scObj;
 
         return $this->getColumn($superName);
@@ -39,24 +40,14 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
      * @return PandraSuperColumn reference to created column
      */
     public function addColumn($superName) {
-
         if (!array_key_exists($superName, $this->_columns)) {
-            $newSuper = new PandraSuperColumn($superName);
-            return $this->addSuper($newSuper);
+            $this->_columns[$superName] = new PandraSuperColumn($superName, $this);
         }
-
-        return $this->getSuper($superName);
-    }
-
-    public function isModified() {
-        foreach ($this->_columns as $superColumn) {
-            if ($superColumn->isModified()) return TRUE;
-        }
-        return $this->_modified;
+        return $this->getColumn($superName);
     }
 
     /**
-     *
+     * getColumn alias (context helper)
      * @param <type> $superName
      * @return <type>
      */
@@ -68,22 +59,25 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
 
         if (!$this->isModified()) return FALSE;
 
-        $ok = FALSE;
+        $ok = $this->pathOK();
 
-        // Deletes the entire columnfamily by key
-        if ($this->isDeleted()) {
-            $columnPath = new cassandra_ColumnPath();
-            $columnPath->column_family = $this->getName();
+        if ($ok) {
 
-            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->keyID, $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
-            if (!$ok) $this->registerError(PandraCore::$lastError);
+            // Deletes the entire columnfamily by key
+            if ($this->isDeleted()) {
+                $columnPath = new cassandra_ColumnPath();
+                $columnPath->column_family = $this->getName();
 
-        } else {
-            foreach ($this->_columns as $colName => $superColumn) {
-                $ok = $superColumn->save();
-                if (!$ok) {
-                    $this->registerError(PandraCore::$lastError);
-                    break;
+                $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->getKeyID(), $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
+                if (!$ok) $this->registerError(PandraCore::$lastError);
+
+            } else {
+                foreach ($this->_columns as $colName => $superColumn) {
+                    $ok = $superColumn->save();
+                    if (!$ok) {
+                        $this->registerError(PandraCore::$lastError);
+                        break;
+                    }
                 }
             }
         }
@@ -98,27 +92,47 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID, $colAutoCreate = NULL, $consistencyLevel = NULL) {
+    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
-        $this->_loaded = FALSE;
+        if ($keyID === NULL) $keyID = $this->getKeyID();
 
-        $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
+        $ok = $this->pathOK($keyID);
 
-        if ($result !== NULL) {
-            $this->init();
-            foreach ($result as $superColumn) {
-                $sc = $superColumn->super_column;
+        $this->setLoaded(FALSE);
 
-                // @todo Should at least 1 successful super load really indicate a successful load state?
-                $this->_loaded = $this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, $this->getAutoCreate($colAutoCreate));
+        if ($ok) {
+
+            $autoCreate = $this->getAutoCreate($colAutoCreate);
+
+            // if autocreate is turned on, get everything
+            if ($autoCreate) {
+                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
+            } else {
+                // otherwise by defined columns (slice query)
+                $result = PandraCore::getCFSliceMulti($this->getKeySpace(), array($keyID), $this->getName(), array_keys($this->_columns), NULL, $consistencyLevel);
+                $result = $result[$keyID];
             }
-            if ($this->_loaded) $this->setKeyID($keyID);
 
-        } else {
-            $this->registerError(PandraCore::$lastError);
+            if ($result !== NULL) {
+                $this->init();
+                foreach ($result as $superColumn) {
+                    $sc = $superColumn->super_column;
+
+                    if ($this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, $autoCreate)) {
+                        $this->setLoaded(TRUE);
+                    } else {
+                        $this->setLoaded(FALSE);
+                        break;
+                    }
+                }
+
+                if ($this->isLoaded()) $this->setKeyID($keyID);
+
+            } else {
+                $this->registerError(PandraCore::$lastError);
+            }
         }
-
-        return $this->_loaded;
+        return ($ok && $this->isLoaded());
     }
 
     /**
@@ -140,11 +154,9 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
                         $this->_columns[$idx] = $colValue;
                     }
-
                 } else {
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
-                        $this->addSuper(new PandraSuperColumn($idx), $this);
-                        $this->getSuper($idx)->populate($colValue);
+                        $this->addSuper(new PandraSuperColumn($idx), $this)->populate($colValue);
                     }
                 }
             }

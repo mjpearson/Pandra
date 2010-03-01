@@ -10,7 +10,6 @@
  */
 class PandraCore {
 
-
     const MODE_ACTIVE = 0; // Active client only
 
     const MODE_ROUND = 1; // sequentially select configured clients
@@ -382,7 +381,7 @@ class PandraCore {
         // build the column path
         $columnParent = new cassandra_ColumnParent();
         $columnParent->column_family = $columnFamilyName;
-        $columnParent->super_column = $superColumnName;
+        //$columnParent->super_column = $superColumnName;
 
         $predicate = new cassandra_SlicePredicate();
         $predicate->slice_range = new cassandra_SliceRange();
@@ -408,7 +407,7 @@ class PandraCore {
      * @param string $rangeStart optional column range start
      * @param string $rangeFinish optional column range end
      * @param int $consistencyLevel response consistency level
-     * @return <type>
+     * @return array keyed array of matching cassandra_ColumnOrSuperColumn objects
      */
     public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = NULL, $consistencyLevel = NULL) {
 

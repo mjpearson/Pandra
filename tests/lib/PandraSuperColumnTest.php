@@ -34,7 +34,7 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         $this->superColumnFamily->setKeySpace('Keyspace1');
         $this->superColumnFamily->setName('Super1');
 
-        $this->superColumnFamily->keyID = $this->keyID;
+        $this->superColumnFamily->setKeyID($this->keyID);
 
         $this->obj = new PandraSuperColumn($this->superName, $this->superColumnFamily);
         $this->obj->addColumn('city', 'string');
@@ -54,17 +54,17 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         PandraCore::disconnectAll();
     }
 
-    public function testSetParentCF() {
+    public function testSetParent() {
         $newCF = new PandraSuperColumnFamily();
         $newCF->setKeySpace('Keyspace1');
         $newCF->setName('Super1');
-        $this->obj->setParentCF($newCF);
+        $this->obj->setParent($newCF);
 
-        $this->assertEquals($newCF, $this->obj->getParentCF());
+        $this->assertEquals($newCF, $this->obj->getParent());
     }
 
-    public function testGetParentCF() {
-        $cf = $this->obj->getParentCF();
+    public function testGetParent() {
+        $cf = $this->obj->getParent();
         $this->assertTrue($cf instanceof PandraColumnContainer);
     }
 
