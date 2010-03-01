@@ -64,7 +64,7 @@ class PandraSuperColumn extends PandraColumnContainer {
                 $this->bindTimeModifiedColumns();
                 $ok = PandraCore::saveSuperColumn(  $this->_parent->getKeySpace(),
                         $this->_parent->getKeyID(),
-                        $this->_parent->getName(),
+                        array($this->_parent->getName()),
                         array($this->getName() => $this->getModifiedColumns()),
                         PandraCore::getConsistency($consistencyLevel));
             }

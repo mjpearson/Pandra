@@ -340,22 +340,27 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return bool Super Column saved OK
      */
-    public function saveSuperColumn($keySpace, $keyID, $superCFName, array $superColumnMap, $consistencyLevel = NULL) {
+    public function saveSuperColumn($keySpace, $keyID, array $superCFName, array $superColumnMap, $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
 
             $mutation = array();
 
-            // Thrift won't batch insert multiple supercolumns?
-            $scContainer = new cassandra_ColumnOrSuperColumn();
+            foreach ($superCFName as $superColumnFamilyName) {
 
-            foreach ($superColumnMap as $superColumnName => $columns) {
-                $scContainer->super_column = new cassandra_SuperColumn();
-                $scContainer->super_column->name = $superColumnName;
-                $scContainer->super_column->columns = $columns;
+                // Thrift won't batch insert multiple supercolumns?
+                $scContainer = new cassandra_ColumnOrSuperColumn();
+
+                foreach ($superColumnMap as $superColumnName => $columns) {
+                    $scContainer->super_column = new cassandra_SuperColumn();
+                    $scContainer->super_column->name = $superColumnName;
+                    $scContainer->super_column->columns = $columns;
+                }
+
+                $mutations[$superColumnFamilyName] = array($scContainer);
             }
 
-            $mutations[$superCFName] = array($scContainer);
+            // batch_insert inserts a supercolumn across multiple CF's for key
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
         } catch (TException $te) {
