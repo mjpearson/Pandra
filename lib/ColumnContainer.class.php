@@ -162,8 +162,8 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return isset($this->_columns[$offset]);
     }
 
-    /*
-     * This only unsets the column in the container, do delete use the
+    /**
+     * This only unsets the column in the container, to delete use the
      * PandraColumn->delete() function
      * @return void
     */

@@ -336,7 +336,7 @@ class PandraCore {
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
      * @param string $superCFName Super Column Family name
-     * @param string $superColumnName array of Super Column Family name (string) keyed to array of modified cassandra_Columns
+     * @param array $superColumnMap array of Super Column name (string) keyed to array of modified cassandra_Columns
      * @param int $consistencyLevel response consistency level
      * @return bool Super Column saved OK
      */
@@ -345,15 +345,17 @@ class PandraCore {
             $client = self::getClient(TRUE);
 
             $mutation = array();
+
+            // Thrift won't batch insert multiple supercolumns?
+            $scContainer = new cassandra_ColumnOrSuperColumn();
+
             foreach ($superColumnMap as $superColumnName => $columns) {
-                $scContainer = new cassandra_ColumnOrSuperColumn();
                 $scContainer->super_column = new cassandra_SuperColumn();
                 $scContainer->super_column->name = $superColumnName;
                 $scContainer->super_column->columns = $columns;
-
-                $mutations[$superCFName] = array($scContainer);
             }
 
+            $mutations[$superCFName] = array($scContainer);
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
         } catch (TException $te) {
