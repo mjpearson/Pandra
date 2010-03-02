@@ -16,7 +16,7 @@ class ColumnFamilyTestObject extends PandraColumnFamily {
 class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
     public $obj = NULL;
-    public $parentCF = NULL;
+    public $parent = NULL;
 
     public $columnName = 'mycolumn';
 
@@ -29,9 +29,14 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-        $this->parentCF = new ColumnFamilyTestObject();
-        $this->obj = new PandraColumn($this->columnName, $this->parentCF);
         PandraCore::connect('default', 'localhost');
+
+        $this->parent = new PandraColumnFamily();
+        $this->parent->setKeySpace('Keyspace1');
+        $this->parent->setName('Standard1');
+
+        $this->obj = new PandraColumn($this->columnName);
+
     }
 
     /**
@@ -44,10 +49,13 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
     }
 
-    public function testSetValue() {
+    public function testSetGetValue() {
+        $newValue = 'NEW VALUE';
+
         $this->obj->reset();
-        $this->assertTrue($this->obj->setValue('NEW VALUE'));
+        $this->assertTrue($this->obj->setValue($newValue));
         $this->assertTrue($this->obj->isModified());
+        $this->assertEquals($newValue, $this->obj->getValue());
     }
 
     public function testSetValueValidated() {
@@ -81,8 +89,11 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($this->obj->isModified());
     }
 
+    /**
+     * @expectedException RuntimeException
+     */
     public function testCallbackValue() {
-        $this->obj->callback = 'md5';
+        $this->obj->setCallback('md5');
         $value = 'NEW VALUE';
         $this->obj->setValue($value);
 
@@ -91,7 +102,8 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $md5Value = md5($value);
         $this->assertEquals($this->obj->callbackValue(), $md5Value);
 
-
+        // try to set a bad callback function name (our value hash) - should generate the expectedException
+        $this->obj->setCallback($md5Value);
     }
 
     public function testCast() {
@@ -99,13 +111,23 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $column = new cassandra_Column();
         $column->value = 'THRIFT COLUMN VALUE';
 
-        $pandraColumn = $this->obj->cast($column, $this->parentCF);
+        $pandraColumn = PandraColumn::cast($column, $this->parent);
 
         $this->assertEquals(get_class($pandraColumn), 'PandraColumn');
-        $this->assertEquals($pandraColumn->value, $column->value);
+        $this->assertEquals($pandraColumn->getValue(), $column->value);
 
-        // @TODO cassandra_ColumnOrSupercolumn();
+        // Test ColumnOrSuperColumn casting
+        $sc = new cassandra_ColumnOrSuperColumn();
+        $this->assertNull(PandraColumn::cast($sc));
 
+        $sc->column = new cassandra_Column();
+        $sc->column->name = 'new column';
+        $sc->column->value = 'value';
+        $sc->column->timestamp = PandraCore::getTime();
+
+        $pandraColumn = PandraColumn::cast($sc);
+        $this->assertEquals(get_class($pandraColumn), 'PandraColumn');
+        $this->assertEquals($pandraColumn->getValue(), $sc->column->value);
     }
 
     public function testIsModifed() {
@@ -114,16 +136,15 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->isModified());
     }
 
-    public function testSetParent() {
-        $newCF = new ColumnFamilyTestObject();
-        $this->obj->setParent($newCF);
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testSetGetParent() {
+        $this->obj->setParent($this->parent);
+        $this->assertEquals($this->parent, $this->obj->getParent());
+        $badContainer = new PandraSuperColumnFamily();
 
-        $this->assertEquals($newCF, $this->obj->getParent());
-    }
-
-    public function testGetParent() {
-        $cf = $this->obj->getParent();
-        $this->assertTrue($cf instanceof PandraColumnContainer);
+        $this->obj->setParent($badContainer);
     }
 
     public function testSaveLoadDelete() {
@@ -133,18 +154,56 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
         $value = 'test value';
         $this->obj->setValue($value);
+
+        // Save by explicitly setting  keyid/keyspace/cf
+        $this->obj->setKeyID($keyID);
+        $this->obj->setKeyspace($keySpace);
+        $this->obj->setColumnFamilyName($columnFamily);
+
         $this->assertTrue($this->obj->isModified());
-        $this->assertTrue($this->obj->save($keyID, $keySpace, $columnFamily), $this->obj->getLastError());
+        $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
         $column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnFamily))->column;
         $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(PandraCore::$lastError), PandraCore::$lastError);
 
         $this->obj->delete();
         $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
-        $this->assertTrue($this->obj->save($keyID, $keySpace, $columnFamily), $this->obj->getLastError());
+        $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
         $result = PandraCore::getCFSlice($keySpace, $keyID, $columnFamily);
         $this->assertTrue(empty($result) && empty(PandraCore::$lastError), PandraCore::$lastError);
+
+        // save using parent
+        $this->obj->setKeyID(NULL);
+        $this->obj->setKeyspace(NULL);
+        $this->obj->setColumnFamilyName(NULL);
+
+        $parent = clone $this->parent;
+
+        // Wait so we don't have a delete/insert timestamp in the same second (32 bit systems)
+        if (PHP_INT_SIZE == 4) {
+            sleep(1);
+        }
+
+        $parent->setKeyID($keyID);
+        $parent->setKeySpace($keySpace);
+        $parent->setName($columnFamily);
+
+        $this->obj->setParent($parent);
+
+        $value = 'new test value';
+        $this->obj->setValue($value);
+
+        $this->assertTrue($this->obj->isModified());
+        $this->assertTrue($this->obj->save(), $this->obj->getLastError());
+
+        $column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnFamily))->column;
+        $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(PandraCore::$lastError), PandraCore::$lastError);
+
+        $this->obj->delete();
+        $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
+        $this->assertTrue($this->obj->save(), $this->obj->getLastError());
+
     }
 
     public function testRegisterError() {
