@@ -28,13 +28,19 @@ class PandraColumn extends cassandra_Column {
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
 
+    /* @var string row key id */
     private $_keyID = NULL;
 
+    /* @var string column keyspace id */
     private $_keySpace = NULL;
 
+    /* @var string column family name */
     private $_columnFamilyName = NULL;
 
+    /* @var string super column name */
     private $_superColumnName = NULL;
+
+    // ----------------- CONSTRUCTOR AND PARENT BINDING
 
     /**
      * Column constructor (extends cassandra_Column)
@@ -71,6 +77,8 @@ class PandraColumn extends cassandra_Column {
     public function getParent() {
         return $this->_parent;
     }
+
+    // ----------------- MUTATORS AND ACCESSORS
 
     /**
      * Binds a timestamp to the column, defaults to current time if no override defined
@@ -115,7 +123,6 @@ class PandraColumn extends cassandra_Column {
         return $this->value;
     }
 
-
     /**
      * Callback mutator, throws a RuntimeException if function does not exist
      * @param string $cbFunc callback function name
@@ -147,10 +154,17 @@ class PandraColumn extends cassandra_Column {
         return call_user_func($this->_callback, $this->value);
     }
 
+    /**
+     * keyID mutator
+     */
     public function setKeyID($keyID) {
         $this->_keyID = $keyID;
     }
 
+    /**
+     * keyID accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
     public function getKeyID() {
         $parent = $this->getParent();
         if ($this->_keyID === NULL && $parent !== NULL) {
@@ -159,10 +173,17 @@ class PandraColumn extends cassandra_Column {
         return $this->_keyID;
     }
 
+    /**
+     * keySpace mutator
+     */
     public function setKeySpace($keySpace) {
         $this->_keySpace = $keySpace;
     }
 
+    /**
+     * keySpace accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
     public function getKeySpace() {
         $parent = $this->getParent();
         if ($this->_keySpace === NULL && $parent !== NULL) {
@@ -171,10 +192,17 @@ class PandraColumn extends cassandra_Column {
         return $this->_keySpace;
     }
 
+    /**
+     * columnFamilyName mutator
+     */
     public function setColumnFamilyName($columnFamilyName) {
         $this->_columnFamilyName = $columnFamilyName;
     }
 
+    /**
+     * columnFamilyName accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
     public function getColumnFamilyName() {
         $parent = $this->getParent();
         if ($this->_columnFamilyName === NULL) {
@@ -187,19 +215,26 @@ class PandraColumn extends cassandra_Column {
         return $this->_columnFamilyName;
     }
 
+    /**
+     * superColumnName mutator
+     */
     public function setSuperColumnName($superColumnName) {
         $this->_superColumnName = $superColumnName;
     }
 
+    /**
+     * superColumnName accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
     public function getSuperColumnName() {
         $parent = $this->getParent();
-        if ($this->_superColumnName === NULL) {
-            if ($parent instanceof PandraSuperColumn) {
-                return $parent->getParent()->getName();
-            }
+        if ($this->_superColumnName === NULL && $parent instanceof PandraSuperColumn) {
+            return $parent->getParent()->getName();
         }
         return $this->_superColumnName;
     }
+
+    // ----------------- Saves and Loads
 
     /**
      * Casts from a cassandra_ColumnOrSuperColumn->column or cassandra_Column types, to PandraColumn
