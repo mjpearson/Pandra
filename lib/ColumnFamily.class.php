@@ -86,7 +86,7 @@ class PandraColumnFamily extends PandraColumnContainer {
                 //$this->bindTimeModifiedColumns();
                 $modifiedColumns = $this->getModifiedColumns();
                 foreach ($modifiedColumns as &$cObj) {
-                    if (!$cObj->save($this->getKeyID(), $this->getKeySpace(), $this->getName(), PandraCore::getConsistency($consistencyLevel))) {
+                    if (!$cObj->save(PandraCore::getConsistency($consistencyLevel))) {
                         $this->registerError($cObj->getLastError());
                         return FALSE;
                     }
