@@ -173,10 +173,10 @@ class PandraSuperColumnFamilyTest extends PHPUnit_Framework_TestCase {
 
         // Unset
         //unset($this->obj[$superName][$colName]);
-        $this->obj->$superPath->destroyColumn($colName);
+        $this->obj->$superPath->destroyColumns($colName);
         $this->assertTrue($this->obj->$superPath->$columnPath == NULL);
 
-        $this->obj->destroyColumn($superName);
+        $this->obj->destroyColumns($superName);
         $this->assertTrue($this->obj->$superPath == NULL);
 
         // --------- Accessors/Mutators
@@ -199,11 +199,11 @@ class PandraSuperColumnFamilyTest extends PHPUnit_Framework_TestCase {
 
         // Unset
         unset($this->obj[$superName][$colName]);
-        $this->obj->getSuper($superName)->destroyColumn($colName);
+        $this->obj->getSuper($superName)->destroyColumns($colName);
         $this->assertTrue($this->obj->getSuper($superName)->getColumn($colName) == NULL);
 
         unset($this->obj[$superName]);
-        $this->obj->destroyColumn($superName);
+        $this->obj->destroyColumns($superName);
         $this->assertTrue($this->obj->getSuper($superName) == NULL);
     }
 }

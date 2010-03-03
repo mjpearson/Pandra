@@ -44,19 +44,25 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
     protected $_autoCreate = TRUE;
 
-    /**
-     * Constructor, calls init()
+     /**
+     * CF constructor, calls init()
+     * @param string $keyID row key id
+     * @param string $keySpace Cassandra Keyspace
+     * @param string $columnFamilyName  column family name
      */
-    public function __construct() {
+    public function __construct($keyID = NULL, $keySpace = NULL, $name = NULL) {
+        if ($keyID !== NULL) $this->setKeyID($keyID);
+        if ($keySpace !== NULL) $this->setKeySpace($keySpace);
+        if ($name !== NULL) $this->setName($name);
         $this->init();
     }
 
     /**
      * init is is always called by the constructor.  Child classes can implement
-     * constructor logic, schemas, defaults validators etc. here
+     * constructor logic, schemas, defaults validators etc. via init()
      * @return void
      */
-    public function init() {
+    public function init() {        
     }
 
     /**
@@ -143,6 +149,12 @@ abstract class PandraColumnContainer implements ArrayAccess {
         $this->errors[] = $errorStr;
     }
 
+    public function destroyErrors() {
+        unset($this->errors);
+        $this->errors = array();
+    }
+
+
     /**
      * Sets value with a validator.  To skip validation, use explicit
      * PandraColumn->setValue($value, FALSE); or do not provide a typeDef
@@ -203,7 +215,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
         if (!array_key_exists($columnName, $this->_columns)) {
-            $this->_columns[$columnName] = new PandraColumn($columnName, $this, $typeDef);
+            $this->_columns[$columnName] = new PandraColumn($columnName, $typeDef, $this);
         }
 
         // pre-save callback
@@ -288,9 +300,14 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * removes a column from the container (does not delete from Cassandra)
      * @param string $columnName column name
      */
-    public function destroyColumn($columnName) {
-        if (array_key_exists($columnName, $this->_columns)) {
-            unset($this->_columns[$columnName]);
+    public function destroyColumns($columnName = NULL) {
+        if ($columnName === NULL) {
+            if (array_key_exists($columnName, $this->_columns)) {
+                unset($this->_columns[$columnName]);
+            }
+        } else {
+            unset($this->_columns);
+            $this->_columns = array();
         }
     }
 

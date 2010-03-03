@@ -4,22 +4,18 @@
  *
  * For licensing terms, plese see license.txt which should distribute with this source
  *
- * Container for Cassandra Column Families
+ * Column Container for Cassandra Column Families
+ *
+ * 'my columns' => {    // ColumnFamily
+ *                   'column1',  // Column
+ *                   'column2',  // Column
+ *                   'column3'   // Column
+ *                 } ... etc
  *
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumnFamily extends PandraColumnContainer {
-
-    /**
-     * Constructor, builds column structures
-     */
-    public function __construct($keyID = NULL, $keySpace = NULL, $columnFamilyName = NULL) {
-        if ($keyID !== NULL) $this->setKeyID($keyID);
-        if ($keySpace !== NULL) $this->setKeySpace($keySpace);
-        if ($columnFamilyName !== NULL) $this->setName($columnFamilyName);
-        parent::__construct();
-    }
+class PandraColumnFamily extends PandraColumnContainer {   
 
     /**
      * Loads an entire columnfamily by keyid
@@ -50,9 +46,15 @@ class PandraColumnFamily extends PandraColumnContainer {
             }
 
             if ($result !== NULL) {
+                // Clean slate
+                $this->destroyColumns();
+                $this->destroyErrors();
                 $this->init();
+
+                // Try populating
                 $this->setLoaded($this->populate($result, $autoCreate));
 
+                // If we're loaded, use a new key
                 if ($this->isLoaded()) $this->setKeyID($keyID);
             } else {
                 $this->registerError(PandraCore::$lastError);
@@ -83,7 +85,6 @@ class PandraColumnFamily extends PandraColumnContainer {
 
             } else {
                 // @todo have this use thrift batch_insert method in core
-                //$this->bindTimeModifiedColumns();
                 $modifiedColumns = $this->getModifiedColumns();
                 foreach ($modifiedColumns as &$cObj) {
                     if (!$cObj->save(PandraCore::getConsistency($consistencyLevel))) {

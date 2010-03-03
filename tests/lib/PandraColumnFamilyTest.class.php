@@ -1,12 +1,11 @@
 <?php
 require_once 'PHPUnit/Framework.php';
 require_once(dirname(__FILE__).'/../../config.php');
-require_once dirname(__FILE__).'/../../lib/ColumnFamily.class.php';
+
 
 class ColumnFamilyTestObject extends PandraColumnFamily {
 
     public function init() {
-
         $this->setKeySpace('Keyspace1');
         $this->setName('Standard1');
 
@@ -35,8 +34,8 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-        $this->obj = new ColumnFamilyTestObject();
-        $this->obj->setKeyID($this->_keyID);
+        $this->obj = new ColumnFamilyTestObject($this->_keyID);
+        //$this->obj->setKeyID($this->_keyID);
         PandraCore::connect('default', 'localhost');
     }
 

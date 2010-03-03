@@ -31,7 +31,7 @@ class PandraColumn extends cassandra_Column {
     /* @var string row key id */
     private $_keyID = NULL;
 
-    /* @var string column keyspace id */
+    /* @var string column keyspace */
     private $_keySpace = NULL;
 
     /* @var string column family name */
@@ -82,7 +82,7 @@ class PandraColumn extends cassandra_Column {
 
     /**
      * Binds a timestamp to the column, defaults to current time if no override defined
-     * @param int $time new time stamp, microtime assumed (optional)
+     * @param int $time new time stamp
      * @return int new timestamp
      */
     public function bindTime($time = NULL) {
@@ -107,7 +107,7 @@ class PandraColumn extends cassandra_Column {
             }
         }
 
-        if ($this->value == $value) return FALSE;
+        if ($this->value == $value) return TRUE;
 
         $this->value = $value;
         $this->setModified();

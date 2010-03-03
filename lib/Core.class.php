@@ -138,12 +138,14 @@ class PandraCore {
 
     /**
      * Connects to given Cassandra node and makes it available in the static connection pool
-     * @param string $connectionID named node
+     * @param string $connectionID named node within connection pool
      * @param string $host host name or IP of connecting node
+     * @param string $poolName name of the connection pool (cluster name)
+     * @param bool $autoDiscover given a single connectionid and host, attempts to find other nodes in the cluster
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connect($connectionID, $host = NULL, $poolName = 'default', $port = self::THRIFT_PORT_DEFAULT) {
+    static public function connect($connectionID, $host, $poolName = 'default', $autoDiscover = FALSE, $port = self::THRIFT_PORT_DEFAULT) {
         try {
             // if the connection exists but it is closed, then re-open
             if (array_key_exists($connectionID, self::$_nodeConns)) {
@@ -322,7 +324,7 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
-
+            
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";

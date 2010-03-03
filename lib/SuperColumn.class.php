@@ -12,6 +12,7 @@ class PandraSuperColumn extends PandraColumnContainer {
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
 
+    /* @var string parent column family name, overrides parent */
     private $_columnFamilyName = NULL;
 
     /**
@@ -19,7 +20,7 @@ class PandraSuperColumn extends PandraColumnContainer {
      * @param string $superName Super Column name
      * @param PandraSuperColumnFamily $parent
      */
-    public function __construct($superName, PandraSuperColumnFamily $parent = NULL) {
+    public function __construct($superName, PandraSuperColumnFamily $parent = NULL, $keyID = NULL, $keySpace = NULL, $name = NULL) {
         // SuperColumn name
         $this->setName($superName);
 
@@ -27,7 +28,7 @@ class PandraSuperColumn extends PandraColumnContainer {
         if ($parent !== NULL) {
             $this->setParent($parent);
         }
-        parent::__construct();
+        parent::__construct($keyID, $keySpace, $name);
     }
 
     public function pathOK($keyID = NULL) {
@@ -133,10 +134,14 @@ class PandraSuperColumn extends PandraColumnContainer {
     }
 
     /**
-     * accessor, container name
+     * accessor, parent column family name
      * @return string container name
      */
     public function getColumnFamilyName() {
+        $parent = $this->getParent();
+        if ($this->_columnFamilyName === NULL && $parent !== NULL) {
+            return $parent->getName();
+        }
         return $this->_columnFamilyName;
     }
 
