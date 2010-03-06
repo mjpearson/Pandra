@@ -100,10 +100,11 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         if ($ok) {
             $result = PandraCore::getCFSlice(
-                    ($this->getKeySpace() === NULL ? $this->_parent->getKeySpace() : $this->getKeySpace()),
+                    $this->getKeySpace(),
                     $keyID,
-                    ($this->getColumnFamilyName() === NULL ? $this->_parent->getName() : $this->getColumnFamilyName()),
+                    $this->getColumnFamilyName(),
                     $this->getName(),
+                    $this->getColumnNames(),
                     PandraCore::getConsistency($consistencyLevel));
 
             if (!empty($result)) {
@@ -151,6 +152,31 @@ class PandraSuperColumn extends PandraColumnContainer {
      */
     public function setColumnFamilyName($columnFamilyName) {
         $this->_columnFamilyName = $columnFamilyName;
+    }
+
+
+    /**
+     * keyID accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
+    public function getKeyID() {
+        $parent = $this->getParent();
+        if ($this->_keyID === NULL && $parent !== NULL) {
+            return $parent->getKeyID();
+        }
+        return $this->_keyID;
+    }
+
+    /**
+     * keySpace accessor if local member has not been set, attempts to return the set parents attribute instead
+     * @return string
+     */
+    public function getKeySpace() {
+        $parent = $this->getParent();
+        if ($this->_keySpace === NULL && $parent !== NULL) {
+            return $parent->getKeySpace();
+        }
+        return $this->_keySpace;
     }
 
     /**

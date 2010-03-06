@@ -256,6 +256,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return $this->_columns;
     }
 
+    public function getColumnNames() {
+        return array_keys($this->_columns);
+    }
+
     /**
      * Sets a columns value for this slice
      * @param string $columnName Column name to set

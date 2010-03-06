@@ -376,26 +376,29 @@ class PandraCore {
      * Gets complete slice of Thrift cassandra_Column objects for keyID
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param <type> $columnFamilyName
-     * @param <type> $superColumnName
-     * @param <type> $consistencyLevel
+     * @param string $columnFamilyName column family name
+     * @param string $superColumnName optional super column name
+     * @param array $columnNames optional array of column names
+     * @param int $consistencyLevel response consistency level
      * @return cassandra_Column Thrift cassandra column
      */
-    public function getCFSlice($keySpace, $keyID, $columnFamilyName, $superColumnName = NULL, $consistencyLevel = NULL) {
-
-        if (is_array($keyID)) return self::getCFSliceMulti($keySpace, $keyID, $columnFamilyName, $superColumnName, NULL, NULL, NULL, $consistencyLevel);
+    public function getCFSlice($keySpace, $keyID, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
         // build the column path
         $columnParent = new cassandra_ColumnParent();
         $columnParent->column_family = $columnFamilyName;
-        //$columnParent->super_column = $superColumnName;
+        $columnParent->super_column = $superColumnName;
 
-        $predicate = new cassandra_SlicePredicate();
-        $predicate->slice_range = new cassandra_SliceRange();
-        $predicate->slice_range->start = '';
-        $predicate->slice_range->finish = '';
+        $predicate = new cassandra_SlicePredicate();        
+        if (!empty($columnNames)) {
+            $predicate->column_names = $columnNames;
+        } else {
+            $predicate->slice_range = new cassandra_SliceRange();
+            $predicate->slice_range->start = '';
+            $predicate->slice_range->finish = '';
+        }
 
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
@@ -418,7 +421,7 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return array keyed array of matching cassandra_ColumnOrSuperColumn objects
      */
-    public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = NULL, $consistencyLevel = NULL) {
+    public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
@@ -428,9 +431,10 @@ class PandraCore {
         ));
         $predicate = new cassandra_SlicePredicate();
 
-        if ($columnNames !== NULL) {
+        if (!empty($columnNames)) {
             $predicate->column_names = $columnNames;
         } else {
+            $predicate->slice_range = new cassandra_SliceRange();
             $predicate->slice_range->start = '';
             $predicate->slice_range->finish = '';
         }
