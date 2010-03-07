@@ -13,7 +13,7 @@
 /**
  * @abstract
  */
-class PandraSuperColumnFamily extends PandraColumnFamily {
+class PandraSuperColumnFamily extends PandraColumnFamily implements PandraContainerSavable {
 
     /* @var string magic get/set prefix for Super Columns */
     const _columnNamePrefix = 'super_';
@@ -106,7 +106,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
 
     /**
      * Loads an entire columnfamily by keyid
-     * @param string $keyID row key
+     * @param string $keyID optional row key
      * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK

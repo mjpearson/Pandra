@@ -15,11 +15,11 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumnFamily extends PandraColumnContainer {   
+class PandraColumnFamily extends PandraColumnContainer implements PandraContainerSavable {
 
     /**
      * Loads an entire columnfamily by keyid
-     * @param string $keyID row key
+     * @param string $keyID optional row key
      * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
@@ -38,7 +38,7 @@ class PandraColumnFamily extends PandraColumnContainer {
 
             // if autocreate is turned on, get everything
             if ($autoCreate) {
-                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
+                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, NULL, PandraCore::getConsistency($consistencyLevel));
             } else {
                 // otherwise by defined columns (slice query)
                 $result = PandraCore::getCFSliceMulti($this->getKeySpace(), array($keyID), $this->getName(), NULL, array_keys($this->_columns), $consistencyLevel);

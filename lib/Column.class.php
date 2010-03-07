@@ -25,6 +25,9 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
     /* @var $delete column is marked for deletion */
     private $_delete = FALSE;
 
+    /* @var bool column has been loaded from Cassandra */
+    protected $_loaded = FALSE;
+
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
 
@@ -184,6 +187,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
     /**
      * keyID mutator
+     * @param string $keyID row key id
      */
     public function setKeyID($keyID) {
         $this->_keyID = $keyID;
@@ -203,6 +207,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
     /**
      * keySpace mutator
+     * @param string $keySpace keyspace name
      */
     public function setKeySpace($keySpace) {
         $this->_keySpace = $keySpace;
@@ -222,6 +227,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
     /**
      * columnFamilyName mutator
+     * @param string $columnFamilyName parent column family name
      */
     public function setColumnFamilyName($columnFamilyName) {
         $this->_columnFamilyName = $columnFamilyName;
@@ -245,6 +251,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
     /**
      * superColumnName mutator
+     * @param string $superColumnName parent supercolumn name
      */
     public function setSuperColumnName($superColumnName) {
         $this->_superColumnName = $superColumnName;
@@ -293,8 +300,52 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
         return $newObj;
     }
 
-    public function load($consistencyLevel = NULL) {
-        // @todo
+    /**
+     * Checks we have a bare minimum attributes on the entity, to perform a columnpath search
+     * @param string $keyID optional overriding row key
+     * @return bool columnpath looks ok
+     */
+    public function pathOK($keyID = NULL) {
+        $ok = ( ($keyID !== NULL || $this->getKeyID() !== NULL) && $this->getKeySpace() !== NULL && $this->getName() !== NULL);
+        if (!$ok) $this->registerError('Required field (Keyspace, ColumnFamily or KeyID) not present');
+        return $ok;
+    }
+
+    /**
+     * Loads a Column for key, maintaining parent binding
+     * @param string $keyID optional row key
+     * @param bool $colAutoCreate create columns in the object instance which have not been defined
+     * @param int $consistencyLevel cassandra consistency level
+     * @return bool loaded OK
+     */
+    public function load($keyID = NULL, $consistencyLevel = NULL) {
+
+        if ($keyID === NULL) $keyID = $this->getKeyID();
+
+        $ok = $this->pathOK($keyID);
+
+        $this->setLoaded(FALSE);
+
+        if ($ok) {
+            $result = PandraCore::getColumn(
+                    $this->getKeySpace(),
+                    $keyID === NULL ? $this->getKeyID() : $keyID,
+                    $this->getColumnFamilyName(),
+                    $this->getName(),
+                    $this->getSuperColumnName(),
+                    PandraCore::getConsistency($consistencyLevel));
+
+            if (!empty($result) && $result instanceof cassandra_ColumnOrSuperColumn) {
+                $column = $result->column;
+                $this->setValue($column->value);
+                $this->bindTime($column->timestamp);
+                $this->reset();
+                $this->setLoaded(TRUE);
+            } else {
+                $this->registerError(PandraCore::$lastError);
+            }
+        }
+        return ($ok && $this->isLoaded());
     }
 
     /**
@@ -313,7 +364,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
         $columnPath = new cassandra_ColumnPath();
         $columnPath->column_family = $this->getColumnFamilyName();
         $columnPath->super_column = $this->getSuperColumnName();
-        $columnPath->column = $this->name;
+        $columnPath->column = $this->getName();
 
         $ok = FALSE;
 
@@ -369,7 +420,32 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
         return NULL;
     }
 
+    /**
+     * Destroys all errors in this container, and its children
+     * @param bool $childPropogate optional propogate destroy to children (default TRUE)
+     */
+    public function destroyErrors() {
+        unset($this->errors);
+        $this->errors = array();
+    }
+
     // ----------------- MODIFY/DELETE MUTATORS AND ACCESSORS
+
+    /**
+     * loaded mutator, Mark container path as loaded via cassandra
+     * @param bool $loaded mark as loaded
+     */
+    protected function setLoaded($loaded) {
+        $this->_loaded = $loaded;
+    }
+
+    /**
+     * loaded accessor
+     * @return bool  container path has been marked as loaded
+     */
+    public function isLoaded() {
+        return $this->_loaded;
+    }
 
     /**
      * Removes any modified or delete flags, (does not revert values)
@@ -388,22 +464,34 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
         $this->_modified = TRUE;
     }
 
+    /**
+     * delete mutator
+     * @param bool $delete mark column as deleted
+     */
     public function setDelete($delete) {
         $this->_delete = $delete;
     }
 
+    /**
+     * delete accessor
+     * @return bool column has been marked for deletion
+     */
     public function getDelete() {
         return $this->_delete;
     }
 
     /**
-     * Delete accessor
-     * @return bool Column is marked for deletion
+     * Column will be deleted
+     * @return bool Column is marked for deletion and is modified
      */
     public function isDeleted() {
         return ($this->_delete && $this->_modified);
     }
 
+    /**
+     * Modified accessor
+     * @return bool Column is marked as modified
+     */
     public function isModified() {
         return $this->_modified;
     }

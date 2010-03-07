@@ -241,13 +241,13 @@ class PandraCore {
 
     /**
      * consistency accessor
-     * @param int $override overrides the return, or returns default if NULL
+     * @param int $consistencyLevel overrides the return, or returns default if NULL
      * @return int consistency level
      */
-    static public function getConsistency($override = NULL) {
+    static public function getConsistency($consistencyLevel = NULL) {
         $consistency = self::$_consistencyLevel;
-        if ($override !== NULL) {
-            $consistency = $override;
+        if ($consistencyLevel !== NULL) {
+            $consistency = $consistencyLevel;
         }
 
         return $consistency;
@@ -324,7 +324,7 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
-            
+
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::$lastError = 'TException: '.$te->getMessage() . "\n";
@@ -391,7 +391,7 @@ class PandraCore {
         $columnParent->column_family = $columnFamilyName;
         $columnParent->super_column = $superColumnName;
 
-        $predicate = new cassandra_SlicePredicate();        
+        $predicate = new cassandra_SlicePredicate();
         if (!empty($columnNames)) {
             $predicate->column_names = $columnNames;
         } else {

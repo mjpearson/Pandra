@@ -174,8 +174,10 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->isModified());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
-        $column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnFamily))->column;
-        $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(PandraCore::$lastError), PandraCore::$lastError);
+        //$column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnFamily))->column;
+        $this->assertTrue($this->obj->load());
+        $column = $this->obj;
+        $this->assertTrue($column->value == $value && $column->name == $this->obj->getName() && empty(PandraCore::$lastError), PandraCore::$lastError);
 
         $this->obj->delete();
         $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());

@@ -19,8 +19,10 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var this column families name (table name) */
     protected $_name = NULL;
 
+    /* @var string row key id */
     protected $_keyID = NULL;
 
+    /* @var string column keyspace */
     protected $_keySpace = NULL;
 
     /* @var string magic set/get prefixes for Columns */
@@ -81,22 +83,43 @@ abstract class PandraColumnContainer implements ArrayAccess {
         $this->_name = $name;
     }
 
+    /**
+     * keySpace mutator
+     * @param string $keySpace keyspace name
+     */
     public function setKeySpace($keySpace) {
         $this->_keySpace = $keySpace;
     }
 
+    /**
+     * keyspace accessor
+     * @return string keyspace name
+     */
     public function getKeySpace() {
         return $this->_keySpace;
     }
 
+    /**
+     * keySpace mutator
+     * @param string $keyID key id
+     */
     public function setKeyID($keyID) {
         $this->_keyID = $keyID;
     }
 
+    /**
+     * keyID accessor
+     * @return string row key id
+     */
     public function getKeyID() {
         return $this->_keyID;
     }
 
+    /**
+     * Checks we have a bare minimum attributes on the entity, to perform a columnpath search
+     * @param string $keyID optional overriding row key
+     * @return bool columnpath looks ok
+     */
     public function pathOK($keyID = NULL) {
         $ok = ( ($keyID !== NULL || $this->getKeyID() !== NULL) && $this->getKeySpace() !== NULL && $this->getName() !== NULL);
         if (!$ok) $this->registerError('Required field (Keyspace, ColumnFamily or KeyID) not present');
@@ -149,9 +172,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
         $this->errors[] = $errorStr;
     }
 
-    public function destroyErrors() {
+    /**
+     * Destroys all errors in this container, and its children
+     * @param bool $childPropogate optional propogate destroy to children (default TRUE)
+     */
+    public function destroyErrors($childPropogate = TRUE) {
         unset($this->errors);
         $this->errors = array();
+        if ($childPropogate) {
+            foreach ($this->_columns as $column) {
+                $column->destroyErrors();
+            }
+        }
     }
 
 
@@ -269,14 +301,27 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return NULL;
     }
 
+    /**
+     * columns accessor
+     * @return array returns array of children
+     */
     public function getColumns() {
         return $this->_columns;
     }
 
+    /**
+     * Returns array of column names at depth 1
+     * @return array string column names
+     */
     public function getColumnNames() {
         return array_keys($this->_columns);
     }
 
+    /**
+     * Determins if column name exists in children at depth 1
+     * @param string $columnName column name
+     * @return bool column exists
+     */
     public function columnIn($columnName) {
         return array_key_exists($columnName, $this->_columns);
 
@@ -453,10 +498,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
     }
 
+    /**
+     * loaded mutator, Mark container path as loaded via cassandra
+     * @param bool $loaded mark as loaded
+     */
     protected function setLoaded($loaded) {
         $this->_loaded = $loaded;
     }
 
+    /**
+     * loaded accessor
+     * @return bool  container path has been marked as loaded
+     */
     public function isLoaded() {
         return $this->_loaded;
     }
@@ -473,7 +526,8 @@ abstract class PandraColumnContainer implements ArrayAccess {
     }
 
     /**
-     * @return bool Column Family is marked for deletion
+     * Column will be deleted
+     * @return bool Column is marked for deletion and is modified
      */
     public function isDeleted() {
         return ($this->_modified && $this->_delete);
@@ -503,10 +557,20 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return $modColumns;
     }
 
+    /**
+     * Converts this container into its equivalent JSON representation
+     * @param bool $keyPath include keyspace/columnfamily/key prefix
+     * @return string JSON container
+     */
     public function toJSON($keyPath = FALSE) {
         return json_encode($this->toArray($keyPath));
     }
 
+    /**
+     * Converts this container into its equivalent array representation
+     * @param bool $keyPath include keyspace/columnfamily/key prefix
+     * @return array container
+     */
     public function toArray($keyPath = FALSE) {
         $retArr = array();
         foreach ($this->_columns as $column) {

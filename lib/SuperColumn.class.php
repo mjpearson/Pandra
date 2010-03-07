@@ -7,7 +7,7 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild {
+class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild, PandraContainerSavable {
 
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
@@ -83,9 +83,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
     /**
      * Loads a SuperColumn for key
      *
-     * Load will generate RuntimeException if parent column family has not been set (
-     *
-     * @param string $keyID row key
+     * @param string $keyID optional row key
      * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK

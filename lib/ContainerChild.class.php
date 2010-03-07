@@ -26,7 +26,7 @@ interface PandraContainerChild {
      * @param bool $localUnbind optional call local detach() method prior to nullifying
      */
     public function nullParent($localUnbind = TRUE);
-    
+
     /**
      * Sets parent
      * @param object $parent Container object
@@ -67,9 +67,5 @@ interface PandraContainerChild {
      * @return string child name
      */
     public function getName();
-
-
-
-
 }
 ?>
