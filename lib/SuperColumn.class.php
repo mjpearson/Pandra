@@ -7,7 +7,7 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraSuperColumn extends PandraColumnContainer {
+class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild {
 
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
@@ -26,7 +26,7 @@ class PandraSuperColumn extends PandraColumnContainer {
 
         // Reference parent ColumnFamilySuper
         if ($parent !== NULL) {
-            $this->setParent($parent);
+            $this->setParent($parent, !$parent->columnIn($superName));
         }
         parent::__construct($keyID, $keySpace, $name);
     }
@@ -120,9 +120,17 @@ class PandraSuperColumn extends PandraColumnContainer {
 
     /**
      * Sets parent ColumnFamily or
-     * @param PandraColumnContainer $parent
+     * @param PandraColumnContainer $parent SuperColumnFamily container object, or NULL
      */
-    public function setParent(PandraSuperColumnFamily $parent) {
+    public function setParent($parent, $bindToParent = TRUE) {
+
+        if (!($parent instanceof PandraSuperColumnFamily)) throw new RuntimeException('Parent must be an instnace of PandraSuperColumnFamily');
+
+        if ($bindToParent) $parent->addSuperColumnObj($this);
+
+        // unbind existing parent
+        $this->detach();
+
         $this->_parent = $parent;
     }
 
@@ -132,6 +140,23 @@ class PandraSuperColumn extends PandraColumnContainer {
      */
     public function getParent() {
         return $this->_parent;
+    }
+
+    /**
+     * Nullifies a parent
+     */
+    public function nullParent($localDetach = TRUE) {
+        if ($localDetach) $this->detach();
+        $this->_parent = NULL;
+    }
+
+    /**
+     * Calls parent unset for this column
+     */
+    public function detach() {
+        if ($this->_parent !== NULL) {
+            $this->_parent->unsetColumn($this->getName());
+        }
     }
 
     /**

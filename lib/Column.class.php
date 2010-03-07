@@ -8,7 +8,7 @@
  * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumn extends cassandra_Column {
+class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
     /* @var array validator type definitions for this colun */
     public $typeDef = array();
@@ -51,7 +51,7 @@ class PandraColumn extends cassandra_Column {
     public function __construct($name, $typeDef = array(), PandraColumnContainer $parent = NULL, $callback = NULL) {
         parent::__construct(array('name' => $name));
 
-        if ($parent !== NULL) $this->setParent($parent);
+        if ($parent !== NULL) $this->setParent($parent, !$parent->columnIn($name));
 
         if ($callback !== NULL) $this->setCallback($callback);
 
@@ -60,14 +60,25 @@ class PandraColumn extends cassandra_Column {
 
     /**
      * Binds a ColumnFamily or SuperColumn as parent
-     * @param PandraColumnContainer $parent
+     * @param PandraColumnContainer $parent ColumnFamily or SuperColumn parent object or NULL
      */
-    public function setParent(PandraColumnContainer $parent) {
-        if (($parent instanceof PandraColumnFamily || $parent instanceof PandraSuperColumn) && !($parent instanceof PandraSuperColumnFamily)) {
-            $this->_parent = $parent;
-        } else {
+    public function setParent($parent, $bindToParent = TRUE) {
+
+        if ( ! ($parent instanceof PandraColumnFamily || $parent instanceof PandraSuperColumn) || $parent instanceof PandraSuperColumnFamily) {
             throw new RuntimeException('Column Family or Super Column parent expected, received : '.get_class($parent));
         }
+
+        if ($bindToParent) $parent->addColumnObj($this);
+
+        // unbind existing parent
+        $this->detach();
+
+        $this->_parent = $parent;
+    }
+
+    public function nullParent($localDetach = TRUE) {
+        if ($localDetach) $this->detach();
+        $this->_parent = NULL;
     }
 
     /**
@@ -76,6 +87,15 @@ class PandraColumn extends cassandra_Column {
      */
     public function getParent() {
         return $this->_parent;
+    }
+
+    /**
+     * Calls parent unset for this column
+     */
+    public function detach() {
+        if ($this->_parent !== NULL) {
+            $this->_parent->unsetColumn($this->getName());
+        }
     }
 
     // ----------------- MUTATORS AND ACCESSORS
@@ -117,10 +137,18 @@ class PandraColumn extends cassandra_Column {
 
     /**
      * Value accessor (cassandra_Column->value is public anyway, suggest using this incase that changes)
-     * @return string value
+     * @return string column value
      */
     public function getValue() {
         return $this->value;
+    }
+
+    /**
+     * Name accessor (cassandra_Column->name is public anyway, suggest using this incase that changes)
+     * @return string column name
+     */
+    public function getName() {
+        return $this->name;
     }
 
     /**

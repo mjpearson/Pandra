@@ -44,7 +44,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
     protected $_autoCreate = TRUE;
 
-     /**
+    /**
      * CF constructor, calls init()
      * @param string $keyID row key id
      * @param string $keySpace Cassandra Keyspace
@@ -62,7 +62,7 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * constructor logic, schemas, defaults validators etc. via init()
      * @return void
      */
-    public function init() {        
+    public function init() {
     }
 
     /**
@@ -177,10 +177,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
     /**
      * This only unsets the column in the container, to delete use the
      * PandraColumn->delete() function
+     * @param string $columnName column name
      * @return void
-    */
-    public function offsetUnset($offset) {
-        unset($this->_columns[$offset]);
+     */
+    public function offsetUnset($columnName) {
+        $this->unsetColumn($columnName);
+    }
+
+    public function unsetColumn($columnName) {
+        if (array_key_exists($columnName, $this->_columns)) {
+            $this->_columns[$columnName]->nullParent(FALSE);
+            unset($this->_columns[$columnName]);
+        }
     }
 
     /**
@@ -219,9 +227,18 @@ abstract class PandraColumnContainer implements ArrayAccess {
         }
 
         // pre-save callback
-        if (!empty($callbackOnSave)) $this->_columns[$columnName]->callback = $callbackOnSave;
+        if (!empty($callbackOnSave)) $this->getColumn($columnName)->setCallback($callbackOnSave);
 
         return $this->getColumn($columnName);
+    }
+
+    /**
+     * Adds a column object to this column container, overwrites existing column (context helper)
+     * @param PandraSuperColumn $columnObj
+     */
+    public function addColumnObj(PandraColumn $columnObj) {
+        if ($columnObj->getName() === NULL) throw new RuntimeException('Column has no name');
+        $this->_columns[$columnObj->name] = $columnObj;
     }
 
     /**
@@ -260,8 +277,15 @@ abstract class PandraColumnContainer implements ArrayAccess {
         return array_keys($this->_columns);
     }
 
+    public function columnIn($columnName) {
+        return array_key_exists($columnName, $this->_columns);
+
+    }
+
     /**
      * Sets a columns value for this slice
+     * @todo pretty sure this breaks ContainerChild interface
+     *
      * @param string $columnName Column name to set
      * @param string $value New value for column
      * @param bool $validate opt validate from typeDef (default TRUE)
@@ -310,7 +334,6 @@ abstract class PandraColumnContainer implements ArrayAccess {
                 unset($this->_columns[$columnName]);
             }
         } else {
-            unset($this->_columns);
             $this->_columns = array();
         }
     }
@@ -344,13 +367,13 @@ abstract class PandraColumnContainer implements ArrayAccess {
      * @return bool column values set without error
      */
     public function populate($data, $colAutoCreate = NULL) {
-        
+
         if (is_string($data)) {
             $data = json_decode($data, TRUE);
         }
 
         if (is_array($data) && count($data)) {
-            
+
             // Check depth, take first few keys as keyspace/columnfamily/key
             foreach ($data as $idx => $colValue) {
                 if ($colValue instanceof cassandra_Column) {

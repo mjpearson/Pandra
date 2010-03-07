@@ -36,7 +36,6 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->parent->setName('Standard1');
 
         $this->obj = new PandraColumn($this->columnName);
-
     }
 
     /**
@@ -109,6 +108,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
     public function testCast() {
 
         $column = new cassandra_Column();
+        $column->name = 'castedColumn';
         $column->value = 'THRIFT COLUMN VALUE';
 
         $pandraColumn = PandraColumn::cast($column, $this->parent);
@@ -140,8 +140,19 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testSetGetParent() {
+        $this->obj->nullParent();
+
         $this->obj->setParent($this->parent);
         $this->assertEquals($this->parent, $this->obj->getParent());
+
+        // Test detachment
+        $this->obj->detach();
+
+        $this->assertNull($this->obj->getParent());
+        $parentColumns = $this->parent->getColumns();
+        $this->assertTrue(empty($parentColumns));
+
+
         $badContainer = new PandraSuperColumnFamily();
 
         $this->obj->setParent($badContainer);

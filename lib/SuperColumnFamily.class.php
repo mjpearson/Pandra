@@ -4,6 +4,8 @@
  *
  * For licensing terms, plese see license.txt which should distribute with this source
  *
+ * SuperColumnFamily is a container of SuperColumns
+ *
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
@@ -44,6 +46,23 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
             $this->_columns[$superName] = new PandraSuperColumn($superName, $this);
         }
         return $this->getColumn($superName);
+    }
+
+    /**
+     * Adds a supercolumn object to this super cf, overwrites existing supercolumn
+     * @param PandraSuperColumn $columnObj
+     */
+    public function addColumnObj(PandraSuperColumn $columnObj) {
+        if ($columnObj->getName() === NULL) throw new RuntimeException('SuperColumn has no name');
+        $this->_columns[$columnObj->getName()] = $columnObj;
+    }
+
+    /**
+     * Adds a supercolumn object to this super cf, overwrites existing supercolumn (context helper)
+     * @param PandraSuperColumn $columnObj
+     */
+    public function addSuperColumnObj(PandraSuperColumn $columnObj) {
+        $this->addColumnObj($columnObj);
     }
 
     /**
@@ -106,10 +125,10 @@ class PandraSuperColumnFamily extends PandraColumnFamily {
 
             // if autocreate is turned on, get everything
             if ($autoCreate) {
-                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, PandraCore::getConsistency($consistencyLevel));
+                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, array(), PandraCore::getConsistency($consistencyLevel));
             } else {
                 // otherwise by defined columns (slice query)
-                $result = PandraCore::getCFSliceMulti($this->getKeySpace(), array($keyID), $this->getName(), array_keys($this->_columns), NULL, $consistencyLevel);
+                $result = PandraCore::getCFSliceMulti($this->getKeySpace(), array($keyID), $this->getName(), $this->getColumnNames(), NULL, $consistencyLevel);
                 $result = $result[$keyID];
             }
 
