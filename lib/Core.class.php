@@ -18,7 +18,9 @@ class PandraCore {
 
     const DEFAULT_ROW_LIMIT = 100; // default max # of rows to return for ranging queries
 
-    const THRIFT_PORT_DEFAULT = 9160; // Default Thrift port
+    const DEFAULT_POOL_NAME = 'default';
+
+    const PERSIST_CONNECTIONS = FALSE; // TSocket Persistence
 
     /* @var string Last internal error */
     static public $lastError = '';
@@ -26,11 +28,20 @@ class PandraCore {
     /* @var int default consistency level */
     static private $_consistencyLevel = cassandra_ConsistencyLevel::ONE;
 
-    /* @var array available transports */
-    static private $_nodeConns = array();
-
     /* @var string currently selected node */
+    static private $_activePool = NULL;
+
+    /* @var array available transports */
+    static private $_socketPool = array();
+
+    /* @var string currently selected node in a pool */
     static private $_activeNode = NULL;
+
+    /* @var int maximum number of retries before marking a host down */
+    static private $_maxRetries = 2;
+
+    /* @var int retry interval in seconds against a problem host */
+    static private $_retryInterval = 10;
 
     /* @var int default read mode (active/round/random) */
     static private $readMode = self::MODE_RANDOM;
@@ -100,8 +111,24 @@ class PandraCore {
      * @return bool connection id exists and has been set
      */
     static public function setActiveNode($connectionID) {
-        if (array_key_exists($connectionID, self::$_nodeConns) && self::$_nodeConns[$connectionID]['transport']->isOpen()) {
+        if (array_key_exists($connectionID, self::$_socketPool[self::$_activePool]) && self::$_socketPool[self::$_activePool][$connectionID]['transport']->isOpen()) {
             self::$_activeNode = $connectionID;
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    /**
+     * Sets connectionid as active node
+     * @param string $connectionID named connection
+     * @return bool connection id exists and has been set
+     */
+    static public function setActivePool($poolName) {
+        if (array_key_exists($poolName, self::$_socketPool)) {
+            self::$_activePool = $poolName;
+            // grab last node in the pool to set active
+            $connectionID = array_pop(array_keys(self::$_socketPool[$poolName]));
+            self::setActiveNode($connectionID);
             return TRUE;
         }
         return FALSE;
@@ -112,10 +139,10 @@ class PandraCore {
      * @param string $connectionID named connection
      * @return bool disconnected OK
      */
-    static public function disconnect($connectionID) {
-        if (array_key_exists($connectionID, self::$_nodeConns)) {
-            if (self::$_nodeConns[$connectionID]['transport']->isOpen()) {
-                self::$_nodeConns[$connectionID]['transport']->close();
+    static public function disconnect($connectionID, $poolName = self::DEFAULT_POOL_NAME) {
+        if (array_key_exists($connectionID, self::$_socketPool[self::$_activePool])) {
+            if (self::$_socketPool[self::$_activePool][$connectionID]['transport']->isOpen()) {
+                self::$_socketPool[self::$_activePool][$connectionID]['transport']->close();
                 return TRUE;
             }
         }
@@ -128,10 +155,12 @@ class PandraCore {
      */
     static public function disconnectAll() {
 
-        $connections = array_keys(self::$_nodeConns);
+        foreach (self::$_socketPool as $poolName => $socketPool) {
+            $connections = array_keys($socketPool);
 
-        foreach ($connections as $connectionID) {
-            if (!self::disconnect($connectionID)) throw new RuntimeException($connectionID.' could not be closed');
+            foreach ($connections as $connectionID) {
+                if (!self::disconnect($connectionID, $poolName)) throw new RuntimeException($connectionID.' could not be closed');
+            }
         }
         return TRUE;
     }
@@ -141,31 +170,61 @@ class PandraCore {
      * @param string $connectionID named node within connection pool
      * @param string $host host name or IP of connecting node
      * @param string $poolName name of the connection pool (cluster name)
-     * @param bool $autoDiscover given a single connectionid and host, attempts to find other nodes in the cluster
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connect($connectionID, $host, $poolName = 'default', $autoDiscover = FALSE, $port = self::THRIFT_PORT_DEFAULT) {
+    static public function connect($connectionID, $host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         try {
+
             // if the connection exists but it is closed, then re-open
-            if (array_key_exists($connectionID, self::$_nodeConns)) {
-                if (!self::$_nodeConns[$connectionID]['transport']->isOpen()) {
-                    self::$_nodeConns[$connectionID]['transport']->open();
+            if (array_key_exists($poolName, self::$_socketPool) && array_key_exists($connetionID, self::$_socketPool[$poolName])) {
+                if (!self::$_socketPool[$poolName][$connectionID]['transport']->isOpen()) {
+                    self::$_socketPool[$poolName][$connectionID]['transport']->open();
                 }
                 return TRUE;
             }
 
+            if (!array_key_exists($poolName, self::$_socketPool)) self::$_socketPool[$poolName] = array();
+
             // Create Thrift transport and binary protocol cassandra client
-            $transport = new TBufferedTransport(new TSocket($host, $port), 1024, 1024);
+            $transport = new TBufferedTransport(new TSocket($host, $port, self::PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
             $transport->open();
 
-            self::$_nodeConns[$connectionID] = array(
+            self::$_socketPool[$poolName][$connectionID] = array(
                     'transport' => $transport,
                     'client' => new CassandraClient((function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)))
             );
 
             // set new connection the active, working master
+            self::setActivePool($poolName);
             self::setActiveNode($connectionID);
+            return TRUE;
+        } catch (TException $tx) {
+            self::$lastError = 'TException: '.$tx->getMessage() . "\n";
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * Given a single host, attempts to find other nodes in the cluster and attaches them
+     * to the pool
+     * @todo build connections from token map
+     * @param string $host host name or IP of connecting node
+     * @param string $poolName name of the connection pool (cluster name)
+     * @param int $port TCP port of connecting node
+     * @return bool connected ok
+     */
+    static public function autoDiscover($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+        return;
+        try {
+            // Create Thrift transport and binary protocol cassandra client
+            $transport = new TBufferedTransport(new TSocket($host, $port, self::PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+            $transport->open();
+            $client = new CassandraClient((function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)));
+
+            $tokenMap = $client->get_string_property('token map');
+
             return TRUE;
         } catch (TException $tx) {
             self::$lastError = 'TException: '.$tx->getMessage() . "\n";
@@ -212,19 +271,22 @@ class PandraCore {
         if (empty(self::$_activeNode)) throw new Exception('Not Connected');
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
+
             case self::MODE_ROUND :
-                if (!current(self::$_nodeConns)) reset(self::$_nodeConns);
-                $curConn = each(self::$_nodeConns);
+                if (!current(self::$_socketPool[self::$_activePool])) reset(self::$_socketPool[self::$_activePool]);
+                $curConn = each(self::$_socketPool[self::$_activePool]);
                 self::$_activeNode = $curConn['key'];		// store current working node
-                return self::$_nodeConns[self::$_activeNode]['client'];
+                return self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
+
             case self::MODE_RANDOM :
-                $randConn =& array_rand(self::$_nodeConns);
-                return self::$_nodeConns[$randConn]['client'];
+                $randConn =& array_rand(self::$_socketPool[self::$_activePool]);
+                return self::$_socketPool[self::$_activePool][$randConn]['client'];
                 break;
+
             case self::MODE_ACTIVE :
             default :
-                return self::$_nodeConns[self::$_activeNode]['client'];
+                return self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
         }
     }
@@ -285,6 +347,8 @@ class PandraCore {
         }
         return time();
     }
+
+    // ----------------------- THRIFT COLUMN PATH INTERFACE
 
     /**
      * Deletes a Column Path from Cassandra

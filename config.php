@@ -18,6 +18,8 @@ require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 // Config xml path for Cassandra
 define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/conf/storage-conf.xml');
 
+define('THRIFT_PORT_DEFAULT', 9160);
+
 function _pandraAutoLoad($className) {
 
     if (!preg_match("/^pandra/i", $className)) return;
