@@ -368,10 +368,21 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
 
         $ok = FALSE;
 
-        if ($this->_delete) {
-            $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->getKeyID(), $columnPath, $this->bindTime(), PandraCore::getConsistency($consistencyLevel));
+        if ($this->isDeleted()) {
+            $ok = PandraCore::deleteColumnPath(
+                    $this->getKeySpace(),
+                    $this->getKeyID(),
+                    $columnPath,
+                    $this->bindTime(),
+                    PandraCore::getConsistency($consistencyLevel));
         } else {
-            $ok = PandraCore::saveColumnPath($this->getKeySpace(), $this->getKeyID(), $columnPath, $this->callbackvalue(), $this->bindTime(), PandraCore::getConsistency($consistencyLevel));
+            $ok = PandraCore::saveColumnPath(
+                    $this->getKeySpace(),
+                    $this->getKeyID(),
+                    $columnPath,
+                    $this->callbackvalue(),
+                    $this->bindTime(),
+                    PandraCore::getConsistency($consistencyLevel));
         }
 
         if (!$ok) {

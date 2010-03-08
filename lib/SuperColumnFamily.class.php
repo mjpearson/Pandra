@@ -87,10 +87,16 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraContai
                 $columnPath = new cassandra_ColumnPath();
                 $columnPath->column_family = $this->getName();
 
-                $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->getKeyID(), $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
+                $ok = PandraCore::deleteColumnPath(
+                        $this->getKeySpace(),
+                        $this->getKeyID(),
+                        $columnPath,
+                        NULL,
+                        PandraCore::getConsistency($consistencyLevel));
                 if (!$ok) $this->registerError(PandraCore::$lastError);
 
             } else {
+                /* @todo must be a better way */
                 foreach ($this->_columns as $colName => $superColumn) {
                     $ok = $superColumn->save();
                     if (!$ok) {

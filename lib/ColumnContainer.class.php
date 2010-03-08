@@ -25,14 +25,8 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var string column keyspace */
     protected $_keySpace = NULL;
 
-    /* @var string magic set/get prefixes for Columns */
-    const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
-
     /* @var array container for column objects, indexed to field name */
     protected $_columns = array();
-
-    /* @var array complete list of errors for this object instance */
-    public $errors = array();
 
     /* @var bool columnfamily marked for deletion */
     protected $_delete = FALSE;
@@ -44,7 +38,13 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     protected $_loaded = FALSE;
 
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
-    protected $_autoCreate = TRUE;
+    protected $_autoCreate = FALSE;
+
+    /* @var array complete list of errors for this object instance */
+    public $errors = array();
+
+    /* @var string magic set/get prefixes for Columns */
+    const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
 
     /**
      * CF constructor, calls init()
@@ -445,7 +445,11 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     /**
-     * autoCreate mutator
+     * AutoCreate mutator, loads (super) columns from Cassandra
+     * which do not exist in the local container. Setting this to false will
+     * retrieve an entire Column Family or SuperColumn for the key, handle
+     * with care.
+     *
      * @param bool $autoCreate new mode
      */
     public function setAutoCreate($autoCreate) {

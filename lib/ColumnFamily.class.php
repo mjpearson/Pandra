@@ -38,10 +38,23 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraContaine
 
             // if autocreate is turned on, get everything
             if ($autoCreate) {
-                $result = PandraCore::getCFSlice($this->getKeySpace(), $keyID, $this->getName(), NULL, NULL, PandraCore::getConsistency($consistencyLevel));
+                $result = PandraCore::getCFSlice(
+                        $this->getKeySpace(),
+                        $keyID,
+                        $this->getName(),
+                        NULL,
+                        NULL,
+                        PandraCore::getConsistency($consistencyLevel));
             } else {
                 // otherwise by defined columns (slice query)
-                $result = PandraCore::getCFSliceMulti($this->getKeySpace(), array($keyID), $this->getName(), NULL, array_keys($this->_columns), $consistencyLevel);
+                $result = PandraCore::getCFSliceMulti(
+                        $this->getKeySpace(),
+                        array($keyID),
+                        $this->getName(),
+                        NULL,
+                        array_keys($this->_columns),
+                        PandraCore::getConsistency($consistencyLevel));
+
                 $result = $result[$keyID];
             }
 
@@ -80,7 +93,13 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraContaine
                 $columnPath = new cassandra_ColumnPath();
                 $columnPath->column_family = $this->getName();
 
-                $ok = PandraCore::deleteColumnPath($this->getKeySpace(), $this->getKeyID(), $columnPath, NULL, PandraCore::getConsistency($consistencyLevel));
+                $ok = PandraCore::deleteColumnPath(
+                        $this->getKeySpace(),
+                        $this->getKeyID(),
+                        $columnPath,
+                        NULL,
+                        PandraCore::getConsistency($consistencyLevel));
+
                 if (!$ok) $this->registerError(PandraCore::$lastError);
 
             } else {

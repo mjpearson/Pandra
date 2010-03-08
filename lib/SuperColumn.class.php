@@ -122,7 +122,8 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
      */
     public function setParent($parent, $bindToParent = TRUE) {
 
-        if (!($parent instanceof PandraSuperColumnFamily)) throw new RuntimeException('Parent must be an instnace of PandraSuperColumnFamily');
+        if (!($parent instanceof PandraSuperColumnFamily))
+            throw new RuntimeException('Parent must be an instnace of PandraSuperColumnFamily');
 
         if ($bindToParent) $parent->addSuperColumnObj($this);
 
