@@ -14,7 +14,7 @@
 /**
  * @abstract
  */
-abstract class PandraColumnContainer implements ArrayAccess {
+abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable {
 
     /* @var this column families name (table name) */
     protected $_name = NULL;
@@ -233,6 +233,52 @@ abstract class PandraColumnContainer implements ArrayAccess {
             return $this->getColumn($columnName);
         }
         return $this->__get($columnName);
+    }
+
+    /**
+     * Count children
+     * @return int number of immediate children in container
+     */
+    public function count() {
+        return count($this->_columns);
+    }
+
+    /**
+     * Get current offset
+     * @return object current column offset
+     */
+    public function current() {
+        return current($this->_columns);
+    }
+
+    /**
+     * Return the key of the current child
+     * @return string child key (column name)
+     */
+    public function key() {
+        return key($this->_columns);
+    }
+
+    /**
+     * Rewind iterator for first element
+     */
+    public function rewind() {
+        reset($this->_columns);
+    }
+
+    /**
+     * Advance to the next element
+     */
+    public function next() {
+        next($this->_columns);
+    }
+
+    /**
+     * Current element exists
+     * @return boolean current element exists
+     */
+    public function valid() {
+        return (boolean) $this->current();
     }
 
     /**
