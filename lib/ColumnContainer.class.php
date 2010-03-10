@@ -38,7 +38,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     protected $_loaded = FALSE;
 
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
-    protected $_autoCreate = FALSE;
+    protected $_autoCreate = TRUE;
 
     /* @var array complete list of errors for this object instance */
     public $errors = array();
