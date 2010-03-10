@@ -128,10 +128,6 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
-
-                if (PandraLog::isRegistered('FirePHP')) {
-                    PandraLog::logTo('FirePHP', $this->errors);
-                }
                 return FALSE;
             }
         }

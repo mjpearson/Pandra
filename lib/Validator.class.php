@@ -161,7 +161,15 @@ class PandraValidator {
             }
         }
 
-        if (!empty($errorMsg)) $errors[] = array($label => $errorMsg);
+        if (!empty($errorMsg)) {
+            $errors[] = array($label => $errorMsg);
+            // spam our registered loggers
+            $loggers = PandraLog::getRegisteredLoggers();
+            foreach ($loggers as $logger) {
+                $logger->execute(PandraLog::LOG_WARNING, array($label => $errorMsg));
+            }
+        }
+
         return empty($errorMsg);
     }
 }

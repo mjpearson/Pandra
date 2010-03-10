@@ -206,7 +206,7 @@ class PandraCore {
             self::setActiveNode($connectionID);
             return TRUE;
         } catch (TException $te) {
-            self::registerError('TException: '.$te->getMessage());
+            self::registerError('TException: '.$te->getMessage(), PandraLog::LOG_CRIT);
 
         }
 
@@ -221,7 +221,7 @@ class PandraCore {
         self::$_firePHPEnabled = PandraLog::register('FirePHP');
     }
 
-    static public function registerError($errorMsg, $priority = PandraLog::LOG_NOTICE) {
+    static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {
         $message = '(PandraCore) '.$errorMsg;
 
         if (self::$_syslogEnabled && PandraLog::isRegistered('Syslog')) {
