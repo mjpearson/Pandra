@@ -4,6 +4,21 @@
  *
  * For licensing terms, plese see license.txt which should distribute with this source
  *
+ * SuperColumns are special kinds of Column Containers which can contain both
+ * Columns and have a ColumnFamily parent (implements ContainerChild)
+ *
+ * 'super column family' => // Super Column Family
+ *                      'my supercolumn' => {  // Super Column
+ *                                 'column1',  // Column
+ *                                 'column2',  // Column
+ *                                 'column3'   // Column
+ *                               },
+ *                      'my supercolumn2' => { // Super Column
+ *                                 'column4',  // Column
+ *                                 'column5',  // Column
+ *                                 'column6'   // Column
+ *                               },
+ *                      }
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */

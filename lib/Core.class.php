@@ -49,6 +49,12 @@ class PandraCore {
     /* @var int default write mode (active/round/random) */
     static private $writeMode = self::MODE_RANDOM;
 
+    /* @var bool flag whether to log to syslog */
+    static private $_syslogEnabled = FALSE;
+
+    /* @var bool flag whether to log to firebug */
+    static private $_firePHPEnabled = FALSE;
+
     /* @var supported modes for this core version */
     static private $_supportedModes = array(
             self::MODE_ACTIVE,
@@ -199,11 +205,36 @@ class PandraCore {
             self::setActivePool($poolName);
             self::setActiveNode($connectionID);
             return TRUE;
-        } catch (TException $tx) {
-            self::$lastError = 'TException: '.$tx->getMessage() . "\n";
+        } catch (TException $te) {
+            self::registerError('TException: '.$te->getMessage());
+
         }
 
         return FALSE;
+    }
+
+    static public function enableSyslog() {
+        self::$_syslogEnabled = PandraLog::register('Syslog');
+    }
+
+    static public function enableFirePHP() {
+        self::$_firePHPEnabled = PandraLog::register('FirePHP');
+    }
+
+    static public function registerError($errorMsg, $priority = PandraLog::LOG_NOTICE) {
+        $message = '(PandraCore) '.$errorMsg;
+
+        if (self::$_syslogEnabled && PandraLog::isRegistered('Syslog')) {
+            // @todo get_called_class(), 5.3
+            PandraLog::logTo('Syslog', $message, $priority);
+        }
+
+        if (self::$_firePHPEnabled && PandraLog::isRegistered('FirePHP')) {
+            // @todo get_called_class(), 5.3
+            PandraLog::logTo('FirePHP', $message, $priority);
+        }
+
+        self::$lastError = $errorMsg;
     }
 
     /**
@@ -226,8 +257,8 @@ class PandraCore {
             $tokenMap = $client->get_string_property('token map');
 
             return TRUE;
-        } catch (TException $tx) {
-            self::$lastError = 'TException: '.$tx->getMessage() . "\n";
+        } catch (TException $te) {
+            self::registerError( 'TException: '.$te->getMessage());
         }
         return FALSE;
     }
@@ -367,7 +398,7 @@ class PandraCore {
             }
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return FALSE;
         }
         return TRUE;
@@ -391,7 +422,7 @@ class PandraCore {
 
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return FALSE;
         }
         return TRUE;
@@ -430,7 +461,7 @@ class PandraCore {
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return FALSE;
         }
         return TRUE;
@@ -467,7 +498,7 @@ class PandraCore {
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
         return NULL;
@@ -506,7 +537,7 @@ class PandraCore {
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
     }
@@ -530,7 +561,7 @@ class PandraCore {
         try {
             return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
     }
@@ -558,7 +589,7 @@ class PandraCore {
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
     }
@@ -569,7 +600,7 @@ class PandraCore {
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
     }
@@ -609,7 +640,7 @@ class PandraCore {
         try {
             return $client->get_range_slice($keySpace, $columnParent, $predicate, $keyStart, $keyFinish, $numRows, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::$lastError = 'TException: '.$te->getMessage() . "\n";
+            self::registerError( 'TException: '.$te->getMessage());
             return NULL;
         }
 

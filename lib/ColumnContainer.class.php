@@ -170,6 +170,11 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function registerError($errorStr) {
         if (empty($errorStr)) return;
         $this->errors[] = $errorStr;
+
+        if (PandraLog::isRegistered('syslog')) {
+            // @todo get_called_class(), 5.3
+            PandraLog::logTo('syslog', '('.get_class($this).') '.$errorStr, $priority);
+        }
     }
 
     /**
@@ -539,12 +544,13 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return bool field set ok
      */
     public function __set($columnName, $value) {
-        if (!$this->_gsMutable($columnName) && $this->getAutoCreate()) {
+        $mutable = $this->_gsMutable($columnName);
+        if (!$mutable && $this->getAutoCreate()) {
             $this->addColumn($columnName);
-        }
-
-        if (!$this->setColumn($columnName, $value)) {
-            throw new RuntimeException($columnName.' set but does not exist in container');
+        } elseif ($mutable) {
+            if (!$this->setColumn($columnName, $value)) {
+                throw new RuntimeException($columnName.' set but does not exist in container');
+            }
         }
     }
 

@@ -4,6 +4,8 @@
  *
  * For licensing terms, plese see license.txt which should distribute with this source
  *
+ * Column is Cassandra's atomic datatype, consisting of a name/value and timestamp
+ *
  * @package Pandra
  * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
@@ -126,6 +128,10 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
+
+                if (PandraLog::isRegistered('FirePHP')) {
+                    PandraLog::logTo('FirePHP', $this->errors);
+                }
                 return FALSE;
             }
         }
@@ -135,7 +141,6 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
         $this->value = $value;
         $this->setModified();
         return TRUE;
-
     }
 
     /**
@@ -375,6 +380,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
                     $columnPath,
                     $this->bindTime(),
                     PandraCore::getConsistency($consistencyLevel));
+
         } else {
             $ok = PandraCore::saveColumnPath(
                     $this->getKeySpace(),
@@ -408,7 +414,9 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
     public function registerError($errorStr) {
         if (!empty($errorStr)) {
             array_push($this->errors, $errorStr);
-            if ($this->_parent !== NULL) $this->_parent->registerError($errorStr);
+            if ($this->_parent !== NULL) {
+                $this->_parent->registerError($errorStr);
+            }
         }
     }
 

@@ -20,24 +20,33 @@ define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/
 
 define('THRIFT_PORT_DEFAULT', 9160);
 
+// nasty autoloader in the absense of namespace
 function _pandraAutoLoad($className) {
 
+    // just bail if it doesn't look like us
     if (!preg_match("/^pandra/i", $className)) return;
 
+    // seperate classes and interfaces for clarity
+    $fExt = array('.class.php', '.interface.php');
+
+    // strip prefix
     $className = preg_replace('/^pandra/i', '', $className);
 
     // class path relative to config
     $classPath = dirname(__FILE__)."/lib/";
 
-    if (preg_match('/^(Query|Clause)/', $className)) $classPath .= 'query/';
+    if (preg_match('/^(Query|Clause)/', $className)) {
+        $classPath .= 'query/';
+    } elseif (preg_match('/^Log/', $className)) {
+        $classPath .= 'logging/';
+    }
 
-    // class file suffix
-    $cSuffix = ".class.php";
-
-    $classFile = $classPath.$className.$cSuffix;
-
-    if (file_exists($classFile)) {
-        require_once($classFile);
+    foreach ($fExt as $ext) {
+        $classFile = $classPath.$className.$ext;
+        if (file_exists($classFile)) {
+            require_once($classFile);
+            break;
+        }
     }
 }
 spl_autoload_register('_pandraAutoLoad');
