@@ -22,7 +22,7 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild, PandraContainerSavable {
+class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild, PandraColumnPathable {
 
     /* @var PandraColumnFamily column family parent reference */
     private $_parent = NULL;
@@ -99,11 +99,10 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
      * Loads a SuperColumn for key
      *
      * @param string $keyID optional row key
-     * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL) {
+    public function load($keyID = NULL, $consistencyLevel = NULL) {
 
         if ($keyID === NULL) $keyID = $this->getKeyID();
 
@@ -122,7 +121,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
             if (!empty($result)) {
                 $this->init();
-                $this->setLoaded($this->populate($result, $this->getAutoCreate($colAutoCreate)));
+                $this->setLoaded($this->populate($result, $this->getAutoCreate()));
                 if ($this->isLoaded()) $this->keyID = $keyID;
             } else {
                 $this->registerError(PandraCore::$lastError);

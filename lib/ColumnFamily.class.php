@@ -15,7 +15,7 @@
  * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumnFamily extends PandraColumnContainer implements PandraContainerSavable {
+class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPathable {
 
     /**
      * Loads an entire columnfamily by keyid
@@ -24,7 +24,7 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraContaine
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL) {
+    public function load($keyID = NULL, $consistencyLevel = NULL) {
 
         if ($keyID === NULL) $keyID = $this->getKeyID();
 
@@ -34,7 +34,7 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraContaine
 
         if ($ok) {
 
-            $autoCreate = $this->getAutoCreate($colAutoCreate);
+            $autoCreate = $this->getAutoCreate();
 
             // if autocreate is turned on, get everything
             if ($autoCreate) {

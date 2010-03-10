@@ -39,33 +39,5 @@ interface PandraContainerChild {
      * @return Parent container
      */
     public function getParent();
-
-    /**
-     * Local reset method, handling delete/modified flags
-     */
-    public function reset();
-
-    /**
-     * Delete method
-     */
-    public function delete();
-
-    /**
-     * Modified accessor
-     * @return bool child is marked as modified
-     */
-    public function isModified();
-
-    /**
-     * Deleted accessor
-     * @return bool child is marked for deletion
-     */
-    public function isDeleted();
-
-    /**
-     * Child name accessor
-     * @return string child name
-     */
-    public function getName();
 }
 ?>

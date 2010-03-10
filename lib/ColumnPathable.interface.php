@@ -13,16 +13,15 @@
 /**
  * @abstract
  */
-interface PandraContainerSavable {
+interface PandraColumnPathable {
 
     /**
      * Loads a container column path by keyid
      * @param string $keyID optional row key
-     * @param bool $colAutoCreate create columns in the object instance which have not been defined
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL);
+    public function load($keyID = NULL, $consistencyLevel = NULL);
 
     /**
      * Save this container column path and any modified columns to Cassandra
@@ -31,6 +30,35 @@ interface PandraContainerSavable {
      * @return bool save ok
      */
     public function save($consistencyLevel = NULL);
+
+    /**
+     * Local reset method, handling delete/modified flags
+     */
+    public function reset();
+
+    /**
+     * Delete method
+     */
+    public function delete();
+
+    /**
+     * Modified accessor
+     * @return bool child is marked as modified
+     */
+    public function isModified();
+
+    /**
+     * Deleted accessor
+     * @return bool child is marked for deletion
+     */
+    public function isDeleted();
+
+    /**
+     * Child name accessor
+     * @return string child name
+     */
+    public function getName();
+
 
 }
 ?>

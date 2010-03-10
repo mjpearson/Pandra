@@ -10,7 +10,7 @@
  * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
-class PandraColumn extends cassandra_Column implements PandraContainerChild {
+class PandraColumn extends cassandra_Column implements PandraContainerChild, PandraColumnPathable {
 
     /* @var array validator type definitions for this colun */
     public $typeDef = array();
@@ -319,11 +319,11 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild {
     /**
      * Loads a Column for key, maintaining parent binding
      * @param string $keyID optional row key
-     * @param bool $colAutoCreate create columns in the object instance which have not been defined
+     * @param bool $colAutoCreate dummy interface, NULL
      * @param int $consistencyLevel cassandra consistency level
      * @return bool loaded OK
      */
-    public function load($keyID = NULL, $consistencyLevel = NULL) {
+    public function load($keyID = NULL, $colAutoCreate = NULL, $consistencyLevel = NULL) {
 
         if ($keyID === NULL) $keyID = $this->getKeyID();
 

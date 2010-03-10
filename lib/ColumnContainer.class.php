@@ -514,7 +514,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return bool field exists
      */
     protected function _gsMutable(&$columnName) {
-        $columnName = preg_replace("/^".constant(get_class($this).'::_columnNamePrefix')."/", "", $columnName);
+        $pfx = "/^".constant(get_class($this).'::_columnNamePrefix')."/";
+        $columnName = preg_replace($pfx, "", $columnName);
+
         return array_key_exists($columnName, $this->_columns);
     }
 
@@ -545,12 +547,13 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function __set($columnName, $value) {
         $mutable = $this->_gsMutable($columnName);
+
         if (!$mutable && $this->getAutoCreate()) {
             $this->addColumn($columnName);
-        } elseif ($mutable) {
-            if (!$this->setColumn($columnName, $value)) {
-                throw new RuntimeException($columnName.' set but does not exist in container');
-            }
+        }
+
+        if (!$this->setColumn($columnName, $value)) {
+            throw new RuntimeException($columnName.' set but does not exist in container');
         }
     }
 
