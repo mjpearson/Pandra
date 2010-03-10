@@ -40,5 +40,10 @@ class PandraLoggerSyslog implements PandraLogger {
         if ($this->_isOpen) return closelog();
         return FALSE;
     }
+
+    public function  __destruct() {
+        $this->close();
+    }
+
 }
 ?>
