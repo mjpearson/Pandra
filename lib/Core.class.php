@@ -441,7 +441,7 @@ class PandraCore {
         try {
             $client = self::getClient(TRUE);
 
-            $mutation = array();
+            $mutations = array();
 
             foreach ($superCFName as $superColumnFamilyName) {
 
