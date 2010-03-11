@@ -198,7 +198,7 @@ class PandraCore {
 
             self::$_socketPool[$poolName][$connectionID] = array(
                     'transport' => $transport,
-                    'client' => new CassandraClient((function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)))
+                    'client' => new CassandraClient((PHP_INT_SIZE == 8 && function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)))
             );
 
             // set new connection the active, working master
