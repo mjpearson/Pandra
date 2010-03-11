@@ -373,7 +373,8 @@ class PandraCore {
      */
     static public function getTime() {
         // use microtime where possible
-        if (PHP_INT_SIZE == 8) {
+        // @todo patch thrift .so
+        if (PHP_INT_SIZE == 8 || !function_exists("thrift_protocol_write_binary")) {
             return round(microtime(true) * 1000, 3);
         }
         return time();
