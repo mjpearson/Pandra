@@ -13,8 +13,25 @@ class PandraLog {
 
     static private $_loggers = array();
 
+    static public $priorityStr = array(
+        self::LOG_EMERG => 'Emergency',
+        self::LOG_ALERT => 'Alert',
+        self::LOG_CRIT => 'Critical',
+        self::LOG_ERR => 'Error',
+        self::LOG_WARNING => 'Warning',
+        self::LOG_NOTICE => 'Notice',
+        self::LOG_INFO => 'Info',
+        self::LOG_DEBUG => 'Debug',
+    );
+
     static private function getClassFromName($loggerName) {
         return 'PandraLogger'.ucfirst($loggerName);
+    }
+
+    static public function getLogger($loggerName) {
+        $lc = self::getClassFromName($loggerName);
+        if (array_key_exists($lc, self::$_loggers)) return self::$_loggers[$lc];
+        return NULL;
     }
 
     static public function getRegisteredLoggers() {

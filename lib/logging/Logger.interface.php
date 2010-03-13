@@ -6,6 +6,8 @@ interface PandraLogger {
 
     public function isOpen();
 
+    public function isPriorityLogger($priority);
+
     public function execute($priority, $message);
 
 }

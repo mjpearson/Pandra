@@ -49,12 +49,6 @@ class PandraCore {
     /* @var int default write mode (active/round/random) */
     static private $writeMode = self::MODE_RANDOM;
 
-    /* @var bool flag whether to log to syslog */
-    static private $_syslogEnabled = FALSE;
-
-    /* @var bool flag whether to log to firebug */
-    static private $_firePHPEnabled = FALSE;
-
     /* @var supported modes for this core version */
     static private $_supportedModes = array(
             self::MODE_ACTIVE,
@@ -67,6 +61,8 @@ class PandraCore {
 
     /* @var bool APC is available for use */
     static private $_apcAvailable = FALSE;
+
+    static private $_loggers = array();
 
     /**
      * Supported Modes accessor
@@ -213,12 +209,26 @@ class PandraCore {
         return FALSE;
     }
 
-    static public function enableSyslog() {
-        self::$_syslogEnabled = PandraLog::register('Syslog');
+    static public function addLogger($loggerName) {
+        if (!array_key_exists($loggerName, self::$_loggers)) {
+            return PandraLog::register($loggerName);
+        }
+        return TRUE;
     }
 
-    static public function enableFirePHP() {
-        self::$_firePHPEnabled = PandraLog::register('FirePHP');
+    static public function removeLogger($loggerName) {
+        if (array_key_exists($loggerName, self::$_loggers)) {
+            unset(self::$_loggers[$loggerName]);
+            return TRUE;
+        }
+        return FALSE;
+    }
+
+    static public function getLogger($loggerName) {
+        if (array_key_exists($loggerName, self::$_loggers)) {
+            return self::$_loggers[$loggerName];
+        }
+        return NULL;
     }
 
     static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {

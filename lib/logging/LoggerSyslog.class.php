@@ -3,12 +3,16 @@ class PandraLoggerSyslog implements PandraLogger {
 
     private $_isOpen = FALSE;
 
+    private $_maxPriority = PandraLog::LOG_ERR;
+
     public function __construct(array $params) {
         if (empty($params)) {
             $params = array('ident' => 'pandra', 'option' => LOG_ODELAY, 'facility' => LOG_SYSLOG);
         }
-
-        return $this->open($params['ident'], $params['option'], $params['facility']);
+        if (function_exists('openlog')) {
+            return $this->open($params['ident'], $params['option'], $params['facility']);
+        }
+        return FALSE;
     }
 
     public function isOpen() {
@@ -20,18 +24,28 @@ class PandraLoggerSyslog implements PandraLogger {
         return $this->_isOpen;
     }
 
+    /**
+     * Syslog shouldn't handle notices, info's etc.
+     * @param int $priority requested priority log
+     * @return boolean this logger will log for priority
+     */
+    public function isPriorityLogger($priority) {
+        return ($priority <= $this->_maxPriority);
+    }
+
     public function execute($priority, $message) {
-        if (!empty($message)) {
-            if ($this->_isOpen) {
-                if (is_array($message)) {
-                    foreach ($message as $msg) {
-                        syslog($priority, $message);
-                    }
-                } else {
+        if ($this->isPriorityLogger($priority) &&
+                !empty($message)
+                && $this->_isOpen) {
+
+            if (is_array($message)) {
+                foreach ($message as $msg) {
                     syslog($priority, $message);
                 }
-                return TRUE;
+            } else {
+                syslog($priority, $message);
             }
+            return TRUE;
         }
         return FALSE;
     }

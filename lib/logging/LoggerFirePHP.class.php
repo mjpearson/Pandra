@@ -17,8 +17,17 @@ class PandraLoggerFirePHP implements PandraLogger {
         return $this->_isOpen;
     }
 
+    /**
+     * FirePHP will log for anything
+     * @param int $priority requested priority log
+     * @return boolean this logger will log for priority
+     */
+    public function isPriorityLogger($priority) {
+        return TRUE;
+    }
+
     public function execute($priority, $message) {
-        if ($this->_isOpen) {
+        if ($this->isPriorityLogger($priority) && $this->_isOpen) {
             switch ($priority) {
                 case PandraLog::LOG_NOTICE :
                     $this->_fb->log($message);
@@ -31,7 +40,9 @@ class PandraLoggerFirePHP implements PandraLogger {
                     break;
                 default:
                     $this->_fb->error($message);
+                    break;
             }
+            return TRUE;
         }
         return FALSE;
     }

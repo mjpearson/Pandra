@@ -54,18 +54,13 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         PandraCore::disconnectAll();
     }
 
-    public function testSetParent() {
+    public function testSetGetParent() {
         $newCF = new PandraSuperColumnFamily();
         $newCF->setKeySpace('Keyspace1');
         $newCF->setName('Super1');
         $this->obj->setParent($newCF);
 
         $this->assertEquals($newCF, $this->obj->getParent());
-    }
-
-    public function testGetParent() {
-        $cf = $this->obj->getParent();
-        $this->assertTrue($cf instanceof PandraColumnContainer);
     }
 
     public function testSaveLoadDelete() {

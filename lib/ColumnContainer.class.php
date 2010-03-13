@@ -191,6 +191,24 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         }
     }
 
+    /**
+     * Grabs all errors for the container instance
+     * @return array all errors
+     */
+    public function getErrors() {
+        return $this->errors;
+    }
+
+    /**
+     * Grabs the last logged error
+     * @return string last error message
+     */
+    public function getLastError() {
+        if (count($this->errors)) {
+            return $this->errors[0];
+        }
+        return NULL;
+    }
 
     /**
      * Sets value with a validator.  To skip validation, use explicit
