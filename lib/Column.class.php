@@ -357,7 +357,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     public function save($consistencyLevel = NULL) {
 
         if (!$this->isModified()) {
-            $this->registerError("Column $name is not modified");
+            $this->registerError("Column ".$this->name." is not modified");
             return FALSE;
         }
 
