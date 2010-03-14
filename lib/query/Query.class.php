@@ -143,6 +143,12 @@ class PandraQuery {
 
             }
 
+            $preResult = PandraCore::getCFSliceMulti($this->_keySpace, $this->_keys, $this->_columnFamily);
+                //public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
+
+            // We've got a basic result set, so filter out what we don't want
+
+
             // Cache and populate
             if ($result !== NULL) {
                 $this->cacheStore($result);
