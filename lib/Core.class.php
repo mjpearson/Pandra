@@ -211,7 +211,16 @@ class PandraCore {
 
     static public function addLogger($loggerName) {
         if (!array_key_exists($loggerName, self::$_loggers)) {
-            return PandraLog::register($loggerName);
+
+            $registered = PandraLog::register($loggerName);
+            $logger = PandraLog::getLogger($loggerName);
+            if ($registered && $logger !== NULL) {
+                self::$_loggers[$loggerName] = $logger;
+            } else {
+                return FALSE;
+            }
+
+            //return PandraLog::register($loggerName);
         }
         return TRUE;
     }
@@ -233,15 +242,8 @@ class PandraCore {
 
     static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {
         $message = '(PandraCore) '.$errorMsg;
-
-        if (self::$_syslogEnabled && PandraLog::isRegistered('Syslog')) {
-            // @todo get_called_class(), 5.3
-            PandraLog::logTo('Syslog', $message, $priority);
-        }
-
-        if (self::$_firePHPEnabled && PandraLog::isRegistered('FirePHP')) {
-            // @todo get_called_class(), 5.3
-            PandraLog::logTo('FirePHP', $message, $priority);
+        foreach (self::$_loggers as $logger) {
+            $logger->execute($priority, $message);
         }
 
         self::$lastError = $errorMsg;
@@ -430,7 +432,6 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
-
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage());
