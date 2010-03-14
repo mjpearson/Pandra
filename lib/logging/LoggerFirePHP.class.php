@@ -32,6 +32,7 @@ class PandraLoggerFirePHP implements PandraLogger {
                 case PandraLog::LOG_NOTICE :
                     $this->_fb->log($message);
                     break;
+                case PandraLog::LOG_DEBUG :
                 case PandraLog::LOG_INFO :
                     $this->_fb->info($message);
                     break;

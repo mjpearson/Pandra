@@ -242,10 +242,7 @@ class PandraCore {
 
     static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {
         $message = '(PandraCore) '.$errorMsg;
-        foreach (self::$_loggers as $logger) {
-            $logger->execute($priority, $message);
-        }
-
+        PandraLog::logPriorityMessage($priority, $message);
         self::$lastError = $errorMsg;
     }
 
@@ -311,7 +308,11 @@ class PandraCore {
      * get current working node, recursive, trims disconnected clients
      */
     static public function getClient($writeMode = FALSE) {
-        if (empty(self::$_activeNode)) throw new Exception('Not Connected');
+        if (empty(self::$_activeNode)) {
+            self::registerError('Not Connected', PandraLog::LOG_CRIT);
+            throw new Exception('Not Connected');
+        }
+
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
 

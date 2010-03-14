@@ -14,13 +14,13 @@ abstract class PandraClause {
     const TYPE_LITERAL = 0;
 
     const TYPE_RANGE = 1;
-/*
-    protected $_type = self::TYPE_LITERAL;
+
+    protected $_type = NULL;
+
+    public function match($value) {}
 
     public function getType() {
         return $this->_type;
     }
-*/
-    public function match($value) {}
 }
 ?>

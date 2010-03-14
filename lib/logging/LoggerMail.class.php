@@ -8,7 +8,7 @@ class PandraLoggerMail implements PandraLogger {
 
     private $_subject = '';
 
-    private $_maxPriority = PandraLog::LOG_ERR;
+    private $_maxPriority = PandraLog::LOG_CRIT;
 
     public function __construct(array $params) {
         if (isset($params['from'])) $this->_mailFrom = $params['from'];

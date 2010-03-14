@@ -103,7 +103,7 @@ class PandraValidator {
                     break;
 
                 case 'isempty' :
-                    // NULL is never allowed, just empty strings
+                // NULL is never allowed, just empty strings
                     $error = ($value != '');
                     if ($error) $errorMsg[] = "Field must be empty";
                     break;
@@ -164,11 +164,7 @@ class PandraValidator {
 
         if (!empty($errorMsg)) {
             $errors[] = array($label => $errorMsg);
-            // spam our registered loggers
-            $loggers = PandraLog::getRegisteredLoggers();
-            foreach ($loggers as $logger) {
-                $logger->execute(PandraLog::LOG_WARNING, array($label => $errorMsg));
-            }
+            PandraLog::warning(array($label => $errorMsg));
         }
 
         return empty($errorMsg);

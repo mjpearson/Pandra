@@ -13,15 +13,15 @@ class PandraLog {
 
     static private $_loggers = array();
 
-    static public $priorityStr = array(
-        self::LOG_EMERG => 'Emergency',
-        self::LOG_ALERT => 'Alert',
-        self::LOG_CRIT => 'Critical',
-        self::LOG_ERR => 'Error',
-        self::LOG_WARNING => 'Warning',
-        self::LOG_NOTICE => 'Notice',
-        self::LOG_INFO => 'Info',
-        self::LOG_DEBUG => 'Debug',
+    static public $priorityMap = array(
+            self::LOG_EMERG => 'emergency',
+            self::LOG_ALERT => 'alert',
+            self::LOG_CRIT => 'critical',
+            self::LOG_ERR => 'error',
+            self::LOG_WARNING => 'warning',
+            self::LOG_NOTICE => 'notice',
+            self::LOG_INFO => 'info',
+            self::LOG_DEBUG => 'debug',
     );
 
     static private function getClassFromName($loggerName) {
@@ -34,10 +34,6 @@ class PandraLog {
         return NULL;
     }
 
-    static public function getRegisteredLoggers() {
-        return array_values(self::$_loggers);
-    }
-
     static public function register($loggerName, $params = array()) {
         $lc = self::getClassFromName($loggerName);
         if (!array_key_exists($lc, self::$_loggers)) {
@@ -48,18 +44,69 @@ class PandraLog {
         return FALSE;
     }
 
-    static public function logTo($loggerName, $message, $priority = self::LOG_NOTICE) {
-        $lc = self::getClassFromName($loggerName);
-        if (array_key_exists($lc, self::$_loggers)) {
-            self::$_loggers[$lc]->execute($priority, $message);
-        } else {
-            throw new RuntimeException("Logger '$lc' has not been registered");
-        }
+    static public function getRegisteredLoggers() {
+        return array_values(self::$_loggers);
     }
 
     static public function isRegistered($loggerName) {
         $lc = self::getClassFromName($loggerName);
         return array_key_exists($lc, self::$_loggers);
+    }
+
+    static public function hasPriorityLogger($priority) {
+        foreach (self::$_loggers as $logger) {
+            if ($logger->isPriorityLogger($priority)) return TRUE;
+        }
+        return FALSE;
+    }
+
+    static public function logPriorityMessage($priority, $message) {
+        foreach (self::$_loggers as $logger) {
+            if ($logger->isPriorityLogger($priority)) $logger->execute($priority, $message);
+        }
+    }
+
+    /* ------- Priority Helper */
+    /*
+     * @todo 5.3, strip the priority helpers and use callStatic
+    static public function __callStatic($class, $args) {
+        $priority = array_search(strtolower($class), self::$priorityMap);
+        if (!empty($priority)) {
+            self::logPriorityMessage($priority, array_pop($args));
+        }
+    }
+    */
+
+    static public function emerg($message) {
+        self::logPriorityMessage(self::LOG_EMERG, $message);
+    }
+
+    static public function alert($message) {
+        self::logPriorityMessage(self::LOG_ALERT, $message);
+    }
+
+    static public function crit($message) {
+        self::logPriorityMessage(self::LOG_CRIT, $message);
+    }
+
+    static public function err($message) {
+        self::logPriorityMessage(self::LOG_ERR, $message);
+    }
+
+    static public function warning($message) {
+        self::logPriorityMessage(self::LOG_WARNING, $message);
+    }
+
+    static public function notice($message) {
+        self::logPriorityMessage(self::LOG_NOTICE, $message);
+    }
+
+    static public function info($message) {
+        self::logPriorityMessage(self::LOG_INFO, $message);
+    }
+
+    static public function debug($message) {
+        self::logPriorityMessage(self::LOG_DEBUG, $message);
     }
 
 }

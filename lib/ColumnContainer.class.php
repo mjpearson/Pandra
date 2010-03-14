@@ -154,7 +154,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         $this->_delete = $delete;
     }
 
-
     /**
      * accessor, delete
      * @return bool container is marked for deletion
@@ -170,11 +169,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function registerError($errorStr) {
         if (empty($errorStr)) return;
         $this->errors[] = $errorStr;
-
-        if (PandraLog::isRegistered('syslog')) {
-            // @todo get_called_class(), 5.3
-            PandraLog::logTo('syslog', '('.get_class($this).') '.$errorStr, $priority);
-        }
     }
 
     /**
@@ -329,7 +323,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
         // pre-save callback
         if (!empty($callbackOnSave)) $this->getColumn($columnName)->setCallback($callbackOnSave);
-
         return $this->getColumn($columnName);
     }
 

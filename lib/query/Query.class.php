@@ -9,7 +9,7 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  */
 
-class PandraQuery implements ArrayAccess {
+class PandraQuery {
 
     //
     const POPULATE_ARRAY = 1;
@@ -18,158 +18,217 @@ class PandraQuery implements ArrayAccess {
 
     const POPULATE_SCALAR = 3;
 
-    //
-    const CONTEXT_COLUMN = 1;
+    const POPULATE_MODEL = 3;
 
-    const CONTEXT_SUPERCOLUMNFAMILY = 2;
+    const CONTEXT_COLUMN = 0;
 
-    const CONTEXT_COLUMNFAMILY = 3;
+    const CONTEXT_SUPERCOLUMN = 1;
 
-    private $_context = NULL;
+    const CACHE_NONE = 0;
+
+    const CACHE_APC = 1;
+
+    const CACHE_MEM = 2;
 
     private $_graph = array();
 
-    private $_graphKeys = array('keySpace', 'column_family', 'column', 'super_column');
+    private $_keySpace = NULL;
 
-    public $_columns = array();
+    private $_columnFamily = NULL;
 
-    private $_width = 0;
+    private $_keys = array();
 
-    public function init() {
+    private $_graphTarget = NULL;
 
+    private $_limit = 0;
+
+    private $_cacheScheme = self::CACHE_NONE;
+
+    private $_cacheExpirySeconds = 60;
+
+    public function select($columnFamilyName) {
+        list($keySpace, $columnFamily) = explode('.', $columnFamilyName);
+        if (empty($keySpace) || empty($columnFamily)) {
+            $message = 'Keyspace or ColumnFamily missing.  Expect "Keyspace.ColumnFamilyName"';
+            PandraLog::crit($message);
+            throw new RuntimeException($message);
+        }
+
+        $this->_keySpace = $keySpace;
+        $this->_columnFamily = $columnFamily;
+
+        return $this;
     }
 
     // @todo move to callStatic with PHP5.3 upgrade
     // anonymous claus calls
     public function __call($class, $args) {
-        if (strpos($class, 'Clause') === 0) {
-            $class = 'Pandra'.$class;
-            if (class_exists($class)) {
-                return new $class(array_pop($args));
-            }
+        $class = 'PandraClause'.$class;
+        if (class_exists($class)) {
+            return new $class(array_pop($args));
+        } else {
+            return NULL;
         }
     }
 
-    /**
-     * Query stub (predicate search/slice range etc)
-     */
-    public function extract() {
-        return $this->_columns;
-    }
-
-    public function setColumn($columnName, $value) {
-        $this->_columns[$columnName] = $value;
-
-    }
-
-    /**
-     * Sets value with a validator.  To skip validation, use explicit
-     * PandraColumn->setValue($value, FALSE); or do not provide a typeDef
-     * @param string $offset column name
-     * @param mixed $value new column value
-     */
-    public function offsetSet($offset, $value) {
-//        $this->__set($offset, $value);
-    }
-
-    /**
-     * Check for column existence
-     * @param string $offset column name
-     * @return bool column eixsts
-     */
-    public function offsetExists($offset) {
-//        return isset($this->_columns[$offset]);
-    }
-
-    /*
-     * This only unsets the column in the container, do delete use the
-     * PandraColumn->delete() function
-     * @return void
-    */
-    public function offsetUnset($offset) {
-//        unset($this->_columns[$offset]);
-    }
-
-    /**
-     * Get column value by column name
-     * @param string $offset column name
-     * @return mixed column value
-     */
-    public function offsetGet($match) {
-        switch ($this->_width) {
-            // Keyspace
-            case 0 :
-            // ColumnFamily
-            case 1 :
-                if (is_string($match)) {
-                    $this->_graph[$this->_graphKeys[$this->_width]] = $match;
-                } else {
-                    throw new RuntimeException('ColumnFamily must be a string');
-                }
-                break;
-            // Columns
-            case 2 :
-                $this->_graph[$this->_graphKeys[$this->_width]] = $match;
-                //$this->_graph['columns'] = $match;
-                break;
-            //  Columns in SuperColumn
-            case 3 :
-                $this->_graph[$this->_graphKeys[$this->_width + 1]] = $this->_graph[$this->_graphKeys[$this->_width]];
-                $this->_graph[$this->_graphKeys[$this->_width]] = $match;
-                break;
-            default:
-                new RuntimeException('Query exceeds maximum width');
-        }
-        $this->_width++;
+    public function whereKeyIn(array $keys) {
+        $this->_keys = $keys;
         return $this;
     }
 
-    public function reset() {
-        $this->_width = 0;
+    private function graphContext($context, PandraClause $match) {
+        $idx = isset($this->_graph[$context]) ? count($this->_graph[$context]) : 0;
+        $this->_graph[$context][$idx] = array(
+                'target' => $match,
+                'filter' => array()
+        );
+        $this->_context = $context;
+        $this->_graphTarget = &$this->_graph[$context][$idx];
     }
 
-    private function isClause($match) {
-        return $match instanceof PandraClause;
+    public function whereColumn(PandraClause $match) {
+        $this->graphContext(self::CONTEXT_COLUMN, $match);
+        return $this;
     }
 
-    public function load($keys, $populator = self::POPULATE_ARRAY) {
-        // stub
-        return;
+    public function whereValue(PandraClause $match) {
+        // whereValue is only against colum types
+        if ( $this->_context == self::CONTEXT_COLUMN &&
+                is_array($this->_graph[self::CONTEXT_COLUMN]) ) {
+            $this->_graphTarget['filter'][] = $match;
+        }
+        return $this;
+    }
 
-        $columnPath = new cassandra_ColumnPath();
-//         array(
-//                        'column_family' => $columnFamilyName,
-//                        'super_column' => $superColumnName,
-//                        'column' => $columnName
-//        ));
+    public function whereSuperColumn(PandraClause $match) {
+        $this->graphContext(self::CONTEXT_COLUMN, $match);
+        return $this;
+    }
+
+    public function limit($limit) {
+        if (is_numeric($limit)) {
+            $this->_limit = $limit;
+        }
+
+        return $this;
+    }
+
+    public function pathOK() {
+        return (!empty($this->_keys) &&
+                        !empty($this->_keySpace) &&
+                        !empty($this->_columnFamily) &&
+                        count($this->_graph));
+    }
+
+    public function count() {
+        return $this->extract(self::POPULATE_SCALAR);
+    }
+
+    public function extract($populate = self::POPULATE_MODEL) {
+
+        // Check we have everything
+        if ($this->pathOK()) {
+
+            $result = NULL;
+
+            // Cache hit?
+            if ($this->cacheRetrieve($result)) {
+                return $this->hydrate($populate, $result);
+            }
+
+            // Graph Processing
+            PandraLog::debug('processing graph');
+
+            if (!empty($this->_graph[self::CONTEXT_SUPERCOLUMN])) {
+
+            }
+
+            // Cache and populate
+            if ($result !== NULL) {
+                $this->cacheStore($result);
+                return $this->hydrate($populate, $result);
+            }
+        } else {
+            throw new RuntimeException('Missing Keys, Keyspace or ColumnFamily');
+        }
+
+        return NULL;
+    }
 
 
+    private function cacheRetrieve(&$result) {
+        if ($this->_cacheScheme !== self::CACHE_NONE) {
+            $cacheKey = $this->cacheKey();
+            switch($this->_cacheScheme) {
+                case self::CACHE_APC :
+                    $status = FALSE;
+                    $result = apc_fetch($cacheKey, $status);
+                    if (!$result) $result = NULL;
+                    return $status && ($result !== NULL);
 
+                    // Otherwise it's a cache miss, continue
+                    break;
 
-        $literal = TRUE;
+                case self::CACHE_MEM :
+                // @todo
+                    break;
 
-        foreach ($this->_graph as $path => $match) {
+                default: break;
+            }
+        }
+        return FALSE;
+    }
 
+    private function cacheStore($result) {
+        // Cache result
+        if ($this->_cacheScheme !== self::CACHE_NONE) {
+            $cacheKey = $this->cacheKey();
+            switch($this->_cacheScheme) {
+                case self::CACHE_APC :
+                    return apc_store($cacheKey, $result, $this->_cacheExpirySeconds);
+                    break;
 
-            if ($this->isClause($match)) {
-                $literal = FALSE;
-            } else {
-                if ($path == 'columnFamily') {
-                    $columnPath->column_family = $match;
-                } elseif ($path == '') {
+                case self::CACHE_MEM :
+                // @todo
+                    break;
 
-                }
+                default: break;
             }
         }
 
-
-        var_dump($this);
-        // lets see what we can get from the graph
-
-
-
-
+        return FALSE;
     }
 
+
+    public function apc() {
+        if (!PandraCore::getAPCAvailable()) {
+            PandraLog::warn('APC Unavailable');
+        } else {
+            $this->_cacheScheme = self::CACHE_APC;
+        }
+        return $this;
+    }
+
+    public function memcached() {
+        if (!PandraCore::getMemcachedvailable()) {
+            PandraLog::warn('Memcached Unavailable');
+        } else {
+            $this->_cacheScheme = self::CACHE_MEM;
+        }
+        return $this;
+    }
+
+    public function nocache() {
+        $this->_cacheSchema = self::CACHE_NONE;
+    }
+
+    private function cacheKey() {
+        // NASTY!
+        return md5($this->_keySpace.
+                $this->_columnFamily.
+                serialize($this->_keys).
+                serialize($this->_graph).
+                $this->_limit);
+    }
 }
 ?>

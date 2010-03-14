@@ -21,6 +21,8 @@ class PandraClauseNumericRange extends PandraClause {
 
     private $_args = array();
 
+    protected $_type = self::TYPE_RANGE;
+
     public function __construct() {
         $this->_args = func_get_arg(0);
     }
