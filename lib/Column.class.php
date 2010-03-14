@@ -132,7 +132,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
             }
         }
 
-        if ($this->value == $value) return TRUE;
+        if ($value === NULL) return FALSE;
 
         $this->value = $value;
         $this->setModified();

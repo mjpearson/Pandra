@@ -103,7 +103,8 @@ class PandraValidator {
                     break;
 
                 case 'isempty' :
-                    $error = !empty($value);
+                    // NULL is never allowed, just empty strings
+                    $error = ($value != '');
                     if ($error) $errorMsg[] = "Field must be empty";
                     break;
 
