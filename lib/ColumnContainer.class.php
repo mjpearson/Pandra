@@ -443,7 +443,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param string $columnName column name
      */
     public function destroyColumns($columnName = NULL) {
-        if ($columnName === NULL) {
+        if ($columnName !== NULL) {
             if (array_key_exists($columnName, $this->_columns)) {
                 unset($this->_columns[$columnName]);
             }
