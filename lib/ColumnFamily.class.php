@@ -36,23 +36,36 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
 
             $autoCreate = $this->getAutoCreate();
 
+            $predicate = new cassandra_SlicePredicate();
+
             // if autocreate is turned on, get everything
             if ($autoCreate) {
+
+                $predicate->slice_range = new cassandra_SliceRange();
+                $predicate->slice_range->start = '';
+                $predicate->slice_range->finish = '';
+
                 $result = PandraCore::getCFSlice(
                         $this->getKeySpace(),
                         $keyID,
-                        $this->getName(),
-                        NULL,
-                        NULL,
+                        new cassandra_ColumnParent(
+                                array(
+                                    'column_family' => $this->getName())),
+                        $predicate,
                         PandraCore::getConsistency($consistencyLevel));
+
+            // otherwise by defined columns (slice query)
             } else {
-                // otherwise by defined columns (slice query)
+
+                $predicate->column_names = $this->getColumnNames();
+
                 $result = PandraCore::getCFSliceMulti(
                         $this->getKeySpace(),
                         array($keyID),
-                        $this->getName(),
-                        NULL,
-                        array_keys($this->_columns),
+                        new cassandra_ColumnParent(
+                                array(
+                                    'column_family' => $this->getName())),
+                        $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
                 $result = $result[$keyID];

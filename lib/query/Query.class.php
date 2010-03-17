@@ -124,7 +124,7 @@ class PandraQuery {
         return $this->extract(self::POPULATE_SCALAR);
     }
 
-    public function extract($populate = self::POPULATE_MODEL) {
+    public function extract($popType = self::POPULATE_MODEL) {
 
         // Check we have everything
         if ($this->pathOK()) {
@@ -133,7 +133,7 @@ class PandraQuery {
 
             // Cache hit?
             if ($this->cacheRetrieve($result)) {
-                return $this->hydrate($populate, $result);
+                return $this->hydrate($popType, $result);
             }
 
             // Graph Processing
@@ -144,7 +144,7 @@ class PandraQuery {
             }
 
             $preResult = PandraCore::getCFSliceMulti($this->_keySpace, $this->_keys, $this->_columnFamily);
-                //public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
+            //public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
 
             // We've got a basic result set, so filter out what we don't want
 
@@ -152,7 +152,7 @@ class PandraQuery {
             // Cache and populate
             if ($result !== NULL) {
                 $this->cacheStore($result);
-                return $this->hydrate($populate, $result);
+                return $this->hydrate($popType, $result);
             }
         } else {
             throw new RuntimeException('Missing Keys, Keyspace or ColumnFamily');
@@ -161,6 +161,10 @@ class PandraQuery {
         return NULL;
     }
 
+    private function hydrate($popType, $result) {
+        return $result;
+
+    }
 
     private function cacheRetrieve(&$result) {
         if ($this->_cacheScheme !== self::CACHE_NONE) {

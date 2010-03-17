@@ -564,7 +564,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         }
 
         if (!$this->setColumn($columnName, $value)) {
-            throw new RuntimeException($columnName.' set but does not exist in container');
+            throw new RuntimeException('Property '.$columnName.' does not exist');
         }
     }
 

@@ -183,7 +183,10 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
-        $result = PandraCore::getCFSlice($keySpace, $keyID, $columnFamily);
+        $columnParent = new cassandra_ColumnParent(array('column_family'=>$columnFamily));
+        $predicate = new PandraSlicePredicate('Column', array('column' => $this->obj->getName()));
+
+        $result = PandraCore::getCFSlice($keySpace, $keyID, $columnParent, $predicate);
         $this->assertTrue(empty($result) && empty(PandraCore::$lastError), PandraCore::$lastError);
 
         // save using parent
@@ -210,7 +213,10 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->isModified());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
-        $column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnFamily))->column;
+        $columnParent = new cassandra_ColumnParent(array('column_family'=>$columnFamily));
+        $predicate = new PandraSlicePredicate('Column', array('column' => $this->obj->getName()));
+
+        $column = array_pop(PandraCore::getCFSlice($keySpace, $keyID, $columnParent, $predicate))->column;
         $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(PandraCore::$lastError), PandraCore::$lastError);
 
         $this->obj->delete();

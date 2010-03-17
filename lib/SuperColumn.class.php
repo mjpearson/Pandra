@@ -74,15 +74,15 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         $columnPath,
                         NULL,
                         PandraCore::getConsistency($consistencyLevel));
-
             } else {
 
                 $this->bindTimeModifiedColumns();
-                $ok = PandraCore::saveSuperColumn(  $this->_parent->getKeySpace(),
-                        $this->_parent->getKeyID(),
-                        array($this->_parent->getName()),
-                        array($this->getName() => $this->getModifiedColumns()),
-                        PandraCore::getConsistency($consistencyLevel));
+                $ok = PandraCore::saveSuperColumn(
+                                    $this->_parent->getKeySpace(),
+                                    $this->_parent->getKeyID(),
+                                    array($this->_parent->getName()),
+                                    array($this->getName() => $this->getModifiedColumns()),
+                                    PandraCore::getConsistency($consistencyLevel));
             }
 
             if ($ok) {
@@ -111,17 +111,49 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         $this->setLoaded(FALSE);
 
         if ($ok) {
-            $result = PandraCore::getCFSlice(
-                    $this->getKeySpace(),
-                    $keyID,
-                    $this->getColumnFamilyName(),
-                    $this->getName(),
-                    $this->getColumnNames(),
-                    PandraCore::getConsistency($consistencyLevel));
+
+            $autoCreate = $this->getAutoCreate();
+
+            $predicate = new cassandra_SlicePredicate();
+
+            // if autocreate is turned on, get everything
+            if ($autoCreate) {
+
+                $predicate->slice_range = new cassandra_SliceRange();
+                $predicate->slice_range->start = '';
+                $predicate->slice_range->finish = '';
+
+                $result = PandraCore::getCFSlice(
+                        $this->getKeySpace(),
+                        $keyID,
+                        new cassandra_ColumnParent(
+                                array(
+                                    'column_family' => $this->getColumnFamilyName(),
+                                    'super_column' => $this->getName())),
+                        $predicate,
+                        PandraCore::getConsistency($consistencyLevel));
+
+                // otherwise by defined columns (slice query)
+            } else {
+
+                $predicate->column_names = $this->getColumnNames();
+
+                $result = PandraCore::getCFSliceMulti(
+                        $this->getKeySpace(),
+                        array($keyID),
+                        $predicate,
+                        new cassandra_ColumnParent(
+                                array(
+                                    'column_family' => $this->getColumnFamilyName(),
+                                    'super_column' => $this->getName())),
+                        PandraCore::getConsistency($consistencyLevel));
+
+                $result = $result[$keyID];
+            }
 
             if (!empty($result)) {
                 $this->init();
-                $this->setLoaded($this->populate($result, $this->getAutoCreate()));
+                $this->setLoaded($this->populate($result, $autoCreate));
                 if ($this->isLoaded()) $this->keyID = $keyID;
             } else {
                 $this->registerError(PandraCore::$lastError);

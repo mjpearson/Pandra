@@ -64,6 +64,25 @@ class PandraCore {
 
     static private $_loggers = array();
 
+    /* @var PandraCore instance of self */
+    static private $_instance = NULL;
+
+    /* @var dummy constructor */
+    private function __construct() {
+    }
+
+    /**
+     * Singleton instantiation of this object
+     * @return PandraCore self instance
+     */
+    static public function getInstance() {
+        if (NULL === self::$_instance) {
+            $c = __CLASS__;
+            self::$_instance = new $c;
+        }
+        return self::$_instance;
+    }
+
     /**
      * Supported Modes accessor
      * @return array supported read/write modes
@@ -179,7 +198,7 @@ class PandraCore {
         try {
 
             // if the connection exists but it is closed, then re-open
-            if (array_key_exists($poolName, self::$_socketPool) && array_key_exists($connetionID, self::$_socketPool[$poolName])) {
+            if (array_key_exists($poolName, self::$_socketPool) && array_key_exists($connectionID, self::$_socketPool[$poolName])) {
                 if (!self::$_socketPool[$poolName][$connectionID]['transport']->isOpen()) {
                     self::$_socketPool[$poolName][$connectionID]['transport']->open();
                 }
@@ -194,7 +213,11 @@ class PandraCore {
 
             self::$_socketPool[$poolName][$connectionID] = array(
                     'transport' => $transport,
-                    'client' => new CassandraClient((PHP_INT_SIZE == 8 && function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)))
+                    'client' => new CassandraClient(
+                    (PHP_INT_SIZE == 8 &&
+                            function_exists("thrift_protocol_write_binary") ?
+                    new TBinaryProtocolAccelerated($transport) :
+                    new TBinaryProtocol($transport)))
             );
 
             // set new connection the active, working master
@@ -219,8 +242,6 @@ class PandraCore {
             } else {
                 return FALSE;
             }
-
-            //return PandraLog::register($loggerName);
         }
         return TRUE;
     }
@@ -261,7 +282,10 @@ class PandraCore {
             // Create Thrift transport and binary protocol cassandra client
             $transport = new TBufferedTransport(new TSocket($host, $port, self::PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
             $transport->open();
-            $client = new CassandraClient((function_exists("thrift_protocol_write_binary") ? new TBinaryProtocolAccelerated($transport) : new TBinaryProtocol($transport)));
+            $client = new CassandraClient(
+                    (function_exists("thrift_protocol_write_binary") ?
+                    new TBinaryProtocolAccelerated($transport) :
+                    new TBinaryProtocol($transport)));
 
             $tokenMap = $client->get_string_property('token map');
 
@@ -404,7 +428,11 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return bool Column Path deleted OK
      */
-    public function deleteColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $time = NULL, $consistencyLevel = NULL) {
+    static  public function deleteColumnPath($keySpace,
+            $keyID,
+            cassandra_ColumnPath $columnPath,
+            $time = NULL,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -427,7 +455,12 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return bool Column Path saved OK
      */
-    public function saveColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $value,  $time = NULL, $consistencyLevel = NULL) {
+    static public function saveColumnPath($keySpace,
+            $keyID,
+            cassandra_ColumnPath $columnPath,
+            $value,
+            $time = NULL,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -450,7 +483,11 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return bool Super Column saved OK
      */
-    public function saveSuperColumn($keySpace, $keyID, array $superCFName, array $superColumnMap, $consistencyLevel = NULL) {
+    static public function saveSuperColumn($keySpace,
+            $keyID,
+            array $superCFName,
+            array $superColumnMap,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
 
@@ -484,29 +521,18 @@ class PandraCore {
      * Gets complete slice of Thrift cassandra_Column objects for keyID
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param string $columnFamilyName column family name
-     * @param string $superColumnName optional super column name
-     * @param array $columnNames optional array of column names
+     * @param cassandra_ColumnParent $columnParent
+     * @param cassandra_SlicePredicate $predicate column names or range predicate
      * @param int $consistencyLevel response consistency level
      * @return cassandra_Column Thrift cassandra column
      */
-    public function getCFSlice($keySpace, $keyID, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $consistencyLevel = NULL) {
+    static public function getCFSlice($keySpace,
+            $keyID,
+            cassandra_ColumnParent $columnParent,
+            cassandra_SlicePredicate $predicate,
+            $consistencyLevel = NULL) {
 
         $client = self::getClient();
-
-        // build the column path
-        $columnParent = new cassandra_ColumnParent();
-        $columnParent->column_family = $columnFamilyName;
-        $columnParent->super_column = $superColumnName;
-
-        $predicate = new cassandra_SlicePredicate();
-        if (!empty($columnNames)) {
-            $predicate->column_names = $columnNames;
-        } else {
-            $predicate->slice_range = new cassandra_SliceRange();
-            $predicate->slice_range->start = '';
-            $predicate->slice_range->finish = '';
-        }
 
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
@@ -521,31 +547,18 @@ class PandraCore {
      * Retrieves slice of columns across keys in parallel
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param string $columnFamilyName column family name
-     * @param string $superColumnName optional super column name
-     * @param array $columnNames optional array of column names
-     * @param string $rangeStart optional column range start
-     * @param string $rangeFinish optional column range end
+     * @param cassandra_ColumnParent $columnParent
+     * @param cassandra_SlicePredicate $predicate column names or range predicate
      * @param int $consistencyLevel response consistency level
      * @return array keyed array of matching cassandra_ColumnOrSuperColumn objects
      */
-    public function getCFSliceMulti($keySpace, array $keyIDs, $columnFamilyName, $superColumnName = NULL, $columnNames = array(), $range = array(), $consistencyLevel = NULL) {
+    static public function getCFSliceMulti($keySpace,
+            array $keyIDs,
+            cassandra_ColumnParent $columnParent,
+            cassandra_SlicePredicate $predicate,
+            $consistencyLevel = NULL) {
 
         $client = self::getClient();
-
-        $columnParent = new cassandra_ColumnParent(array(
-                        'column_family' => $columnFamilyName,
-                        'super_column' => $superColumnName
-        ));
-        $predicate = new cassandra_SlicePredicate();
-
-        if (!empty($columnNames)) {
-            $predicate->column_names = $columnNames;
-        } else {
-            $predicate->slice_range = new cassandra_SliceRange();
-            $predicate->slice_range->start = $range['start'] ? $range['start'] : '';
-            $predicate->slice_range->finish = $range['finish'] ? $range['finish'] : '';
-        }
 
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
@@ -559,18 +572,18 @@ class PandraCore {
      * Returns by key, the column count in a column family (or a single CF/SuperColumn pair)
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param string $columnFamilyName column family name
-     * @param string $superColumnName optional super column name
+     * @param cassandra_ColumnParent $columnParent
      * @param int $consistencyLevel response consistency level
      * @return int number of rows or null on error
      */
-    public function getCFColumnCount($keySpace, $keyID, $columnFamilyName, $superColumnName = NULL, $consistencyLevel = NULL) {
+    static public function getCFColumnCount($keySpace,
+            $keyID,
+            cassandra_ColumnParent
+            $columnParent,
+            $consistencyLevel = NULL) {
+
         $client = self::getClient();
 
-        $columnParent = new cassandra_ColumnParent(array(
-                        'column_family' => $columnFamilyName,
-                        'super_column' => $superColumnName
-        ));
         try {
             return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
@@ -586,12 +599,15 @@ class PandraCore {
      * @param string $columnFamilyName column family name
      * @param string $columnName column name
      * @param string $superColumnName optional super column name
-     * @param int $consistencyLevel
+     * @param int $consistencyLevel response consistency level
      * @return cassandra_Column Thrift cassandra column
      */
-    public function getColumn($keySpace, $keyID, $columnFamilyName, $columnName, $superColumnName = NULL, $consistencyLevel = NULL) {
-
-        $client = self::getClient();
+    static public function getColumn($keySpace,
+            $keyID,
+            $columnFamilyName,
+            $columnName,
+            $superColumnName = NULL,
+            $consistencyLevel = NULL) {
 
         $columnPath = new cassandra_ColumnPath(array(
                         'column_family' => $columnFamilyName,
@@ -599,15 +615,21 @@ class PandraCore {
                         'column' => $columnName
         ));
 
-        try {
-            return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
-            return NULL;
-        }
+        return self::getColumnPath($keySpace, $keyID, $columnPath, $consistencyLevel);
     }
 
-    public function getColumnPath($keySpace, $keyID, cassandra_ColumnPath $columnPath, $consistencyLevel = NULL) {
+    /**
+     * @param string $keySpace keyspace of key
+     * @param string $keyID row key id
+     * @param cassandra_ColumnPath $columnPath
+     * @param int $consistencyLevel response consistency level
+     * @return cassandra_Column
+     */
+    static public function getColumnPath($keySpace,
+            $keyID,
+            cassandra_ColumnPath
+            $columnPath,
+            $consistencyLevel = NULL) {
         $client = self::getClient();
 
         try {
@@ -619,39 +641,31 @@ class PandraCore {
     }
 
     /**
-     *
      * @param string $keySpace keyspace of key
-     * @param string $columnFamilyName column family name
-     * @param array $columnName array of column names
-     * @param int optional number of rows to return
-     * @param array $rangeOptions optional keyed array of cassandra_SliceRange options
-     * @param int $consistencyLevel
+     * @param array $keyRange associative array of keys indexed by 'start' and 'finish'
+     * @param cassandra_ColumnParent $columnParent
+     * @param cassandra_SlicePredicate $predicate column names or range predicate
+     * @param int number of rows to return
+     * @param int $consistencyLevel response consistency level
      * @return <type>
      */
-    public function getRangeKeys($keySpace, $columnFamilyName, $columnNames, $superColumnName = NULL, $numRows = self::DEFAULT_ROW_LIMIT, $rangeOptions = array(), $consistencyLevel = NULL) {
+    static public function getRangeKeys($keySpace,
+            array $keyRange,
+            cassandra_ColumnParent $columnParent,
+            cassandra_SlicePredicate $predicate,
+            $numRows = self::DEFAULT_ROW_LIMIT,
+            $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
-        $columnParent = new cassandra_ColumnParent(array(
-                        'column_family' => $columnFamilyName,
-                        'super_column' => $superColumnName
-        ));
-
-        $predicate = new cassandra_SlicePredicate(array(
-                        'column_names' => $columnNames,
-                        'slice_range' => new cassandra_SliceRange()
-        ));
-
-        if (empty($rangeOptions)) {
-            $rangeOptions = array('start' => '', 'finish' => '');
-        }
-
-        foreach ($rangeOptions as $option => $value) {
-            $predicate->slice_range->$option = $value;
-        }
-
         try {
-            return $client->get_range_slice($keySpace, $columnParent, $predicate, $keyStart, $keyFinish, $numRows, self::getConsistency($consistencyLevel));
+            return $client->get_range_slice($keySpace,
+                    $columnParent,
+                    $predicate,
+                    $keyRange['start'],
+                    $keyRange['finish'],
+                    $numRows,
+                    self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage());
             return NULL;
