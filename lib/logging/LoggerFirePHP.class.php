@@ -1,4 +1,8 @@
 <?php
+/**
+ * FirePHP implementation of PandraLogger.  Handles all log messages
+ * Requires the FirePHP classes be included prior to call
+ */
 class PandraLoggerFirePHP implements PandraLogger {
 
     private $_isOpen = FALSE;

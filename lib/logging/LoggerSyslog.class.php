@@ -1,16 +1,31 @@
 <?php
+/**
+ * Syslog implementation of PandraLogger.  Handles all log messages err -> emergency
+ * Syslog is part of PHP core, there are no other dependencies.
+ */
 class PandraLoggerSyslog implements PandraLogger {
 
     private $_isOpen = FALSE;
 
     private $_maxPriority = PandraLog::LOG_ERR;
 
+    /* @var int default syslog open 'option' */
+    const DEFAULT_OPTION = LOG_ODELAY;
+
+    /* @var int default syslog open 'facility' */
+    const DEFAULT_FACILITY = LOG_SYSLOG;
+
     public function __construct(array $params) {
         if (empty($params)) {
-            $params = array('ident' => 'pandra', 'option' => LOG_ODELAY, 'facility' => LOG_SYSLOG);
+            $params = array(
+                                'ident' => 'pandra',
+                                'option' => self::DEFAULT_OPTION,
+                                'facility' => self::DEFAULT_FACILITY);
         }
         if (function_exists('openlog')) {
-            return $this->open($params['ident'], $params['option'], $params['facility']);
+            return $this->open($params['ident'],
+                                $params['option'],
+                                $params['facility']);
         }
         return FALSE;
     }
@@ -19,7 +34,10 @@ class PandraLoggerSyslog implements PandraLogger {
         return $this->_isOpen;
     }
 
-    public function open($ident, $option = LOG_ODELAY, $facility = LOG_SYSLOG) {
+    public function open($ident,
+                            $option = self::DEFAULT_OPTION,
+                            $facility = self::DEFAULT_FACILITY) {
+
         $this->_isOpen = openlog($ident, $option, $facility);
         return $this->_isOpen;
     }
@@ -58,6 +76,5 @@ class PandraLoggerSyslog implements PandraLogger {
     public function  __destruct() {
         $this->close();
     }
-
 }
 ?>

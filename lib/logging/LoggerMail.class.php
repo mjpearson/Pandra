@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * mail implementation of PandraLogger.  Handles all log messages crit to emergency
+ */
 class PandraLoggerMail implements PandraLogger {
 
     private $_mailFrom = '';
@@ -85,7 +87,7 @@ class PandraLoggerMail implements PandraLogger {
             $headers = '';
             if (!empty($this->_mailFrom)) {
                 $headers = "From: ".$this->_mailFrom."\r\n" .
-                            "Reply-To: ".$this->_mailFrom."\r\n";
+                        "Reply-To: ".$this->_mailFrom."\r\n";
             }
             $headers .= "X-Mailer: PHP/".phpversion();
 
