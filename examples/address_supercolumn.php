@@ -28,26 +28,24 @@ $keySpace = 'Keyspace1';
 $columnFamilyName = 'Super1';
 
 class Address extends PandraSuperColumn {
-    public function init() {
-        $this->addColumn('city', 'string');
-        $this->addColumn('street', 'string');
-        $this->addColumn('zip', 'int');
-    }
+	public function init() {
+		$this->addColumn('city', 'string');
+		$this->addColumn('street', 'string');
+		$this->addColumn('zip', 'int');
+	}
 }
 
 class Addresses extends PandraSuperColumnFamily {
-
-    var $keySpace = 'Keyspace1';
-    var $name = 'Super1';
-
-    public function init() {
-        $this->addSuper(new Address('homeAddress'));
-        $this->addSuper(new Address('workAddress'));
-    }
+	public function init() {
+		$this->addSuper(new Address('homeAddress'));
+		$this->addSuper(new Address('workAddress'));
+	}
 }
 
 $addrs = new Addresses();
-$addrs->keyID = $keyID;
+$addrs->setKeyID($keyID);
+$addrs->setKeySpace($keySpace);
+$addrs->setName($columnFamilyName);
 
 // home address
 $homeAddr = $addrs->getColumn('homeAddress');
@@ -66,15 +64,15 @@ $customAddr->setColumn('city', 'another city');
 $addrs->addSuper($customAddr);
 
 if (!$addrs->save()) {
-    die($addrs->lastError());
+	die($addrs->lastError());
 }
 
 unset($addrs);
 
-// Load the saved Addresses 
+// Load the saved Addresses
 $addrs = new Addresses();
 if (!$addrs->load($keyID)) {
-    die($addrs->lastError());
+	die($addrs->lastError());
 }
 
 // Show our loaded CF in JSON format, including key path
