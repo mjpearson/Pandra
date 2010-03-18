@@ -1,15 +1,19 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
+ * PandraValidator
  *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * Validates an input against an array of defined data types, populating an error
+ * message and logging to debug loggers
  *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraValidator {
 
-// primitives for which there is self::check() logic
+    // primitives for which there is self::check() logic
     static public $_primitive = array(
             'notempty',
             'isempty',          // honeypot
@@ -164,7 +168,7 @@ class PandraValidator {
 
         if (!empty($errorMsg)) {
             $errors[] = array($label => $errorMsg);
-            PandraLog::warning(array($label => $errorMsg));
+            PandraLog::debug(array($label => $errorMsg));
         }
 
         return empty($errorMsg);

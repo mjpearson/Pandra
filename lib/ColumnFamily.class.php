@@ -1,8 +1,6 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
- *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * PandraColumnFamily
  *
  * Column Container for Cassandra Column Families
  *
@@ -12,8 +10,11 @@
  *                   'column3'   // Column
  *                 } ... etc
  *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPathable {
 

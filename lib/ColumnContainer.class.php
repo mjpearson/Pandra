@@ -1,17 +1,18 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
+ * PandraColumnContainer
  *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * ColumnContainer is an abstract to provide an intuitive representation of
+ * Cassandra's associative array data model.
  *
- * Column Container abstract for (Super) Column Families and Super Columns, which contain our
- * working columns
+ * PandraColumnContainer implements PHP's native ArrayAccess, Iterator and
+ * Countable interfaces
  *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
- */
-
-/**
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  * @abstract
  */
 abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable {

@@ -1,6 +1,14 @@
 <?php
 /**
- * mail implementation of PandraLogger.  Handles all log messages crit to emergency
+ * PandraLoggerMail
+ *
+ * Mail implementation of PandraLogger.  Handles all log messages crit to emergency
+ *
+ * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraLoggerMail implements PandraLogger {
 

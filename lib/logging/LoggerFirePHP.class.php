@@ -1,7 +1,15 @@
 <?php
 /**
+ * PandraLoggerFirePHP
+ *
  * FirePHP implementation of PandraLogger.  Handles all log messages
  * Requires the FirePHP classes be included prior to call
+ *
+ * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraLoggerFirePHP implements PandraLogger {
 

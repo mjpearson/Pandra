@@ -1,8 +1,6 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
- *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * PandraSuperColumn
  *
  * SuperColumns are special kinds of Column Containers which can contain both
  * Columns and have a ColumnFamily parent (implements ContainerChild)
@@ -19,8 +17,15 @@
  *                                 'column6'   // Column
  *                               },
  *                      }
- * @package Pandra
+ *
+ * PandraSuperColumn is a ColumnContainer child, and is both a ContainerChild itself,
+ * and ColumnPathable
+ *
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild, PandraColumnPathable {
 

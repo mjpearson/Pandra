@@ -1,8 +1,6 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
- *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * PandraSuperColumnFamily
  *
  * SuperColumnFamily is a container of SuperColumns.
  *
@@ -19,8 +17,13 @@
  *                               },
  *                      }
  *
- * @package Pandra
+ * PandraSuperColumnFamily is ColumnPathable
+ *
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 
 /**

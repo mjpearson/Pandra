@@ -1,14 +1,18 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
- *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * PandraColumn
  *
  * Column is Cassandra's atomic datatype, consisting of a name/value and timestamp
+ * This class extends the Thrift cassandra_Column class with input validation,
+ * time binding and pre-insert callbacks
  *
- * @package Pandra
- * @link http://www.phpgrease.net/projects/pandra
+ * PandraColumn is both a ContainerChild and ColumnPathable
+ *
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraColumn extends cassandra_Column implements PandraContainerChild, PandraColumnPathable {
 

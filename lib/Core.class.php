@@ -1,12 +1,15 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
+ * PandraCore
  *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * Core is a gracefully degrading static connection manager, Thrift API helper and
+ * cache manager
  *
- * @package Pandra
- * @link http://www.phpgrease.net/projects/pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraCore {
 

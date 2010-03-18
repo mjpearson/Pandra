@@ -1,7 +1,15 @@
 <?php
 /**
+ * PandraLoggerSyslog
+ *
  * Syslog implementation of PandraLogger.  Handles all log messages err -> emergency
  * Syslog is part of PHP core, there are no other dependencies.
+ *
+ * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
 class PandraLoggerSyslog implements PandraLogger {
 

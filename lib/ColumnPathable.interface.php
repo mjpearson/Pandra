@@ -2,19 +2,16 @@
 /**
  * PandraColumnPathable
  *
- * Column and Container child objects are bound to this interface
+ * ColumnPathable children are expected to be loadable and savable to
+ * Cassandra independently, which includes standard load and save methods and
+ * state management such as marking themselves for deletion, or whether their
+ * structure has been modified
  *
- * (c) 2010 phpgrease.net
- *
- * For licensing terms, plese see license.txt which should distribute with this source
- *
- *
- *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
- */
-
-/**
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  * @abstract
  */
 interface PandraColumnPathable {
