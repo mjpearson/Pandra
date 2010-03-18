@@ -1,18 +1,20 @@
 <?php
 /**
- *
- * For licensing terms, plese see license.txt which should distribute with this source
+ * PandraSlicePredicate
  *
  * A SlicePredicate is similar to a mathematic predicate, which is described as
  * "a property that the elements of a set have in common."
  *
  * They are used in most Get queries of Cassandra's API.
  *
- *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @author Jordan Pittier <jordan@rezel.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
+
 class PandraSlicePredicate extends cassandra_SlicePredicate {
 
     const TYPE_RANGE = 'SliceRange';
