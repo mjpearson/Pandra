@@ -2,7 +2,7 @@
 /**
  * PandraLoggerFirePHP
  *
- * FirePHP implementation of PandraLogger.  Handles all log messages
+ * FirePHP implementation of PandraLogger.  Handles all priority levels
  * Requires the FirePHP classes be included prior to call
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>

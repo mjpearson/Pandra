@@ -70,7 +70,7 @@ class PandraLog {
             // Make sure the class exists
             if (class_exists($class)) {
                 $c = new $class;
-                if ($c instanceof PandraLoger) {
+                if ($c instanceof PandraLogger) {
                     unset($c);
                     return $class;
                 }
