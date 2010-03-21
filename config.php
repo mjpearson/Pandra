@@ -1,12 +1,14 @@
 <?php
 /**
- * (c) 2010 phpgrease.net
+ * Config
  *
- * For licensing terms, plese see license.txt which should distribute with this source
- *
- * @package Pandra
  * @author Michael Pearson <pandra-support@phpgrease.net>
+ * @copyright 2010 phpgrease.net
+ * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
+ * @version 0.2
+ * @package pandra
  */
+//error_reporting(E_ALL);
 $GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/thrift-php/';
 
 require_once $GLOBALS['THRIFT_ROOT'].'/packages/cassandra/Cassandra.php';
@@ -20,11 +22,8 @@ define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/
 
 define('THRIFT_PORT_DEFAULT', 9160);
 
-// nasty autoloader in the absense of namespace
+// horrendous autoloader in the absense of namespace
 function _pandraAutoLoad($className) {
-
-    // just bail if it doesn't look like us
-    if (!preg_match("/^pandra/i", $className)) return;
 
     // seperate classes and interfaces for clarity
     $fExt = array('.class.php', '.interface.php');
@@ -45,6 +44,10 @@ function _pandraAutoLoad($className) {
         $classFile = $classPath.$className.$ext;
         if (file_exists($classFile)) {
             require_once($classFile);
+            break;
+        // Check if it's an external class we might know about
+        } else if (file_exists($classPath.'/ext/'.$className.$ext)) {
+            require_once($classPath.'/ext/'.$className.$ext);
             break;
         }
     }
