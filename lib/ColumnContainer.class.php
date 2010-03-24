@@ -444,6 +444,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         } else {
             $this->_columns = array();
         }
+        $this->reset();
     }
 
     /**
@@ -495,6 +496,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
                     // circular dependency?
                 } elseif ($colValue instanceof cassandra_ColumnOrSuperColumn && !empty($colValue->column)) {
+
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->column->name, $this->_columns)) {
                         $this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
                     }
@@ -650,7 +652,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             } else {
                 // keyspace/CF/key/{column or supercolumn}
                 if ($keyPath) {
-                    $retArr[$this->getKeySpace()][$this->getName()][$this->keyID][$column->getName()] = $column->toArray();
+                    $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$column->getName()] = $column->toArray();
                 } else {
                     $retArr[$column->getName()] = $column->toArray($keyPath);
                 }
