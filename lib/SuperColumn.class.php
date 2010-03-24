@@ -53,7 +53,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
     public function pathOK($keyID = NULL) {
         if ($this->_parent === NULL) {
-            return $this->pathOK($keyID);
+            return parent::pathOK($keyID);
         }
         return $this->_parent->pathOK($keyID);
     }
