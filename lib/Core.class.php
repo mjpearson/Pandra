@@ -151,7 +151,8 @@ class PandraCore {
         if (array_key_exists($poolName, self::$_socketPool)) {
             self::$_activePool = $poolName;
             // grab last node in the pool to set active
-            $connectionID = array_pop(array_keys(self::$_socketPool[$poolName]));
+            $poolNames = array_keys(self::$_socketPool[$poolName]);
+            $connectionID = array_pop($poolNames);
             self::setActiveNode($connectionID);
             return TRUE;
         }
@@ -235,10 +236,10 @@ class PandraCore {
         return FALSE;
     }
 
-    static public function addLogger($loggerName) {
+    static public function addLogger($loggerName, $params = array()) {
         if (!array_key_exists($loggerName, self::$_loggers)) {
 
-            $registered = PandraLog::register($loggerName);
+            $registered = PandraLog::register($loggerName, $params);
             $logger = PandraLog::getLogger($loggerName);
             if ($registered && $logger !== NULL) {
                 self::$_loggers[$loggerName] = $logger;
@@ -340,6 +341,8 @@ class PandraCore {
             throw new Exception('Not Connected');
         }
 
+        $activePool = self::$_socketPool[self::$_activePool];
+
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
 
@@ -351,7 +354,8 @@ class PandraCore {
                 break;
 
             case self::MODE_RANDOM :
-                $randConn =& array_rand(self::$_socketPool[self::$_activePool]);
+
+                $randConn = array_rand($activePool);
                 return self::$_socketPool[self::$_activePool][$randConn]['client'];
                 break;
 
