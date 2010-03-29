@@ -15,7 +15,7 @@ error_reporting(E_ALL);
 require_once(dirname(__FILE__).'/../config.php');
 
 if (!PandraCore::connect('default', 'localhost')) {
-    die(PandraCore::$lastError);
+	die(PandraCore::$lastError);
 }
 
 // hard code the row key for this example
@@ -37,6 +37,10 @@ class Address extends PandraSuperColumn {
 
 class Addresses extends PandraSuperColumnFamily {
 	public function init() {
+		global $keySpace, $columnFamilyName;
+		$this->setKeySpace($keySpace);
+		$this->setName($columnFamilyName);
+
 		$this->addSuper(new Address('homeAddress'));
 		$this->addSuper(new Address('workAddress'));
 	}
@@ -44,8 +48,6 @@ class Addresses extends PandraSuperColumnFamily {
 
 $addrs = new Addresses();
 $addrs->setKeyID($keyID);
-$addrs->setKeySpace($keySpace);
-$addrs->setName($columnFamilyName);
 
 // home address
 $homeAddr = $addrs->getColumn('homeAddress');
