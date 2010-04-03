@@ -218,7 +218,7 @@ class PandraCore {
             self::$_socketPool[$poolName][$connectionID] = array(
                     'transport' => $transport,
                     'client' => new CassandraClient(
-                    (PHP_INT_SIZE == 8 &&
+                    (PANDRA_64 &&
                             function_exists("thrift_protocol_write_binary") ?
                     new TBinaryProtocolAccelerated($transport) :
                     new TBinaryProtocol($transport)))
@@ -394,7 +394,7 @@ class PandraCore {
      * consistency mutator
      * @param int $consistencyLevel new consistency level
      */
-    static public function setConsistency(int $consistencyLevel) {
+    static public function setConsistency($consistencyLevel) {
         self::$_consistencyLevel = $consistencyLevel;
     }
 
@@ -418,7 +418,7 @@ class PandraCore {
     static public function getTime() {
         // use microtime where possible
         // @todo patch thrift .so
-        if (PHP_INT_SIZE == 8 || !function_exists("thrift_protocol_write_binary")) {
+        if (PANDRA_64 || (!PANDRA_64 && !function_exists("thrift_protocol_write_binary"))) {
             return round(microtime(true) * 1000, 3);
         }
         return time();
@@ -684,7 +684,11 @@ class PandraCore {
     /**
      * Grabs locally defined columnfamilies (debug tool)
      */
+
     /*
+     * @TODO!!!!!!!
+     *
+     *
     static public function getConfColumnFamilies() {
 
         $conf = self::loadConfigXML();

@@ -22,6 +22,8 @@ define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/
 
 define('THRIFT_PORT_DEFAULT', 9160);
 
+define('PANDRA_64', PHP_INT_SIZE == 8);
+
 // horrendous autoloader in the absense of namespace
 function _pandraAutoLoad($className) {
 
