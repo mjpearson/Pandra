@@ -36,7 +36,8 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
 
         $this->superColumnFamily->setKeyID($this->keyID);
 
-        $this->obj = new PandraSuperColumn($this->superName, $this->superColumnFamily);
+        $this->obj = new PandraSuperColumn($this->superName);
+        $this->obj->setParent($this->superColumnFamily);
         $this->obj->addColumn('city', 'string');
         $this->obj->addColumn('street', 'string');
         $this->obj->addColumn('zip', 'int');

@@ -80,6 +80,7 @@ $result = PandraCore::getCFSlice($ks,
 
 $scNew = new PandraSuperColumnFamily($keyID, $ks, $cfName, PandraColumnContainer::TYPE_UUID);
 
+var_dump($result);
 
 $scNew->setName($cfName);
 $scNew->populate($result);

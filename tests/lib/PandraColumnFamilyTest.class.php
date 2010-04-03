@@ -49,9 +49,6 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
         PandraCore::disconnectAll();
     }
 
-    /**
-     * @todo Implement testSave().
-     */
     public function testSaveLoadDelete() {
         $this->assertTrue($this->obj->save(), $this->obj->lastError());
 
@@ -66,6 +63,25 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
         $this->obj->delete();
         $this->obj->save();
     }
+
+    public function testSaveLoadDeleteUUID() {
+        $cf = new PandraColumnFamily($this->_keyID, 'Keyspace1', 'StandardByUUID1', PandraColumnContainer::TYPE_UUID);
+        $column = $cf->addColumn(UUID::v1());
+
+        $uuidName = UUID::convert($column->getName(), UUID_FMT_STR);
+        $cValue = 'test value';
+        $column->setValue($cValue);
+        $this->assertTrue($cf->save());
+
+        unset($cf);
+
+        $newCF = new PandraColumnFamily($this->_keyID, 'Keyspace1', 'StandardByUUID1', PandraColumnContainer::TYPE_UUID);
+        $newCF->load();
+        $this->assertEquals($cValue, $newCF[$uuidName]);
+
+
+    }
+
 
     /**
      * Tests that resets() after deletes or column changes revert flags

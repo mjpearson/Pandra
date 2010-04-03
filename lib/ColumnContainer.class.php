@@ -198,7 +198,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param bool $childPropogate optional propogate destroy to children (default TRUE)
      */
     public function destroyErrors($childPropogate = TRUE) {
-        unset($this->errors);
         $this->errors = array();
         if ($childPropogate) {
             foreach ($this->_columns as $column) {
