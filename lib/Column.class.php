@@ -58,6 +58,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * @param array $typeDef validator type definitions
      */
     public function __construct($name, $typeDef = array(), PandraColumnContainer $parent = NULL, $callback = NULL) {
+
         parent::__construct(array('name' => $name));
 
         if ($parent !== NULL) $this->setParent($parent, !$parent->columnIn($name));

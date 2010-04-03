@@ -17,6 +17,16 @@
  */
 abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable {
 
+    /* @var string magic set/get prefixes for Columns */
+    const _columnNamePrefix = 'column_';
+
+    const TYPE_UUID = 0;
+
+    const TYPE_STRING = 2;
+
+    /* @var array complete list of errors for this object instance */
+    public $errors = array();
+
     /* @var this column families name (table name) */
     protected $_name = NULL;
 
@@ -41,22 +51,20 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
     protected $_autoCreate = TRUE;
 
-    /* @var array complete list of errors for this object instance */
-    public $errors = array();
-
-    /* @var string magic set/get prefixes for Columns */
-    const _columnNamePrefix = 'column_';	// magic __get/__set column prefix in column famliy
+    protected $_containerType = self::TYPE_STRING;
 
     /**
      * CF constructor, calls init()
      * @param string $keyID row key id
      * @param string $keySpace Cassandra Keyspace
-     * @param string $columnFamilyName  column family name
+     * @param string $name  container name
+     * @param int $containerType one of self::TYPE_ ordering schemas (UUID STRING)
      */
-    public function __construct($keyID = NULL, $keySpace = NULL, $name = NULL) {
+    public function __construct($keyID = NULL, $keySpace = NULL, $name = NULL, $containerType = NULL) {
         if ($keyID !== NULL) $this->setKeyID($keyID);
         if ($keySpace !== NULL) $this->setKeySpace($keySpace);
         if ($name !== NULL) $this->setName($name);
+        if ($containerType !== NULL) $this->setType($containerType);
         $this->init();
     }
 
@@ -66,6 +74,19 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return void
      */
     public function init() {
+    }
+
+    public function setType($containerType) {
+        // We can't set type after columns have been added
+        if (empty($this->_columns)) {
+            $this->_containerType = $containerType;
+        } else {
+            throw new RuntimeException('Cannot setType on a non-empty container');
+        }
+    }
+
+    public function getType() {
+        return $this->_containerType;
     }
 
     /**
@@ -177,6 +198,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param bool $childPropogate optional propogate destroy to children (default TRUE)
      */
     public function destroyErrors($childPropogate = TRUE) {
+        unset($this->errors);
         $this->errors = array();
         if ($childPropogate) {
             foreach ($this->_columns as $column) {
@@ -310,6 +332,30 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     /**
+     * Converts the given column name to it's expected container type context (UUID or String)
+     * @param string $columnName column name
+     * @param int $toFmt convert to type (UUID_FMT_BIN, UUID_FMT_STR)
+     * @return mixed converted column name
+     */
+    protected function typeConvert($columnName, $toFmt) {
+        if (($this->_containerType != self::TYPE_UUID)	) {
+            return $columnName;
+        }
+
+        $bin = UUID::isBinary($columnName);
+
+        // Save accidental double-conversions on binaries
+        if (($bin && $toFmt == UUID_FMT_BIN) ||
+            (!$bin && $toFmt == UUID_FMT_STR)) {
+            return $columnName;
+        } elseif (!$bin && !UUID::validUUID($columnName)) {
+            throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');
+        }
+
+        return UUID::convert($columnName, $toFmt);
+    }
+
+    /**
      * Define a new column, type definition and callback
      * @param string $columnName column name
      * @param array $typeDef validator type definitions
@@ -317,8 +363,12 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return PandraColumn reference to created column
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
+
         if (!array_key_exists($columnName, $this->_columns)) {
-            $this->_columns[$columnName] = new PandraColumn($columnName, $typeDef, $this);
+            $this->_columns[$columnName] =
+                    new PandraColumn($this->typeConvert($columnName, UUID_FMT_BIN), $typeDef);
+
+            $this->_columns[$columnName]->setParent($this, FALSE);
         }
 
         // pre-save callback
@@ -332,7 +382,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function addColumnObj(PandraColumn $columnObj) {
         if ($columnObj->getName() === NULL) throw new RuntimeException('Column has no name');
-        $this->_columns[$columnObj->name] = $columnObj;
+        $this->_columns[$this->typeConvert($columnObj->name, UUID_FMT_STR)] = $columnObj;
     }
 
     /**
@@ -385,6 +435,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return bool column exists
      */
     public function columnIn($columnName) {
+        if (UUID::isBinary($columnName)) {
+            $columnName = UUID::convert($columnName, UUID_FMT_STR);
+        }
         return array_key_exists($columnName, $this->_columns);
 
     }
@@ -487,18 +540,22 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         if (is_array($data) && count($data)) {
 
             // Check depth, take first few keys as keyspace/columnfamily/key
-            foreach ($data as $idx => $colValue) {
-                if ($colValue instanceof cassandra_Column) {
-                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->name, $this->_columns)) {
-                        $this->_columns[$colValue->name] = PandraColumn::cast($colValue, $this);
+            foreach ($data as $idx => $column) {
+                if ($column instanceof cassandra_Column) {
+                    $columnName =  $this->typeConvert($column->name, UUID_FMT_STR);
+
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
+                        $this->_columns[$columnName] = PandraColumn::cast($column, $this);
                     }
 
                     // circular dependency?
-                } elseif ($colValue instanceof cassandra_ColumnOrSuperColumn && !empty($colValue->column)) {
+                } elseif ($column instanceof cassandra_ColumnOrSuperColumn && !empty($column->column)) {
+                    $columnName =  $this->typeConvert($column->column->name, UUID_FMT_STR);
 
-                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($colValue->column->name, $this->_columns)) {
-                        $this->_columns[$colValue->column->name] = PandraColumn::cast($colValue->column, $this);
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
+                        $this->_columns[$columnName] = PandraColumn::cast($column->column, $this);
                     }
+
                 } else {
                     $colExists = array_key_exists($idx, $this->_columns);
                     // Create a new named column object
@@ -509,7 +566,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
                     // Set Value
                     if (array_key_exists($idx, $this->_columns)) {
                         if ($this->_columns[$idx] instanceof PandraColumn) {
-                            $this->_columns[$idx]->setValue($colValue);
+                            $this->_columns[$idx]->setValue($column);
                         }
                     }
                 }
@@ -645,20 +702,22 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function toArray($keyPath = FALSE) {
         $retArr = array();
-        foreach ($this->_columns as $column) {
+
+        foreach ($this->_columns as $columnName => $column) {
+            //$columnName =  $this->typeConvert($column->getName(), UUID_FMT_STR);
+
             if ($column instanceof PandraColumn) {
-                $retArr[$column->name] = $column->value;
+                $retArr[$columnName] = $column->value;
+
             } else {
                 // keyspace/CF/key/{column or supercolumn}
                 if ($keyPath) {
-                    $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$column->getName()] = $column->toArray();
+                    $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$columnName] = $column->toArray();
                 } else {
-                    $retArr[$column->getName()] = $column->toArray($keyPath);
+                    $retArr[$columnName] = $column->toArray($keyPath);
                 }
-
             }
         }
-
         return $retArr;
     }
 }

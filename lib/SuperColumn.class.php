@@ -40,7 +40,9 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
      * @param string $superName Super Column name
      * @param PandraSuperColumnFamily $parent
      */
-    public function __construct($superName, PandraSuperColumnFamily $parent = NULL, $keyID = NULL, $keySpace = NULL, $name = NULL) {
+    //public function __construct($superName, PandraSuperColumnFamily $parent = NULL, $keyID = NULL, $keySpace = NULL) {
+    public function __construct($superName, $keyID = NULL, $keySpace = NULL, $parent = NULL, $containerType = NULL) {
+
         // SuperColumn name
         $this->setName($superName);
 
@@ -48,7 +50,8 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         if ($parent !== NULL) {
             $this->setParent($parent, !$parent->columnIn($superName));
         }
-        parent::__construct($keyID, $keySpace, $name);
+
+        parent::__construct($keyID, $keySpace, $superName, $containerType);
     }
 
     public function pathOK($keyID = NULL) {
@@ -63,7 +66,6 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
      * @return void
      */
     public function save($consistencyLevel = NULL) {
-
         if (!$this->isModified()) return FALSE;
 
         $ok = $this->pathOK();
@@ -72,10 +74,10 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
             if ($this->getDelete()) {
 
                 $columnPath = new cassandra_ColumnPath();
-                $columnPath->column_family = $this->_parent->getName();
+                $columnPath->column_family = $this->getColumnFamilyName();
                 $columnPath->super_column = $this->getName();
-                $ok = PandraCore::deleteColumnPath($this->_parent->getKeySpace(),
-                        $this->_parent->getKeyID(),
+                $ok = PandraCore::deleteColumnPath($this->getKeySpace(),
+                        $this->getKeyID(),
                         $columnPath,
                         NULL,
                         PandraCore::getConsistency($consistencyLevel));
@@ -83,11 +85,11 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
                 $this->bindTimeModifiedColumns();
                 $ok = PandraCore::saveSuperColumn(
-                                    $this->_parent->getKeySpace(),
-                                    $this->_parent->getKeyID(),
-                                    array($this->_parent->getName()),
-                                    array($this->getName() => $this->getModifiedColumns()),
-                                    PandraCore::getConsistency($consistencyLevel));
+                        $this->getKeySpace(),
+                        $this->getKeyID(),
+                        array($this->getColumnFamilyName()),
+                        array($this->getName() => $this->getModifiedColumns()),
+                        PandraCore::getConsistency($consistencyLevel));
             }
 
             if ($ok) {
@@ -132,9 +134,9 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         $this->getKeySpace(),
                         $keyID,
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getColumnFamilyName(),
-                                    'super_column' => $this->getName())),
+                        array(
+                                'column_family' => $this->getColumnFamilyName(),
+                                'super_column' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
@@ -148,9 +150,9 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         array($keyID),
                         $predicate,
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getColumnFamilyName(),
-                                    'super_column' => $this->getName())),
+                        array(
+                                'column_family' => $this->getColumnFamilyName(),
+                                'super_column' => $this->getName())),
                         PandraCore::getConsistency($consistencyLevel));
 
                 $result = $result[$keyID];
@@ -174,7 +176,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
     public function setParent($parent, $bindToParent = TRUE) {
 
         if (!($parent instanceof PandraSuperColumnFamily))
-            throw new RuntimeException('Parent must be an instnace of PandraSuperColumnFamily');
+            throw new RuntimeException('Parent must be an instance of PandraSuperColumnFamily');
 
         if ($bindToParent) $parent->addSuperColumnObj($this);
 

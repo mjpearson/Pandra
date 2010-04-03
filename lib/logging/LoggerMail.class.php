@@ -20,10 +20,23 @@ class PandraLoggerMail implements PandraLogger {
 
     private $_maxPriority = PandraLog::LOG_CRIT;
 
+    private $_sendDelay = FALSE;
+
+    private $_headers = '';
+
+    private $_subject = '';
+
+    private $_messages = '';
+
+    /**
+     *
+     * @param array $params 'from', 'to', 'subject', 'delay' (sends on destruct)
+     */
     public function __construct(array $params) {
         if (isset($params['from'])) $this->_mailFrom = $params['from'];
         if (isset($params['to'])) $this->_mailFrom = $params['to'];
         if (isset($params['subject'])) $this->_mailFrom = $params['subject'];
+        if (isset($params['delay'])) $this->_sendDelay = $params['delay'];
     }
 
     public function isOpen() {
@@ -88,20 +101,39 @@ class PandraLoggerMail implements PandraLogger {
         return $this->_subject;
     }
 
-
     public function execute($priority, $message) {
         if ($this->isPriorityLogger($priority) && $this->_isOpen) {
-            $subject = '['.strtoupper(PandraLog::$priorityStr[$priority]).'] '.$this->_subject;
-            $headers = '';
-            if (!empty($this->_mailFrom)) {
-                $headers = "From: ".$this->_mailFrom."\r\n" .
-                        "Reply-To: ".$this->_mailFrom."\r\n";
+            $this->_message .= $message;
+            if (!$this->_sendDelay) {
+                return $this->sendMail();
             }
-            $headers .= "X-Mailer: PHP/".phpversion();
-
-            return mail($this->_mailTo, $subject, $message, $headers);
+            return TRUE;
         }
         return FALSE;
+    }
+
+    public function sendMail() {
+        if (!empty($this->_messages)) {
+            $this->subject = '['.strtoupper(PandraLog::$priorityStr[$priority]).'] '.$this->_subject;
+
+            if (!empty($this->_mailFrom)) {
+                $this->_headers = "From: ".$this->_mailFrom."\r\n" .
+                        "Reply-To: ".$this->_mailFrom."\r\n";
+            }
+            $this->_headers .= "X-Mailer: PHP/".phpversion();
+            return mail($this->_mailTo, $this->_subject, $this->messages, $this->_headers);
+        }
+        return FALSE;
+    }
+
+    public function close() {
+        if ($this->_sendDelay) {
+            $this->sendMail();
+        }
+    }
+
+    public function  __destruct() {
+        $this->close();
     }
 }
 ?>

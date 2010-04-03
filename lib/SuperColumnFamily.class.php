@@ -17,8 +17,6 @@
  *                               },
  *                      }
  *
- * PandraSuperColumnFamily is ColumnPathable
- *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
@@ -44,7 +42,13 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
      */
     public function addSuper(PandraSuperColumn $scObj) {
         $superName = $scObj->getName();
-        $scObj->setParent($this);
+
+        if ($this->getType() == self::TYPE_UUID && !UUID::isBinary($scObj->getName())) {
+            $scObj->setName(UUID::convert($scObj->getName(), UUID_FMT_BIN));
+        }
+
+        $scObj->setParent($this, false);
+
         $this->_columns[$superName] = $scObj;
 
         return $this->getColumn($superName);
@@ -57,9 +61,15 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
      * @param string $superName super column name
      * @return PandraSuperColumn reference to created column
      */
-    public function addColumn($superName) {
+    public function addColumn($superName, $containerType = NULL) {
         if (!array_key_exists($superName, $this->_columns)) {
-            $this->_columns[$superName] = new PandraSuperColumn($superName, $this);
+            $this->_columns[$superName] = new PandraSuperColumn(
+                    //$superName,
+                    $this->typeConvert($superName, UUID_FMT_BIN),
+                    $this->getKeyID(),
+                    $this->getKeySpace(),
+                    $this,
+                    $containerType);
         }
         return $this->getColumn($superName);
     }
@@ -157,8 +167,8 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                         $this->getKeySpace(),
                         $keyID,
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getName())),
+                        array(
+                                'column_family' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
@@ -171,8 +181,8 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                         $this->getKeySpace(),
                         array($keyID),
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getName())),
+                        array(
+                                'column_family' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
@@ -220,9 +230,17 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
                         $this->_columns[$idx] = $colValue;
                     }
+
+                } elseif ($colValue instanceof cassandra_ColumnOrSuperColumn && !empty($colValue->super_column)) {
+                    $columnName =  $this->typeConvert($colValue->super_column->name, UUID_FMT_STR);
+
+                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
+                        $this->addSuper(new PandraSuperColumn($columnName))->populate($colValue->super_column->columns);
+                    }
+
                 } else {
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
-                        $this->addSuper(new PandraSuperColumn($idx), $this)->populate($colValue);
+                        $this->addSuper(new PandraSuperColumn($idx, NULL, NULL, $this))->populate($colValue['columns']);
                     }
                 }
             }

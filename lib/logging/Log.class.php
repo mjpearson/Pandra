@@ -69,7 +69,7 @@ class PandraLog {
         } else {
             // Make sure the class exists
             if (class_exists($class)) {
-                $c = new $class;
+                $c = new $class(array());
                 if ($c instanceof PandraLogger) {
                     unset($c);
                     return $class;
@@ -177,7 +177,10 @@ class PandraLog {
      * @access public
      * @param string $message
      */
-    static public function emerg($message) {
+    static public function emerg($message, $trace = TRUE) {
+        if ($trace) {
+            $message = array_merge($message, debug_backtrace());
+        }
         self::logPriorityMessage(self::LOG_EMERG, $message);
     }
 
@@ -247,7 +250,10 @@ class PandraLog {
      * @access public
      * @param string $message
      */
-    static public function debug($message) {
+    static public function debug($message, $trace = FALSE) {
+        if ($trace) {
+            $message = array_merge(array($message), debug_backtrace());
+        }
         self::logPriorityMessage(self::LOG_DEBUG, $message);
     }
 }
