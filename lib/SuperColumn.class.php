@@ -123,20 +123,21 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
             $predicate = new cassandra_SlicePredicate();
 
-            // if autocreate is turned on, get everything
+            // if autocreate is turned on, get latest limited everything
             if ($autoCreate) {
 
                 $predicate->slice_range = new cassandra_SliceRange();
                 $predicate->slice_range->start = '';
                 $predicate->slice_range->finish = '';
+                $predicate->slice_range->count = $this->getLimit();
+                $predicate->slice_range->reversed = TRUE;
 
                 $result = PandraCore::getCFSlice(
                         $this->getKeySpace(),
                         $keyID,
-                        new cassandra_ColumnParent(
-                        array(
-                                'column_family' => $this->getColumnFamilyName(),
-                                'super_column' => $this->getName())),
+                        new cassandra_ColumnParent(array(
+                                                            'column_family' => $this->getColumnFamilyName(),
+                                                            'super_column' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
@@ -161,7 +162,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
             if (!empty($result)) {
                 $this->init();
                 $this->setLoaded($this->populate($result, $autoCreate));
-                if ($this->isLoaded()) $this->keyID = $keyID;
+                if ($this->isLoaded()) $this->setKeyID($keyID);
             } else {
                 $this->registerError(PandraCore::$lastError);
             }

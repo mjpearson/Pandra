@@ -156,12 +156,14 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
 
             $predicate = new cassandra_SlicePredicate();
 
-            // if autocreate is turned on, get everything
+            // if autocreate is turned on, get latest limited everything
             if ($autoCreate) {
 
                 $predicate->slice_range = new cassandra_SliceRange();
                 $predicate->slice_range->start = '';
                 $predicate->slice_range->finish = '';
+                $predicate->slice_range->count = $this->getLimit();
+                $predicate->slice_range->reversed = TRUE;
 
                 $result = PandraCore::getCFSlice(
                         $this->getKeySpace(),
@@ -193,8 +195,8 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                 $this->init();
                 foreach ($result as $superColumn) {
                     $sc = $superColumn->super_column;
-
-                    if ($this->addSuper(new PandraSuperColumn($sc->name))->populate($sc->columns, $autoCreate)) {
+                    $newSuper = new PandraSuperColumn($this->typeConvert($sc->name, UUID_FMT_STR), NULL, NULL, $this, $this->getType());
+                    if ($this->addSuper($newSuper)->populate($sc->columns, $autoCreate)) {
                         $this->setLoaded(TRUE);
                     } else {
                         $this->setLoaded(FALSE);

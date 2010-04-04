@@ -295,7 +295,7 @@ class PandraCore {
 
             return TRUE;
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
         }
         return FALSE;
     }
@@ -447,7 +447,7 @@ class PandraCore {
             }
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return FALSE;
         }
         return TRUE;
@@ -475,7 +475,7 @@ class PandraCore {
             }
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return FALSE;
         }
         return TRUE;
@@ -518,7 +518,7 @@ class PandraCore {
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return FALSE;
         }
         return TRUE;
@@ -534,17 +534,17 @@ class PandraCore {
      * @return cassandra_Column Thrift cassandra column
      */
     static public function getCFSlice($keySpace,
-            $keyID,
-            cassandra_ColumnParent $columnParent,
-            cassandra_SlicePredicate $predicate,
-            $consistencyLevel = NULL) {
+                                            $keyID,
+                                            cassandra_ColumnParent $columnParent,
+                                            cassandra_SlicePredicate $predicate,
+                                            $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
         }
         return NULL;
@@ -570,7 +570,7 @@ class PandraCore {
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
         }
     }
@@ -594,7 +594,7 @@ class PandraCore {
         try {
             return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
         }
     }
@@ -642,7 +642,7 @@ class PandraCore {
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
         }
     }
@@ -674,7 +674,7 @@ class PandraCore {
                     $numRows,
                     self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage());
+            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
         }
 

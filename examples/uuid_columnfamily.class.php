@@ -29,8 +29,18 @@ echo 'Saving...<br>';
 print_r($cf->toJSON());
 $cf->save();
 
-echo '<br><br>Loading Slice...<br>';
 // get slice of the 5 most recent entries (count = 5, reversed = true)
+echo '<br><br>Loading via CF container...<br>';
+$cfNew = new PandraColumnFamily($keyID,
+                                    $ks,
+                                    $cfName,
+                                    PandraColumnFamily::TYPE_UUID);
+$cfNew->setLimit(5);
+$cfNew->load();
+echo '<br>Loaded...<br>';
+print_r($cfNew->toJSON());
+
+echo '<br><br>Loading Slice...<br>';
 $result = PandraCore::getCFSlice($ks,
                                     $keyID,
                                     new cassandra_ColumnParent(array(
@@ -54,4 +64,7 @@ $cfNew->populate($result);
 
 echo '<br>Imported...<br>';
 print_r($cfNew->toJSON());
+
+
+
 ?>

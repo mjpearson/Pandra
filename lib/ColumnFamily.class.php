@@ -39,12 +39,14 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
 
             $predicate = new cassandra_SlicePredicate();
 
-            // if autocreate is turned on, get everything
+            // if autocreate is turned on, get latest limited everything
             if ($autoCreate) {
 
                 $predicate->slice_range = new cassandra_SliceRange();
                 $predicate->slice_range->start = '';
                 $predicate->slice_range->finish = '';
+                $predicate->slice_range->count = $this->getLimit();
+                $predicate->slice_range->reversed = TRUE;
 
                 $result = PandraCore::getCFSlice(
                         $this->getKeySpace(),

@@ -53,6 +53,8 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     protected $_containerType = self::TYPE_STRING;
 
+    protected $_rangeLimit = PandraCore::DEFAULT_ROW_LIMIT;
+
     /**
      * CF constructor, calls init()
      * @param string $keyID row key id
@@ -330,6 +332,14 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         return NULL;
     }
 
+    public function setLimit($limit) {
+        $this->_rangeLimit = $limit;
+    }
+
+    public function getLimit() {
+        return $this->_rangeLimit;
+    }
+
     /**
      * Converts the given column name to it's expected container type context (UUID or String)
      * @param string $columnName column name
@@ -345,7 +355,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
         // Save accidental double-conversions on binaries
         if (($bin && $toFmt == UUID_FMT_BIN) ||
-            (!$bin && $toFmt == UUID_FMT_STR)) {
+                (!$bin && $toFmt == UUID_FMT_STR)) {
             return $columnName;
         } elseif (!$bin && !UUID::validUUID($columnName)) {
             throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');

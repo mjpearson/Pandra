@@ -62,13 +62,21 @@ echo 'Saving SuperColumnFamily...<br>';
 print_r($scf->toJSON());
 $scf->save();
 
-echo '<br><br>Loading SuperColumn Slice...<br>';
 // get slice of the 5 most recent entries (count = 5, reversed = true)
+echo '<br><br>Loading via SuperColumnFamily container...<br>';
+$scNew = new PandraSuperColumnFamily($keyID, $ks, $cfName, PandraColumnContainer::TYPE_UUID);
+
+$scNew->setLimit(5);
+$scNew->load();
+
+echo '<br>Loaded...<br>';
+print_r($scNew->toJSON());
+
+echo '<br><br>Loading SuperColumn Slice...<br>';
 $result = PandraCore::getCFSlice($ks,
         $keyID,
         new cassandra_ColumnParent(array(
                 'column_family' => $cfName,
-        //'super_column' => $superName
         )),
         new PandraSlicePredicate(
         PandraSlicePredicate::TYPE_RANGE,
@@ -82,7 +90,6 @@ $scNew = new PandraSuperColumnFamily($keyID, $ks, $cfName, PandraColumnContainer
 
 var_dump($result);
 
-$scNew->setName($cfName);
 $scNew->populate($result);
 
 echo '<br>Imported...<br>';

@@ -21,7 +21,7 @@ $keyID = 'PandraTestUUID1';
 $superName = 'Super1';
 
 // Create a TimeUUID supercolumn
-$sc = new PandraSuperColumn($keyID, $ks, $superName, NULL, PandraColumnContainer::TYPE_UUID);
+$sc = new PandraSuperColumn($superName, $keyID, $ks, NULL, PandraColumnContainer::TYPE_UUID);
 $sc->setColumnFamilyName($cfName);
 
 // generate 5 timestamped columns
@@ -33,8 +33,17 @@ echo 'Saving SuperColumn...<br>';
 print_r($sc->toJSON());
 $sc->save();
 
-echo '<br><br>Loading SuperColumn Slice...<br>';
 // get slice of the 5 most recent entries (count = 5, reversed = true)
+echo '<br><br>Loading via SuperColumn container...<br>';
+$scNew = new PandraSuperColumn($superName, $keyID, $ks, NULL, PandraColumnContainer::TYPE_UUID);
+$scNew->setColumnFamilyName($cfName);
+
+$scNew->setLimit(5);
+$scNew->load();
+echo '<br>Loaded...<br>';
+print_r($scNew->toJSON());
+
+echo '<br><br>Loading SuperColumn Slice...<br>';
 $result = PandraCore::getCFSlice($ks,
                                     $keyID,
                                     new cassandra_ColumnParent(array(
@@ -51,7 +60,7 @@ $result = PandraCore::getCFSlice($ks,
 
 var_dump($result);
 
-$scNew = new PandraSuperColumn($keyID, $ks, $superName, NULL, PandraColumnContainer::TYPE_UUID);
+$scNew = new PandraSuperColumn($superName, $keyID, $ks, NULL, PandraColumnContainer::TYPE_UUID);
 $scNew->setColumnFamilyName($cfName);
 
 $scNew->populate($result);
