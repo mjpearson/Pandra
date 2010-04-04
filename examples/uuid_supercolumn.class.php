@@ -38,8 +38,7 @@ echo '<br><br>Loading via SuperColumn container...<br>';
 $scNew = new PandraSuperColumn($superName, $keyID, $ks, NULL, PandraColumnContainer::TYPE_UUID);
 $scNew->setColumnFamilyName($cfName);
 
-$scNew->setLimit(5);
-$scNew->load();
+$scNew->limit(5)->load();
 echo '<br>Loaded...<br>';
 print_r($scNew->toJSON());
 

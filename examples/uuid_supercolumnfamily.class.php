@@ -66,8 +66,7 @@ $scf->save();
 echo '<br><br>Loading via SuperColumnFamily container...<br>';
 $scNew = new PandraSuperColumnFamily($keyID, $ks, $cfName, PandraColumnContainer::TYPE_UUID);
 
-$scNew->setLimit(5);
-$scNew->load();
+$scNew->limit(5)->load();
 
 echo '<br>Loaded...<br>';
 print_r($scNew->toJSON());

@@ -336,6 +336,11 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         $this->_rangeLimit = $limit;
     }
 
+    public function limit($limit) {
+        $this->setLimit($limit);
+        return $this;
+    }
+
     public function getLimit() {
         return $this->_rangeLimit;
     }

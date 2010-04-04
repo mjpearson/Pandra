@@ -35,8 +35,7 @@ $cfNew = new PandraColumnFamily($keyID,
                                     $ks,
                                     $cfName,
                                     PandraColumnFamily::TYPE_UUID);
-$cfNew->setLimit(5);
-$cfNew->load();
+$cfNew->limit(5)->load();
 echo '<br>Loaded...<br>';
 print_r($cfNew->toJSON());
 
