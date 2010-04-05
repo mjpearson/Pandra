@@ -2,8 +2,7 @@
 /**
  * Generates v1 (Timestamp) and v5 (Lexical, SHA-1) UUID's for use with Cassandra
  *
- * Core is a gracefully degrading static connection manager, Thrift API helper and
- * cache manager
+ * Requires OSSP PHP-UUID module
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @author Marius Karthaus
@@ -12,6 +11,14 @@
 class UUID {
 
     public static $_uuid;
+
+    const UUID_FMT_STR = UUID_FMT_STR;
+
+    const UUID_FMT_BIN = UUID_FMT_BIN;
+
+    const UUID_MAKE_V1 = UUID_MAKE_V1;
+
+    const UUID_MAKE_V5 = UUID_MAKE_V5;
 
     private static function instance() {
         if (!is_resource(self::$_uuid)) {
@@ -29,7 +36,7 @@ class UUID {
      * @return string
      */
     public static function v1() {
-        return self::_generate(UUID_MAKE_V1);
+        return self::_generate(self::UUID_MAKE_V1);
     }
 
     /**
@@ -37,18 +44,18 @@ class UUID {
      * @return string
      */
     public static function v5() {
-        return self::_generate(UUID_MAKE_V5);
+        return self::_generate(self::UUID_MAKE_V5);
     }
 
     private static function _generate($type) {
         uuid_make ( self::instance(), $type );
-        uuid_export ( self::instance(), UUID_FMT_STR, &$uuidstring );
+        uuid_export ( self::instance(), self::UUID_FMT_STR, &$uuidstring );
         return trim ( $uuidstring );
     }
 
     public static function convert($uuid, $toFmt) {
         $uuidConv = $uuid;
-        $fromFmt = self::isBinary($uuid) ? UUID_FMT_BIN : UUID_FMT_STR;
+        $fromFmt = self::isBinary($uuid) ? self::UUID_FMT_BIN : self::UUID_FMT_STR;
         uuid_import(&self::$_uuid, $fromFmt, $uuid);
         uuid_export(self::instance(), $toFmt, &$uuidConv);
         return $uuidConv;

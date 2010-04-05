@@ -15,18 +15,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-- Community 
-
-	The Pandra homepage is http://www.phpgrease.net/projects/Pandra
-
-	For feedback, bugs and general support discussion see http://groups.google.com/group/pandra-user
-
-	Developers : http://groups.google.com/group/pandra-dev
-
-	Github users may also log bugs directly via http://github.com/mjpearson/pandra/issues
-
-	Thankyou for your support.
-
 - What is it?
 
 	Pandra (PHP-Cassandra) is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.  
@@ -50,6 +38,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 	* Extensible type definition, validation and callback layers
 
+        * UUID Column Families
+
 	* Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
 
 	* Schema aware, or build factory objects on the fly
@@ -63,3 +53,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	* Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
 
 	* PHP >= 5.3 (APC and Memcached suggested)
+
+        * OSSP PHP-UUID module
+
+        * scyk yaml (optional)
+
+- Download
+
+        Latest snapshot :  git checkout git://github.com/mjpearson/Pandra.git .
+        - or -
+        Latest stable tag : http://github.com/mjpearson/Pandra/tarball/0.1
+
+- Community
+
+	The Pandra homepage is http://www.phpgrease.net/projects/Pandra
+
+	For feedback, bugs and general support discussion see http://groups.google.com/group/pandra-user
+
+	Developers : http://groups.google.com/group/pandra-dev
+
+	Github users may also log bugs directly via http://github.com/mjpearson/pandra/issues

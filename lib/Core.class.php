@@ -19,11 +19,7 @@ class PandraCore {
 
     const MODE_RANDOM = 2; // select random node
 
-    const DEFAULT_ROW_LIMIT = 100; // default max # of rows to return for ranging queries
-
     const DEFAULT_POOL_NAME = 'default';
-
-    const PERSIST_CONNECTIONS = FALSE; // TSocket Persistence
 
     /* @var string Last internal error */
     static public $lastError = '';
@@ -70,7 +66,9 @@ class PandraCore {
     /* @var PandraCore instance of self */
     static private $_instance = NULL;
 
-    /* @var dummy constructor */
+    /**
+     *  dummy constructor
+     */
     private function __construct() {
     }
 
@@ -212,7 +210,7 @@ class PandraCore {
             if (!array_key_exists($poolName, self::$_socketPool)) self::$_socketPool[$poolName] = array();
 
             // Create Thrift transport and binary protocol cassandra client
-            $transport = new TBufferedTransport(new TSocket($host, $port, self::PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+            $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
             $transport->open();
 
             self::$_socketPool[$poolName][$connectionID] = array(
@@ -660,7 +658,7 @@ class PandraCore {
             array $keyRange,
             cassandra_ColumnParent $columnParent,
             cassandra_SlicePredicate $predicate,
-            $numRows = self::DEFAULT_ROW_LIMIT,
+            $numRows = DEFAULT_ROW_LIMIT,
             $consistencyLevel = NULL) {
 
         $client = self::getClient();
@@ -678,71 +676,7 @@ class PandraCore {
             return NULL;
         }
 
-    }
-
-
-    /**
-     * Grabs locally defined columnfamilies (debug tool)
-     */
-
-    /*
-     * @TODO!!!!!!!
-     *
-     *
-    static public function getConfColumnFamilies() {
-
-        $conf = self::loadConfigXML();
-
-        $columnFamiles = array();
-
-        foreach ($conf->Keyspaces as $keySpace) {
-            $ksName = $keySpace->attributes()->Name;
-            $columnFamilies[] = $keySpace->xpath('Keyspace/ColumnFamily');
-        }
-
-        return $columnFamiles;
-    }
-
-    static public function buildModels() {
-        // check the schemas directory
-        if (file_exists(SCHEMA_PATH)) {
-
-            // Grab config, check our available keyspaces
-            $dir = scandir(SCHEMA_PATH);
-            foreach ($dir as $fileName) {
-                if (preg_match('/^\./', $fileName)) continue;
-                $filePath = SCHEMA_PATH.'/'.$fileName;
-                $schema = NULL;
-
-                list($keySpace, $extension) = explode('.', $fileName);
-
-                $extension = strtolower($extension);
-                if ($extension == 'json') {
-                    $c = file_get_contents($filePath);
-                    $schema = json_decode(file_get_contents($filePath));
-                } else if ($extension == 'yaml') {
-                    if (!function_exists('syck_load')) {
-                        throw new RuntimeException('YAML schema found but syck module not supported');
-                    } else {
-                        $schema = syck_load($filePath);
-                    }
-                }
-
-                if ($schema === NULL) {
-                    throw new RuntimeException('Schema failed to parse ('.$filePath.')');
-                } else {
-
-                }
-            }
-        } else {
-            throw new RuntimeException('Defined SCHEMA_PATH not found ('.SCHEMA_PATH.')');
-        }
-
-        // Check if syck module is available
-        //if (!function_exists('syck_load')) {
-        //}
-    }
-    */
+    }     
 }
 
 // Setup our capabilities

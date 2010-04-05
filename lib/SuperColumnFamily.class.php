@@ -44,7 +44,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
         $superName = $scObj->getName();
 
         if ($this->getType() == self::TYPE_UUID && !UUID::isBinary($scObj->getName())) {
-            $scObj->setName(UUID::convert($scObj->getName(), UUID_FMT_BIN));
+            $scObj->setName(UUID::convert($scObj->getName(), UUID::UUID_FMT_BIN));
         }
 
         $scObj->setParent($this, false);
@@ -65,7 +65,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
         if (!array_key_exists($superName, $this->_columns)) {
             $this->_columns[$superName] = new PandraSuperColumn(
                     //$superName,
-                    $this->typeConvert($superName, UUID_FMT_BIN),
+                    $this->typeConvert($superName, UUID::UUID_FMT_BIN),
                     $this->getKeyID(),
                     $this->getKeySpace(),
                     $this,
@@ -195,7 +195,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                 $this->init();
                 foreach ($result as $superColumn) {
                     $sc = $superColumn->super_column;
-                    $newSuper = new PandraSuperColumn($this->typeConvert($sc->name, UUID_FMT_STR), NULL, NULL, $this, $this->getType());
+                    $newSuper = new PandraSuperColumn($this->typeConvert($sc->name, UUID::UUID_FMT_STR), NULL, NULL, $this, $this->getType());
                     if ($this->addSuper($newSuper)->populate($sc->columns, $autoCreate)) {
                         $this->setLoaded(TRUE);
                     } else {
@@ -234,7 +234,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                     }
 
                 } elseif ($colValue instanceof cassandra_ColumnOrSuperColumn && !empty($colValue->super_column)) {
-                    $columnName =  $this->typeConvert($colValue->super_column->name, UUID_FMT_STR);
+                    $columnName =  $this->typeConvert($colValue->super_column->name, UUID::UUID_FMT_STR);
 
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
                         $this->addSuper(new PandraSuperColumn($columnName))->populate($colValue->super_column->columns);

@@ -21,8 +21,8 @@ require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
 define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-incubating-0.5.0/conf/storage-conf.xml');
 
 define('THRIFT_PORT_DEFAULT', 9160);
-
-define('PANDRA_64', PHP_INT_SIZE == 8);
+define('DEFAULT_ROW_LIMIT', 10);
+define('PERSIST_CONNECTIONS', FALSE); // TSocket Persistence
 
 // horrendous autoloader in the absense of namespace
 function _pandraAutoLoad($className) {
@@ -55,4 +55,5 @@ function _pandraAutoLoad($className) {
     }
 }
 spl_autoload_register('_pandraAutoLoad');
+define('PANDRA_64', PHP_INT_SIZE == 8);
 ?>

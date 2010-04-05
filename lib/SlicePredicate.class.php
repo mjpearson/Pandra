@@ -74,7 +74,7 @@ class PandraSlicePredicate extends cassandra_SlicePredicate {
                     array('start' => '',
                             'finish' => '',
                             'reversed' => false,
-                            'count' => PandraCore::DEFAULT_ROW_LIMIT)
+                            'count' => DEFAULT_ROW_LIMIT)
             );
 
             foreach ($predicateAttribute as $key => $value) {
