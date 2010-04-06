@@ -52,12 +52,12 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                         $this->getKeySpace(),
                         $keyID,
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getName())),
+                        array(
+                                'column_family' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
-            // otherwise by defined columns (slice query)
+                // otherwise by defined columns (slice query)
             } else {
 
                 $predicate->column_names = $this->getColumnNames();
@@ -66,8 +66,8 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                         $this->getKeySpace(),
                         array($keyID),
                         new cassandra_ColumnParent(
-                                array(
-                                    'column_family' => $this->getName())),
+                        array(
+                                'column_family' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 

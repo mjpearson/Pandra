@@ -15,7 +15,7 @@ error_reporting(E_ALL);
 require_once(dirname(__FILE__).'/../config.php');
 
 if (!PandraCore::connect('default', 'localhost')) {
-	die(PandraCore::$lastError);
+    die(PandraCore::$lastError);
 }
 
 // hard code the row key for this example
@@ -28,22 +28,22 @@ $keySpace = 'Keyspace1';
 $columnFamilyName = 'Super1';
 
 class Address extends PandraSuperColumn {
-	public function init() {
-		$this->addColumn('city', 'string');
-		$this->addColumn('street', 'string');
-		$this->addColumn('zip', 'int');
-	}
+    public function init() {
+        $this->addColumn('city', 'string');
+        $this->addColumn('street', 'string');
+        $this->addColumn('zip', 'int');
+    }
 }
 
 class Addresses extends PandraSuperColumnFamily {
-	public function init() {
-		global $keySpace, $columnFamilyName;
-		$this->setKeySpace($keySpace);
-		$this->setName($columnFamilyName);
+    public function init() {
+        global $keySpace, $columnFamilyName;
+        $this->setKeySpace($keySpace);
+        $this->setName($columnFamilyName);
 
-		$this->addSuper(new Address('homeAddress'));
-		$this->addSuper(new Address('workAddress'));
-	}
+        $this->addSuper(new Address('homeAddress'));
+        $this->addSuper(new Address('workAddress'));
+    }
 }
 
 $addrs = new Addresses();
@@ -66,7 +66,7 @@ $customAddr->setColumn('city', 'another city');
 $addrs->addSuper($customAddr);
 
 if (!$addrs->save()) {
-	die($addrs->lastError());
+    die($addrs->lastError());
 }
 
 unset($addrs);
@@ -74,7 +74,7 @@ unset($addrs);
 // Load the saved Addresses
 $addrs = new Addresses();
 if (!$addrs->load($keyID)) {
-	die($addrs->lastError());
+    die($addrs->lastError());
 }
 
 // Show our loaded CF in JSON format, including key path

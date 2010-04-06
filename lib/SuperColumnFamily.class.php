@@ -242,7 +242,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
 
                 } else {
                     if ($this->getAutoCreate($colAutoCreate) || array_key_exists($idx, $this->_columns)) {
-                        $this->addSuper(new PandraSuperColumn($idx, NULL, NULL, $this))->populate($colValue['columns']);
+                        $this->addSuper(new PandraSuperColumn($idx, NULL, NULL, $this))->populate($colValue);
                     }
                 }
             }

@@ -36,11 +36,11 @@ class PandraCore {
     /* @var string currently selected node in a pool */
     static private $_activeNode = NULL;
 
-    /* @var int maximum number of retries before marking a host down */
+    /* @var int maximum number of retries *per 'core'* before marking a host down */
     static private $_maxRetries = 2;
 
-    /* @var int retry interval in seconds against a problem host */
-    static private $_retryInterval = 10;
+    /* @var int retry cooldown interval in seconds against a problem host */
+    static private $_retryCooldown = 10;
 
     /* @var int default read mode (active/round/random) */
     static private $readMode = self::MODE_RANDOM;
@@ -199,33 +199,39 @@ class PandraCore {
     static public function connect($connectionID, $host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         try {
 
-            // if the connection exists but it is closed, then re-open
-            if (array_key_exists($poolName, self::$_socketPool) && array_key_exists($connectionID, self::$_socketPool[$poolName])) {
-                if (!self::$_socketPool[$poolName][$connectionID]['transport']->isOpen()) {
-                    self::$_socketPool[$poolName][$connectionID]['transport']->open();
+            // check connectionid hasn't been marked as down
+            if (self::priorFail($connectionID)) {
+                self::registerError($host.'/'.$port.' is marked DOWN', PandraLog::LOG_CRIT);
+            } else {
+                // if the connection exists but it is closed, then re-open
+                if (array_key_exists($poolName, self::$_socketPool) && array_key_exists($connectionID, self::$_socketPool[$poolName])) {
+                    if (!self::$_socketPool[$poolName][$connectionID]['transport']->isOpen()) {
+                        self::$_socketPool[$poolName][$connectionID]['transport']->open();
+                    }
+                    return TRUE;
                 }
+
+                if (!array_key_exists($poolName, self::$_socketPool)) self::$_socketPool[$poolName] = array();
+
+                // Create Thrift transport and binary protocol cassandra client
+                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                $transport->open();
+
+                self::$_socketPool[$poolName][$connectionID] = array(
+                        'retries' => 0,
+                        'transport' => $transport,
+                        'client' => new CassandraClient(
+                        (PANDRA_64 &&
+                                function_exists("thrift_protocol_write_binary") ?
+                        new TBinaryProtocolAccelerated($transport) :
+                        new TBinaryProtocol($transport)))
+                );
+
+                // set new connection the active, working master
+                self::setActivePool($poolName);
+                self::setActiveNode($connectionID);
                 return TRUE;
             }
-
-            if (!array_key_exists($poolName, self::$_socketPool)) self::$_socketPool[$poolName] = array();
-
-            // Create Thrift transport and binary protocol cassandra client
-            $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
-            $transport->open();
-
-            self::$_socketPool[$poolName][$connectionID] = array(
-                    'transport' => $transport,
-                    'client' => new CassandraClient(
-                    (PANDRA_64 &&
-                            function_exists("thrift_protocol_write_binary") ?
-                    new TBinaryProtocolAccelerated($transport) :
-                    new TBinaryProtocol($transport)))
-            );
-
-            // set new connection the active, working master
-            self::setActivePool($poolName);
-            self::setActiveNode($connectionID);
-            return TRUE;
         } catch (TException $te) {
             self::registerError('TException: '.$te->getMessage(), PandraLog::LOG_CRIT);
 
@@ -334,7 +340,9 @@ class PandraCore {
      * get current working node, recursive, trims disconnected clients
      */
     static public function getClient($writeMode = FALSE) {
-        if (empty(self::$_activeNode)) {
+
+        // Catch trimmed nodes or a completely trimmed pool
+        if (empty(self::$_activeNode) || empty(self::$_socketPool[self::$_activePool])) {
             self::registerError('Not Connected', PandraLog::LOG_CRIT);
             throw new Exception('Not Connected');
         }
@@ -343,25 +351,60 @@ class PandraCore {
 
         $useMode = ($writeMode) ? self::$writeMode : self::$readMode;
         switch ($useMode) {
-
             case self::MODE_ROUND :
                 if (!current(self::$_socketPool[self::$_activePool])) reset(self::$_socketPool[self::$_activePool]);
                 $curConn = each(self::$_socketPool[self::$_activePool]);
                 self::$_activeNode = $curConn['key'];		// store current working node
-                return self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
+                $con = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
 
             case self::MODE_RANDOM :
-
-                $randConn = array_rand($activePool);
-                return self::$_socketPool[self::$_activePool][$randConn]['client'];
+                self::$_activeNode = array_rand($activePool);
+                $conn = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
 
             case self::MODE_ACTIVE :
             default :
-                return self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
+            // If we're trying to use an explicit connection id and it's down, then bail
+                if (!self::priorFail(self::$_activeNode)) {
+                    return NULL;
+                }
+                $conn = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
         }
+
+        // check connection is open
+        try {
+            self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->open();
+            return $conn;
+        } catch (TException $te) {
+
+            if (++self::$_socketPool[self::$_activePool][self::$_activeNode]['retries'] > self::$_maxRetries) {
+                self::setLastFail();
+                unset(self::$_socketPool[self::$_activePool][self::$_activeNode]);
+            }
+
+            self::registerError(self::$_activePool.':'.self::$_activeNode.': Marked as DOWN, trying next in pool');
+            return self::getClient($writeMode);
+        }
+    }
+
+    static private function setLastFail($nodeName = NULL) {
+        $key = 'lastfail_'.md5($nodeName === NULL ? self::$_activeNode : $nodeName);
+        if (self::$_apcAvailable) {
+            apc_store($key, time(), self::$_retryCooldown);
+        }
+    }
+
+    static private function priorFail($nodeName = NULL) {
+        $key = 'lastfail_'.md5($nodeName === NULL ? self::$_activeNode : $nodeName);
+        $ok = FALSE;
+        if (self::$_apcAvailable) {
+            // relying on the retry
+            $result = is_numeric(apc_fetch($key, $ok));
+            return $ok && $result;
+        }
+        return $ok;
     }
 
     /**
@@ -532,10 +575,10 @@ class PandraCore {
      * @return cassandra_Column Thrift cassandra column
      */
     static public function getCFSlice($keySpace,
-                                            $keyID,
-                                            cassandra_ColumnParent $columnParent,
-                                            cassandra_SlicePredicate $predicate,
-                                            $consistencyLevel = NULL) {
+            $keyID,
+            cassandra_ColumnParent $columnParent,
+            cassandra_SlicePredicate $predicate,
+            $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
@@ -676,7 +719,7 @@ class PandraCore {
             return NULL;
         }
 
-    }     
+    }
 }
 
 // Setup our capabilities

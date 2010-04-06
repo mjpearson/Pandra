@@ -18,9 +18,6 @@
  *                               },
  *                      }
  *
- * PandraSuperColumn is a ColumnContainer child, and is both a ContainerChild itself,
- * and ColumnPathable
- *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
@@ -40,7 +37,6 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
      * @param string $superName Super Column name
      * @param PandraSuperColumnFamily $parent
      */
-    //public function __construct($superName, PandraSuperColumnFamily $parent = NULL, $keyID = NULL, $keySpace = NULL) {
     public function __construct($superName, $keyID = NULL, $keySpace = NULL, $parent = NULL, $containerType = NULL) {
 
         // SuperColumn name
@@ -136,8 +132,8 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         $this->getKeySpace(),
                         $keyID,
                         new cassandra_ColumnParent(array(
-                                                            'column_family' => $this->getColumnFamilyName(),
-                                                            'super_column' => $this->getName())),
+                                'column_family' => $this->getColumnFamilyName(),
+                                'super_column' => $this->getName())),
                         $predicate,
                         PandraCore::getConsistency($consistencyLevel));
 
