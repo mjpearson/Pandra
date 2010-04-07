@@ -17,42 +17,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 - What is it?
 
-	Pandra (PHP-Cassandra) is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.  
-	Sitting ontop of the generated Thrift Interface files, it suits as a factory patterned rapid prototyping tool.
+        Pandra (PHP-Cassandra) is a light-weight PHP based create/read/update/delete (CRUD) layer for the Cassandra distributed datastore.
+        Sitting ontop of the generated Thrift Interface files, it suits as a factory patterned rapid prototyping tool.
 
-	"Cassandra is a highly scalable, eventually consistent, distributed, structured key-value store. 
-	 Cassandra brings together the distributed systems technologies from Dynamo and the data model from Google's BigTable. 
-	 Like Dynamo, Cassandra is eventually consistent. Like BigTable, Cassandra provides a ColumnFamily-based data model richer than typical key/value systems.
+        "Cassandra is a highly scalable, eventually consistent, distributed, structured key-value store.
+         Cassandra brings together the distributed systems technologies from Dynamo and the data model from Google's BigTable.
+         Like Dynamo, Cassandra is eventually consistent. Like BigTable, Cassandra provides a ColumnFamily-based data model richer than typical key/value systems.
 
-	 Cassandra was open sourced by Facebook in 2008, where it was designed by one of the authors of Amazon's Dynamo. 
-	 In a lot of ways you can think of Cassandra as Dynamo 2.0. Cassandra is in production use at Facebook but is still under heavy development."
-	 - http://incubator.apache.org/cassandra/
+         Cassandra was open sourced by Facebook in 2008, where it was designed by one of the authors of Amazon's Dynamo.
+         In a lot of ways you can think of Cassandra as Dynamo 2.0. Cassandra is in production use at Facebook but is still under heavy development."
+         - http://incubator.apache.org/cassandra/
 
-	Pandra can be installed and interfaced in a few minutes, building your API or web service on a highly redundant datastore can be realised with relative ease.
+        Pandra can be installed and interfaced in a few minutes, building your API or web service on a highly redundant datastore can be realised with relative ease.
 
 - Key Features
 
-	* Clear demarcation of columfamily objects from the underlying cluster connection handlers
+        * Clear demarcation of columfamily objects from the underlying cluster connection handlers
 
-	* Supports any number of Cassandra nodes, tweakable consistency levels
+        * Supports any number of Cassandra nodes, tweakable consistency levels
 
-	* Extensible type definition, validation and callback layers
+        * Extensible type definition, validation and callback layers
 
         * UUID Column Families
 
-	* Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
+        * Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
 
-	* Schema aware, or build factory objects on the fly
+        * Schema aware, or build factory objects on the fly
 
-	* Simple yet powerful, caching, object query language (OQL)
+        * Simple yet powerful, caching, object query language (OQL)
 
 - Dependencies
 
-	* Cassandra >= 0.5.0
+        * Cassandra >= 0.5.0
 
-	* Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
+        * Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
 
-	* PHP >= 5.3 (APC and Memcached suggested)
+        * PHP >= 5.3 (APC and Memcached suggested)
 
         * OSSP PHP-UUID module
 
@@ -66,10 +66,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 - Community
 
-	The Pandra homepage is http://www.phpgrease.net/projects/Pandra
+        The Pandra homepage is http://www.phpgrease.net/projects/Pandra
 
-	For feedback, bugs and general support discussion see http://groups.google.com/group/pandra-user
+        For feedback, bugs and general support discussion see http://groups.google.com/group/pandra-user
 
-	Developers : http://groups.google.com/group/pandra-dev
+        Developers : http://groups.google.com/group/pandra-dev
 
-	Github users may also log bugs directly via http://github.com/mjpearson/pandra/issues
+        Github users may also log bugs directly via http://github.com/mjpearson/pandra/issues
