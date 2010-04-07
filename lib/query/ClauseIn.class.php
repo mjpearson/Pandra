@@ -22,6 +22,15 @@ class PandraClauseIn extends PandraClause {
         $this->_valueIn = $args;
     }
 
+    public function getValueIn() {
+        return $this->_valueIn;
+    }
+
+    public function setValueIn(array $values) {
+        $this->_valueIn = $values;
+
+    }
+
     public function match($value) {
         return (in_array($value, $this->_valueIn));
     }

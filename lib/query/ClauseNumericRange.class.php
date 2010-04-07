@@ -28,9 +28,8 @@ class PandraClauseNumericRange extends PandraClause {
     }
 
     public function match($value) {
-        $fromMatch = (isset($this->_args['from'])) ? is_numeric($value) && $this->_args['from'] >= $value : is_numeric($value);
-        $toMatch = (isset($this->_args['to'])) ? is_numeric($value) && $this->_args['to'] <= $value : is_numeric($value);
-
+        $fromMatch = (isset($this->_args['from'])) ? is_numeric($value) && $this->_args['from'] <= $value : is_numeric($value);
+        $toMatch = (isset($this->_args['to'])) ? is_numeric($value) && $this->_args['to'] >= $value : is_numeric($value);
         return $fromMatch && $toMatch;
     }
 }
