@@ -409,16 +409,15 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         // Extract matching named columns based on clause
         if ($columnMatch instanceof PandraClause) {
 
-            $container = new PandraQuery();
-
             $matches = array();
 
             foreach ($this->_columns as $columnName => &$column) {
                 if ($columnMatch->match($columnName)) {
-                    $container->setColumn($columnName, $column);
+                    $matches[$columnName] = $this->_columns[$columnName];
                 }
             }
-            return $container;
+
+            return $matches;
         }
 
         if ($this->_gsMutable($columnMatch)) {
