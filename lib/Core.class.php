@@ -355,7 +355,7 @@ class PandraCore {
                 if (!current(self::$_socketPool[self::$_activePool])) reset(self::$_socketPool[self::$_activePool]);
                 $curConn = each(self::$_socketPool[self::$_activePool]);
                 self::$_activeNode = $curConn['key'];		// store current working node
-                $con = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
+                $conn = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
 
             case self::MODE_RANDOM :
@@ -366,9 +366,10 @@ class PandraCore {
             case self::MODE_ACTIVE :
             default :
             // If we're trying to use an explicit connection id and it's down, then bail
-                if (!self::priorFail(self::$_activeNode)) {
+                if (self::priorFail(self::$_activeNode)) {
                     return NULL;
                 }
+
                 $conn = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 break;
         }
