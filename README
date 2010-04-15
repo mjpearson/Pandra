@@ -44,11 +44,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         * Schema aware, or build factory objects on the fly
 
-        * Simple yet powerful, caching, object query language (OQL)
-
 - Dependencies
 
-        * Cassandra >= 0.5.0
+        * Cassandra >= 0.6
 
         * Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
 
