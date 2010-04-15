@@ -27,6 +27,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var array complete list of errors for this object instance */
     public $errors = array();
 
+    /* @var array validator type definitions for this columns key */
+    private $_typeDefKey = array();
+
     /* @var this column families name (table name) */
     protected $_name = NULL;
 
@@ -124,10 +127,23 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     /**
-     * keySpace mutator
-     * @param string $keyID key id
+     * keyID mutator
+     * @param string $keyID row key id
+     * @param bool $validate use the defined key validator
      */
-    public function setKeyID($keyID) {
+    public function setKeyID($keyID, $validate = TRUE) {
+        if ($validate && !empty($this->_typeDefKey)) {
+            $errors = array();
+            if (!PandraValidator::check($keyID, $this->getName()." KEY", $this->_typeDefKey, $errors)) {
+                $lastError = $errors[0];
+                $this->registerError($lastError);
+                if ($this->_parent !== NULL) {
+                    $this->_parent->registerError($lastError);
+                }
+                return FALSE;
+            }
+        }
+
         $this->_keyID = $keyID;
     }
 
@@ -138,6 +154,39 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function getKeyID() {
         return $this->_keyID;
     }
+
+    public function setTypeDef(array $typeDefs, $onKey = FALSE) {
+        if (empty($typeDefs)) return;
+
+        foreach ($typeDefs as $typeDef) {
+            if (!PandraValidator::exists($typeDef)) {
+                throw new RuntimeException("$typeDef is not a Validator type");
+            }
+        }
+
+        if ($onKey) {
+            $this->_typeDefKey = $typeDefs;
+        } else {
+            $this->_typeDef = $typeDefs;
+        }
+    }
+
+    public function setKeyValidator(array $typeDefs) {
+        if (empty($typeDefs)) return;
+
+        foreach ($typeDefs as $typeDef) {
+            if (!PandraValidator::exists($typeDef)) {
+                throw new RuntimeException("$typeDef is not a Validator type");
+            }
+        }
+
+        $this->_typeDefKey = $typeDefs;
+    }
+
+    public function getKeyValidator() {
+        return $this->_typeDefKey;
+    }
+
 
     /**
      * Checks we have a bare minimum attributes on the entity, to perform a columnpath search

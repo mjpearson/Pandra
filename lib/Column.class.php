@@ -16,8 +16,11 @@
  */
 class PandraColumn extends cassandra_Column implements PandraContainerChild, PandraColumnPathable {
 
-    /* @var array validator type definitions for this colun */
-    public $typeDef = array();
+    /* @var array validator type definitions for this column */
+    private $_typeDef = array();
+
+    /* @var array validator type definitions for this columns key */
+    private $_typeDefKey = array();
 
     /* @var string last processing error */
     public $errors = array();
@@ -57,7 +60,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * @param PandraColumnContainer $parent parent column family (standard or super), or supercolumn
      * @param array $typeDef validator type definitions
      */
-    public function __construct($name, $typeDef = array(), PandraColumnContainer $parent = NULL, $callback = NULL) {
+    public function __construct($name, $typeDefs = array(), PandraColumnContainer $parent = NULL, $callback = NULL) {
 
         parent::__construct(array('name' => $name));
 
@@ -65,7 +68,8 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
 
         if ($callback !== NULL) $this->setCallback($callback);
 
-        $this->typeDef = $typeDef;
+        $this->setTypeDef($typeDefs);
+
     }
 
     /**
@@ -124,12 +128,12 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     /**
      * Sets the value of the column
      * @param mixed $value new value
-     * @param bool $validate validate the value, if typeDef is set
+     * @param bool $validate validate the value, if _typeDef is set
      * @return bool column set ok (check errors for details)
      */
     public function setValue($value, $validate = TRUE) {
-        if ($validate && !empty($this->typeDef)) {
-            if (!PandraValidator::check($value, $this->name, $this->typeDef, $this->errors)) {
+        if ($validate && !empty($this->_typeDef)) {
+            if (!PandraValidator::check($value, $this->name, $this->_typeDef, $this->errors)) {
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
@@ -143,6 +147,37 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         $this->setModified();
         return TRUE;
     }
+
+    public function setTypeDef($typeDefs, $onKey = FALSE) {
+        if (empty($typeDefs)) return;
+
+        if (!is_array($typeDefs)) $typeDefs = (array) $typeDefs;
+
+        foreach ($typeDefs as $typeDef) {
+            if (!PandraValidator::exists($typeDef)) {
+                throw new RuntimeException("$typeDef is not a Validator type");
+            }
+        }
+
+        if ($onKey) {
+            $this->_typeDefKey = $typeDefs;
+        } else {
+            $this->_typeDef = $typeDefs;
+        }
+    }
+
+    public function getTypeDef() {
+        return $this->_typeDef;
+    }
+
+    public function setKeyValidator(array $typeDefs) {
+        $this->setTypeDef($typeDefs, TRUE);
+    }
+
+    public function getKeyValidator() {
+        return $this->_typeDefKey;
+    }
+
 
     /**
      * Value accessor (cassandra_Column->value is public anyway, suggest using this incase that changes)
@@ -194,8 +229,18 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     /**
      * keyID mutator
      * @param string $keyID row key id
+     * @param bool $validate use the defined key validator
      */
-    public function setKeyID($keyID) {
+    public function setKeyID($keyID, $validate = TRUE) {
+        if ($validate && !empty($this->_typeDefKey)) {
+            if (!PandraValidator::check($keyID, $this->name." KEY", $this->_typeDefKey, $this->errors)) {
+                if ($this->_parent !== NULL) {
+                    $this->_parent->registerError($this->errors[0]);
+                }
+                return FALSE;
+            }
+        }
+
         $this->_keyID = $keyID;
     }
 

@@ -14,6 +14,7 @@ $GLOBALS['cassandra_E_ConsistencyLevel'] = array(
   'DCQUORUM' => 3,
   'DCQUORUMSYNC' => 4,
   'ALL' => 5,
+  'ANY' => 6,
 );
 
 final class cassandra_ConsistencyLevel {
@@ -23,6 +24,7 @@ final class cassandra_ConsistencyLevel {
   const DCQUORUM = 3;
   const DCQUORUMSYNC = 4;
   const ALL = 5;
+  const ANY = 6;
   static public $__names = array(
     0 => 'ZERO',
     1 => 'ONE',
@@ -30,6 +32,7 @@ final class cassandra_ConsistencyLevel {
     3 => 'DCQUORUM',
     4 => 'DCQUORUMSYNC',
     5 => 'ALL',
+    6 => 'ANY',
   );
 }
 
@@ -589,6 +592,150 @@ class cassandra_TimedOutException extends TException {
 
 }
 
+class cassandra_AuthenticationException extends TException {
+  static $_TSPEC;
+
+  public $why = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'why',
+          'type' => TType::STRING,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['why'])) {
+        $this->why = $vals['why'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'AuthenticationException';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->why);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('AuthenticationException');
+    if ($this->why !== null) {
+      $xfer += $output->writeFieldBegin('why', TType::STRING, 1);
+      $xfer += $output->writeString($this->why);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_AuthorizationException extends TException {
+  static $_TSPEC;
+
+  public $why = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'why',
+          'type' => TType::STRING,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['why'])) {
+        $this->why = $vals['why'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'AuthorizationException';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->why);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('AuthorizationException');
+    if ($this->why !== null) {
+      $xfer += $output->writeFieldBegin('why', TType::STRING, 1);
+      $xfer += $output->writeString($this->why);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
 class cassandra_ColumnParent {
   static $_TSPEC;
 
@@ -1048,6 +1195,158 @@ class cassandra_SlicePredicate {
 
 }
 
+class cassandra_KeyRange {
+  static $_TSPEC;
+
+  public $start_key = null;
+  public $end_key = null;
+  public $start_token = null;
+  public $end_token = null;
+  public $count = 100;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'start_key',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'end_key',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'start_token',
+          'type' => TType::STRING,
+          ),
+        4 => array(
+          'var' => 'end_token',
+          'type' => TType::STRING,
+          ),
+        5 => array(
+          'var' => 'count',
+          'type' => TType::I32,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['start_key'])) {
+        $this->start_key = $vals['start_key'];
+      }
+      if (isset($vals['end_key'])) {
+        $this->end_key = $vals['end_key'];
+      }
+      if (isset($vals['start_token'])) {
+        $this->start_token = $vals['start_token'];
+      }
+      if (isset($vals['end_token'])) {
+        $this->end_token = $vals['end_token'];
+      }
+      if (isset($vals['count'])) {
+        $this->count = $vals['count'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'KeyRange';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->start_key);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 2:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->end_key);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 3:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->start_token);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 4:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->end_token);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 5:
+          if ($ftype == TType::I32) {
+            $xfer += $input->readI32($this->count);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('KeyRange');
+    if ($this->start_key !== null) {
+      $xfer += $output->writeFieldBegin('start_key', TType::STRING, 1);
+      $xfer += $output->writeString($this->start_key);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->end_key !== null) {
+      $xfer += $output->writeFieldBegin('end_key', TType::STRING, 2);
+      $xfer += $output->writeString($this->end_key);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->start_token !== null) {
+      $xfer += $output->writeFieldBegin('start_token', TType::STRING, 3);
+      $xfer += $output->writeString($this->start_token);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->end_token !== null) {
+      $xfer += $output->writeFieldBegin('end_token', TType::STRING, 4);
+      $xfer += $output->writeString($this->end_token);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->count !== null) {
+      $xfer += $output->writeFieldBegin('count', TType::I32, 5);
+      $xfer += $output->writeI32($this->count);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
 class cassandra_KeySlice {
   static $_TSPEC;
 
@@ -1158,6 +1457,469 @@ class cassandra_KeySlice {
           }
         }
         $output->writeListEnd();
+      }
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_Deletion {
+  static $_TSPEC;
+
+  public $timestamp = null;
+  public $super_column = null;
+  public $predicate = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'timestamp',
+          'type' => TType::I64,
+          ),
+        2 => array(
+          'var' => 'super_column',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'predicate',
+          'type' => TType::STRUCT,
+          'class' => 'cassandra_SlicePredicate',
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['timestamp'])) {
+        $this->timestamp = $vals['timestamp'];
+      }
+      if (isset($vals['super_column'])) {
+        $this->super_column = $vals['super_column'];
+      }
+      if (isset($vals['predicate'])) {
+        $this->predicate = $vals['predicate'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'Deletion';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::I64) {
+            $xfer += $input->readI64($this->timestamp);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 2:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->super_column);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 3:
+          if ($ftype == TType::STRUCT) {
+            $this->predicate = new cassandra_SlicePredicate();
+            $xfer += $this->predicate->read($input);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('Deletion');
+    if ($this->timestamp !== null) {
+      $xfer += $output->writeFieldBegin('timestamp', TType::I64, 1);
+      $xfer += $output->writeI64($this->timestamp);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->super_column !== null) {
+      $xfer += $output->writeFieldBegin('super_column', TType::STRING, 2);
+      $xfer += $output->writeString($this->super_column);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->predicate !== null) {
+      if (!is_object($this->predicate)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('predicate', TType::STRUCT, 3);
+      $xfer += $this->predicate->write($output);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_Mutation {
+  static $_TSPEC;
+
+  public $column_or_supercolumn = null;
+  public $deletion = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'column_or_supercolumn',
+          'type' => TType::STRUCT,
+          'class' => 'cassandra_ColumnOrSuperColumn',
+          ),
+        2 => array(
+          'var' => 'deletion',
+          'type' => TType::STRUCT,
+          'class' => 'cassandra_Deletion',
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['column_or_supercolumn'])) {
+        $this->column_or_supercolumn = $vals['column_or_supercolumn'];
+      }
+      if (isset($vals['deletion'])) {
+        $this->deletion = $vals['deletion'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'Mutation';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRUCT) {
+            $this->column_or_supercolumn = new cassandra_ColumnOrSuperColumn();
+            $xfer += $this->column_or_supercolumn->read($input);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 2:
+          if ($ftype == TType::STRUCT) {
+            $this->deletion = new cassandra_Deletion();
+            $xfer += $this->deletion->read($input);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('Mutation');
+    if ($this->column_or_supercolumn !== null) {
+      if (!is_object($this->column_or_supercolumn)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('column_or_supercolumn', TType::STRUCT, 1);
+      $xfer += $this->column_or_supercolumn->write($output);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->deletion !== null) {
+      if (!is_object($this->deletion)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('deletion', TType::STRUCT, 2);
+      $xfer += $this->deletion->write($output);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_TokenRange {
+  static $_TSPEC;
+
+  public $start_token = null;
+  public $end_token = null;
+  public $endpoints = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'start_token',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'end_token',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'endpoints',
+          'type' => TType::LST,
+          'etype' => TType::STRING,
+          'elem' => array(
+            'type' => TType::STRING,
+            ),
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['start_token'])) {
+        $this->start_token = $vals['start_token'];
+      }
+      if (isset($vals['end_token'])) {
+        $this->end_token = $vals['end_token'];
+      }
+      if (isset($vals['endpoints'])) {
+        $this->endpoints = $vals['endpoints'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'TokenRange';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->start_token);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 2:
+          if ($ftype == TType::STRING) {
+            $xfer += $input->readString($this->end_token);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        case 3:
+          if ($ftype == TType::LST) {
+            $this->endpoints = array();
+            $_size21 = 0;
+            $_etype24 = 0;
+            $xfer += $input->readListBegin($_etype24, $_size21);
+            for ($_i25 = 0; $_i25 < $_size21; ++$_i25)
+            {
+              $elem26 = null;
+              $xfer += $input->readString($elem26);
+              $this->endpoints []= $elem26;
+            }
+            $xfer += $input->readListEnd();
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('TokenRange');
+    if ($this->start_token !== null) {
+      $xfer += $output->writeFieldBegin('start_token', TType::STRING, 1);
+      $xfer += $output->writeString($this->start_token);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->end_token !== null) {
+      $xfer += $output->writeFieldBegin('end_token', TType::STRING, 2);
+      $xfer += $output->writeString($this->end_token);
+      $xfer += $output->writeFieldEnd();
+    }
+    if ($this->endpoints !== null) {
+      if (!is_array($this->endpoints)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('endpoints', TType::LST, 3);
+      {
+        $output->writeListBegin(TType::STRING, count($this->endpoints));
+        {
+          foreach ($this->endpoints as $iter27)
+          {
+            $xfer += $output->writeString($iter27);
+          }
+        }
+        $output->writeListEnd();
+      }
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class cassandra_AuthenticationRequest {
+  static $_TSPEC;
+
+  public $credentials = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'credentials',
+          'type' => TType::MAP,
+          'ktype' => TType::STRING,
+          'vtype' => TType::STRING,
+          'key' => array(
+            'type' => TType::STRING,
+          ),
+          'val' => array(
+            'type' => TType::STRING,
+            ),
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['credentials'])) {
+        $this->credentials = $vals['credentials'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'AuthenticationRequest';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::MAP) {
+            $this->credentials = array();
+            $_size28 = 0;
+            $_ktype29 = 0;
+            $_vtype30 = 0;
+            $xfer += $input->readMapBegin($_ktype29, $_vtype30, $_size28);
+            for ($_i32 = 0; $_i32 < $_size28; ++$_i32)
+            {
+              $key33 = '';
+              $val34 = '';
+              $xfer += $input->readString($key33);
+              $xfer += $input->readString($val34);
+              $this->credentials[$key33] = $val34;
+            }
+            $xfer += $input->readMapEnd();
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('AuthenticationRequest');
+    if ($this->credentials !== null) {
+      if (!is_array($this->credentials)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('credentials', TType::MAP, 1);
+      {
+        $output->writeMapBegin(TType::STRING, TType::STRING, count($this->credentials));
+        {
+          foreach ($this->credentials as $kiter35 => $viter36)
+          {
+            $xfer += $output->writeString($kiter35);
+            $xfer += $output->writeString($viter36);
+          }
+        }
+        $output->writeMapEnd();
       }
       $xfer += $output->writeFieldEnd();
     }

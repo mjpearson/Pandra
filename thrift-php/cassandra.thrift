@@ -15,11 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# *** PLEASE REMEMBER TO EDIT THE VERSION CONSTANT WHEN MAKING CHANGES ***
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #
 # Interface definition for Cassandra Service
 #
 
-namespace java org.apache.cassandra.service
+namespace java org.apache.cassandra.thrift
 namespace cpp org.apache.cassandra
 namespace csharp Apache.Cassandra
 namespace py cassandra
@@ -31,17 +35,18 @@ namespace perl Cassandra
 # Cassandra::Cassandra::Client.
 namespace rb CassandraThrift
 
-
+# The API version (NOT the product version), composed as a dot delimited
+# string with major, minor, and patch level components.
 #
-# constants
+#  - Major: Incremented for backward incompatible changes. An example would
+#           be changes to the number or disposition of method arguments.
+#  - Minor: Incremented for backward compatible changes. An example would
+#           be the addition of a new (optional) method.
+#  - Patch: Incremented for bug fixes. The patch level should be increased
+#           for every edit that doesn't result in a change to major/minor.
 #
-
-# for clients checking that server and it have same thrift definitions.
-# no promises are made other than "if both are equal, you're good."
-# in particular, don't try to parse numeric information out and assume
-# that a "greater" version is a superset of a "smaller" one.
-const string VERSION = "0.5.0"
-
+# See the Semantic Versioning Specification (SemVer) http://semver.org.
+const string VERSION = "2.1.0"
 
 #
 # data structures
@@ -109,6 +114,16 @@ exception UnavailableException {
 exception TimedOutException {
 }
 
+/** invalid authentication request (user does not exist or credentials invalid) */
+exception AuthenticationException {
+    1: required string why
+}
+
+/** invalid authorization request (user does not have access to keyspace) */
+exception AuthorizationException {
+    1: required string why
+}
+
 
 #
 # service api
@@ -123,12 +138,14 @@ exception TimedOutException {
  *
  * Write:
  *      ZERO    Ensure nothing. A write happens asynchronously in background
+ *      ANY     Ensure that the write has been written once somewhere, including possibly being hinted in a non-target node.
  *      ONE     Ensure that the write has been written to at least 1 node's commit log and memory table before responding to the client.
  *      QUORUM  Ensure that the write has been written to <ReplicationFactor> / 2 + 1 nodes before responding to the client.
  *      ALL     Ensure that the write is written to <code>&lt;ReplicationFactor&gt;</code> nodes before responding to the client.
  *
  * Read:
  *      ZERO    Not supported, because it doesn't make sense.
+ *      ANY     Not supported. You probably want ONE instead.
  *      ONE     Will return the record returned by the first node to respond. A consistency check is always done in a
  *              background thread to fix any consistency issues when ConsistencyLevel.ONE is used. This means subsequent
  *              calls will have correct data even if the initial read gets an older value. (This is called 'read repair'.)
@@ -143,6 +160,7 @@ enum ConsistencyLevel {
     DCQUORUM = 3,
     DCQUORUMSYNC = 4,
     ALL = 5,
+    ANY = 6,
 }
 
 /**
@@ -212,6 +230,22 @@ struct SlicePredicate {
 }
 
 /**
+The semantics of start keys and tokens are slightly different.
+Keys are start-inclusive; tokens are start-exclusive.  Token
+ranges may also wrap -- that is, the end token may be less
+than the start one.  Thus, a range from keyX to keyX is a
+one-element range, but a range from tokenY to tokenY is the
+full ring.
+*/
+struct KeyRange {
+    1: optional string start_key,
+    2: optional string end_key,
+    3: optional string start_token,
+    4: optional string end_token,
+    5: required i32 count=100
+}
+
+/**
     A KeySlice is key followed by the data it maps to. A collection of KeySlice is returned by the get_range_slice operation.
 
     @param key. a row key
@@ -223,7 +257,40 @@ struct KeySlice {
     2: required list<ColumnOrSuperColumn> columns,
 }
 
+struct Deletion {
+    1: required i64 timestamp,
+    2: optional binary super_column,
+    3: optional SlicePredicate predicate,
+}
+
+/**
+    A Mutation is either an insert, represented by filling column_or_supercolumn, or a deletion, represented by filling the deletion attribute.
+    @param column_or_supercolumn. An insert to a column or supercolumn
+    @param deletion. A deletion of a column or supercolumn
+*/
+struct Mutation {
+    1: optional ColumnOrSuperColumn column_or_supercolumn,
+    2: optional Deletion deletion,
+}
+
+struct TokenRange {
+    1: required string start_token,
+    2: required string end_token,
+    3: required list<string> endpoints,
+}
+
+/**
+    Authentication requests can contain any data, dependent on the AuthenticationBackend used
+*/
+struct AuthenticationRequest {
+    1: required map<string, string> credentials,
+}
+
+
 service Cassandra {
+  # auth methods
+  void login(1: required string keyspace, 2:required AuthenticationRequest auth_request) throws (1:AuthenticationException authnx, 2:AuthorizationException authzx),
+ 
   # retrieval methods
 
   /**
@@ -233,7 +300,7 @@ service Cassandra {
   ColumnOrSuperColumn get(1:required string keyspace,
                           2:required string key,
                           3:required ColumnPath column_path,
-                          4:required ConsistencyLevel consistency_level=1)
+                          4:required ConsistencyLevel consistency_level=ONE)
                       throws (1:InvalidRequestException ire, 2:NotFoundException nfe, 3:UnavailableException ue, 4:TimedOutException te),
 
   /**
@@ -244,18 +311,19 @@ service Cassandra {
                                       2:required string key, 
                                       3:required ColumnParent column_parent, 
                                       4:required SlicePredicate predicate, 
-                                      5:required ConsistencyLevel consistency_level=1)
+                                      5:required ConsistencyLevel consistency_level=ONE)
                             throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
     Perform a get for column_path in parallel on the given list<string> keys. The return value maps keys to the
     ColumnOrSuperColumn found. If no value corresponding to a key is present, the key will still be in the map, but both
     the column and super_column references of the ColumnOrSuperColumn object it maps to will be null.  
+    @deprecated; use multiget_slice
   */
   map<string,ColumnOrSuperColumn> multiget(1:required string keyspace, 
                                            2:required list<string> keys, 
                                            3:required ColumnPath column_path, 
-                                           4:required ConsistencyLevel consistency_level=1)
+                                           4:required ConsistencyLevel consistency_level=ONE)
                                   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
@@ -265,7 +333,7 @@ service Cassandra {
                                                        2:required list<string> keys, 
                                                        3:required ColumnParent column_parent, 
                                                        4:required SlicePredicate predicate, 
-                                                       5:required ConsistencyLevel consistency_level=1)
+                                                       5:required ConsistencyLevel consistency_level=ONE)
                                         throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
@@ -274,20 +342,12 @@ service Cassandra {
   i32 get_count(1:required string keyspace, 
                 2:required string key, 
                 3:required ColumnParent column_parent, 
-                4:required ConsistencyLevel consistency_level=1)
+                4:required ConsistencyLevel consistency_level=ONE)
       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
-
-  /** @deprecated; use get_range_slice instead */
-  list<string> get_key_range(1:required string keyspace, 
-                             2:required string column_family, 
-                             3:required string start="", 
-                             4:required string finish="", 
-                             5:required i32 count=100,
-                             6:required ConsistencyLevel consistency_level=1)
-               throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
    returns a subset of columns for a range of keys.
+   @Deprecated.  Use get_range_slices instead
   */
   list<KeySlice> get_range_slice(1:required string keyspace, 
                                  2:required ColumnParent column_parent, 
@@ -295,7 +355,17 @@ service Cassandra {
                                  4:required string start_key="", 
                                  5:required string finish_key="", 
                                  6:required i32 row_count=100, 
-                                 7:required ConsistencyLevel consistency_level=1)
+                                 7:required ConsistencyLevel consistency_level=ONE)
+                 throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
+
+  /**
+   returns a subset of columns for a range of keys.
+  */
+  list<KeySlice> get_range_slices(1:required string keyspace, 
+                                  2:required ColumnParent column_parent, 
+                                  3:required SlicePredicate predicate,
+                                  4:required KeyRange range,
+                                  5:required ConsistencyLevel consistency_level=ONE)
                  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   # modification methods
@@ -310,18 +380,19 @@ service Cassandra {
               3:required ColumnPath column_path, 
               4:required binary value, 
               5:required i64 timestamp, 
-              6:required ConsistencyLevel consistency_level=0)
+              6:required ConsistencyLevel consistency_level=ONE)
        throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
     Insert Columns or SuperColumns across different Column Families for the same row key. batch_mutation is a
     map<string, list<ColumnOrSuperColumn>> -- a map which pairs column family names with the relevant ColumnOrSuperColumn
     objects to insert.
+    @deprecated; use batch_mutate instead
    */
   void batch_insert(1:required string keyspace, 
                     2:required string key, 
-                    3:required map<string, list<ColumnOrSuperColumn>> cfmap, 
-                    4:required ConsistencyLevel consistency_level=0)
+                    3:required map<string, list<ColumnOrSuperColumn>> cfmap,
+                    4:required ConsistencyLevel consistency_level=ONE)
        throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
   /**
@@ -330,24 +401,60 @@ service Cassandra {
     row by just specifying the ColumnFamily, or you can remove a SuperColumn or a single Column by specifying those levels too.
    */
   void remove(1:required string keyspace,
-              2:required string key, 
+              2:required string key,
               3:required ColumnPath column_path,
               4:required i64 timestamp,
-              5:ConsistencyLevel consistency_level=0)
+              5:ConsistencyLevel consistency_level=ONE)
        throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
 
+  /**
+    Mutate many columns or super columns for many row keys. See also: Mutation.
 
+    mutation_map maps key to column family to a list of Mutation objects to take place at that scope.
+  **/
+  void batch_mutate(1:required string keyspace,
+                    2:required map<string, map<string, list<Mutation>>> mutation_map,
+                    3:required ConsistencyLevel consistency_level=ONE)
+       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te),
+       
   // Meta-APIs -- APIs to get information about the node or cluster,
   // rather than user data.  The nodeprobe program provides usage examples.
 
-  /** get property whose value is of type string. */
+  /** get property whose value is of type string. @Deprecated */
   string get_string_property(1:required string property),
 
-  /** get property whose value is list of strings. */
+  /** get property whose value is list of strings. @Deprecated */
   list<string> get_string_list_property(1:required string property),
+
+  /** list the defined keyspaces in this cluster */
+  set<string> describe_keyspaces(),
+
+  /** get the cluster name */
+  string describe_cluster_name(),
+
+  /** get the thrift api version */
+  string describe_version(),
+
+  /** get the token ring: a map of ranges to host addresses,
+      represented as a set of TokenRange instead of a map from range
+      to list of endpoints, because you can't use Thrift structs as
+      map keys:
+      https://issues.apache.org/jira/browse/THRIFT-162 
+
+      for the same reason, we can't return a set here, even though
+      order is neither important nor predictable. */
+  list<TokenRange> describe_ring(1:required string keyspace),
 
   /** describe specified keyspace */
   map<string, map<string, string>> describe_keyspace(1:required string keyspace)
                                    throws (1:NotFoundException nfe),
-}
 
+  /** experimental API for hadoop/parallel query support.  
+      may change violently and without warning. 
+
+      returns list of token strings such that first subrange is (list[0], list[1]],
+      next is (list[1], list[2]], etc. */
+  list<string> describe_splits(1:required string start_token, 
+  	                       2:required string end_token,
+                               3:required i32 keys_per_split),
+}

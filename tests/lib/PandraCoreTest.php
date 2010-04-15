@@ -17,7 +17,7 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-        PandraCore::connect('default', 'localhost');
+        PandraCore::auto('localhost');
     }
 
     /**
@@ -64,7 +64,11 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * Set active node to named 'default', as well as unknown 'NOP'
      */
     public function testSetActiveNode() {
-        $this->assertTrue(PandraCore::setActiveNode('default'));
+
+        $tokens = PandraCore::getConnectedTokens();
+        foreach ($tokens as $token) {
+            $this->assertTrue(PandraCore::setActiveNode($token));
+        }
         $this->assertFalse(PandraCore::setActiveNode('NOP'));
     }
 
@@ -72,7 +76,10 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * @todo Implement testDisconnect().
      */
     public function testDisconnect() {
-        $this->assertTrue(PandraCore::disconnect('default'));
+        $tokens = PandraCore::getConnectedTokens();
+        foreach ($tokens as $token) {
+            $this->assertTrue(PandraCore::disconnect($token));
+        }
     }
 
     /**
@@ -106,6 +113,7 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * Describe a named keyspace
      */
     public function testDescribeKeyspace() {
+        return;
         $ks = PandraCore::describeKeyspace('Keyspace1');
 
         $this->assertTrue(is_array($ks) && !empty($ks));

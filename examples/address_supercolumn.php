@@ -9,12 +9,10 @@
  * Example dynamic Address Book construct using Column Family (Super) and Super Columns
  */
 
-session_start();
-
 error_reporting(E_ALL);
 require_once(dirname(__FILE__).'/../config.php');
 
-if (!PandraCore::connect('default', 'localhost')) {
+if (!PandraCore::auto('localhost')) {
     die(PandraCore::$lastError);
 }
 
@@ -64,6 +62,7 @@ $workAddr->setColumn('street', '9876 y drive');
 $customAddr = new Address('customAddress');
 $customAddr->setColumn('city', 'another city');
 $addrs->addSuper($customAddr);
+
 
 if (!$addrs->save()) {
     die($addrs->lastError());

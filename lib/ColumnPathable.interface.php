@@ -63,14 +63,27 @@ interface PandraColumnPathable {
     /**
      * keyID mutator
      * @param string $keyID row key id
+     * @param boolean $validate (optional) attempt to validate the key
      */
-    public function setKeyID($keyID);
+    public function setKeyID($keyID, $validate = TRUE);
 
     /**
      * keyID accessor if local member has not been set, attempts to return the set parents attribute instead
      * @return string
      */
     public function getKeyID();
+
+    /**
+     * key type def mutator. Sets a validating type definition for key
+     * @param array $typeDefs PandraValidator primitive or complex types
+     */
+    public function setKeyValidator(array $typeDefs);
+
+    /**
+     * key validator accessor
+     * @return array list of registered PandraValidator primitive or complex types
+     */
+    public function getKeyValidator();
 
     /**
      * keySpace mutator

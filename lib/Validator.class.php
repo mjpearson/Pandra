@@ -14,7 +14,7 @@
 class PandraValidator {
 
     // primitives for which there is self::check() logic
-    static public $_primitive = array(
+    static public $primitive = array(
             'notempty',
             'isempty',          // honeypot
             'int',
@@ -35,10 +35,14 @@ class PandraValidator {
      * In cases where there appears to be collision between types (aggregate types with different maxlength options for example)
      * the first type will be viewed as authoritive.
      */
-    static public $_complex = array(
+    static public $complex = array(
             'stringregular' => array('string', 'notempty'),
             'string20' => array('stringregular', 'maxlength=20'),
     );
+
+    static public function exists($typeDef) {
+        return (in_array($typeDef, self::$primitive) || array_key_exists($typeDef, self::$_complex));
+    }
 
     /**
      * given a typedef array, detects complex types and expands to primitives
@@ -51,17 +55,17 @@ class PandraValidator {
         foreach ($typeDefs as $idx => $typeDef) {
 
             // check if type is complex
-            if (array_key_exists($typeDef, self::$_complex)) {
+            if (array_key_exists($typeDef, self::$complex)) {
 
                 // drop this complex type from our typeDefs, ready to expand
                 unset($typeDefs[$idx]);
 
                 // merge against complex type def
-                $typeDefs = array_merge($typeDefs, self::$_complex[$typeDef]);
+                $typeDefs = array_merge($typeDefs, self::$complex[$typeDef]);
 
                 // if it looks like this type has expanded to another complex type, then flag for recursion
                 foreach ($typeDefs as $xType) {
-                    if (array_key_exists($xType, self::$_complex)) {
+                    if (array_key_exists($xType, self::$complex)) {
                         $isComplex = TRUE;
                     }
                 }
@@ -95,7 +99,7 @@ class PandraValidator {
                 list($type, $args) = explode("=", $type);
             }
 
-            if (!in_array($type, self::$_primitive)) {
+            if (!in_array($type, self::$primitive)) {
                 throw new RuntimeException("undefined type definition ($type)");
             }
 

@@ -284,11 +284,11 @@ class PandraCore {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function autoDiscover($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
-        return;
+    static public function auto($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+
         try {
             // Create Thrift transport and binary protocol cassandra client
-            $transport = new TBufferedTransport(new TSocket($host, $port, self::PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+            $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
             $transport->open();
             $client = new CassandraClient(
                     (function_exists("thrift_protocol_write_binary") ?
@@ -296,12 +296,30 @@ class PandraCore {
                     new TBinaryProtocol($transport)));
 
             $tokenMap = $client->get_string_property('token map');
+            $tokens = json_decode($tokenMap);
+            foreach ($tokens as $token => $host) {
+                if (!self::connect($token, $host, $poolName)) {
+                    return FALSE;
+                }
+            }
 
             return TRUE;
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
         }
         return FALSE;
+    }
+
+    /**
+     * Gets a list of connnection id's for a given pool
+     * @param <type> $poolName
+     * @return <type>
+     */
+    static public function getConnectedTokens($poolName = self::DEFAULT_POOL_NAME) {
+        if (!empty(self::$_socketPool[$poolName])) {
+            return array_keys(self::$_socketPool[$poolName]);
+        }
+        return array();
     }
 
     /**
@@ -708,7 +726,7 @@ class PandraCore {
         $client = self::getClient();
 
         try {
-            return $client->get_range_slice($keySpace,
+            return $client->get_range_slices($keySpace,
                     $columnParent,
                     $predicate,
                     $keyRange['start'],

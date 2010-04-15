@@ -59,7 +59,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
     public function testSetValueValidated() {
         $this->obj->reset();
-        $this->obj->typeDef = array('string');
+        $this->obj->setTypeDef(array('string'));
         $this->assertFalse($this->obj->setValue(1));
 
 
