@@ -315,7 +315,7 @@ class PandraCore {
      * @param <type> $poolName
      * @return <type>
      */
-    static public function getConnectedTokens($poolName = self::DEFAULT_POOL_NAME) {
+    static public function getPoolTokens($poolName = self::DEFAULT_POOL_NAME) {
         if (!empty(self::$_socketPool[$poolName])) {
             return array_keys(self::$_socketPool[$poolName]);
         }
