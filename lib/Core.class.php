@@ -726,13 +726,13 @@ class PandraCore {
         $client = self::getClient();
 
         try {
-            return $client->get_range_slices($keySpace,
-                    $columnParent,
-                    $predicate,
-                    $keyRange['start'],
-                    $keyRange['finish'],
-                    $numRows,
-                    self::getConsistency($consistencyLevel));
+            return $client->get_range_slice($keySpace,
+                                                $columnParent,
+                                                $predicate,
+                                                $keyRange['start'],
+                                                $keyRange['finish'],
+                                                $numRows,
+                                                self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
             return NULL;
