@@ -29,7 +29,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-        PandraCore::connect('default', 'localhost');
+        PandraCore::auto('localhost');
 
         $this->parent = new PandraColumnFamily();
         $this->parent->setKeySpace('Keyspace1');

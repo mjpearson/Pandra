@@ -130,6 +130,15 @@ class PandraValidatorTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue(!empty($errors));
     }
 
+    public function test_uuid() {
+        $errors = array();
+        $this->assertTrue(PandraValidator::check(UUID::generate(), 'timeuuid', 'uuid', $errors));
+
+        $this->assertFalse(PandraValidator::check('foobar', 'timeuuid', 'uuid', $errors));
+        $this->assertTrue(!empty($errors));
+    }
+
+
     public function testComplex() {
         $errors = array();
 
