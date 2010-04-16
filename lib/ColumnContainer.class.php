@@ -3,10 +3,12 @@
  * PandraColumnContainer
  *
  * ColumnContainer is an abstract to provide an intuitive representation of
- * Cassandra's associative array data model.
+ * Cassandra's associative array data model.  Keyspace and Key are implied in
+ * the container via setKeyspace and setKeyID mutators.
  *
- * PandraColumnContainer implements PHP's native ArrayAccess, Iterator and
- * Countable interfaces
+ *  eg:
+ *      Cassandra CLI - get Keyspace1.Standard1['key']['column_name']
+ *      Pandra - $Standard1['column_name'];
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
@@ -20,8 +22,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';
 
+    /* @var int UUID container type */
     const TYPE_UUID = 0;
 
+    /* @var int 'STRING' container type (untranslated bytes/ascii/utf8/long types) */
     const TYPE_STRING = 2;
 
     /* @var array complete list of errors for this object instance */
@@ -54,8 +58,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var bool auto create columns/containers loaded from Cassandra which do not exist in the local container */
     protected $_autoCreate = TRUE;
 
+    /* @var int default container type */
     protected $_containerType = self::TYPE_STRING;
 
+    /* @var int default limit for autocreate queries */
     protected $_rangeLimit = DEFAULT_ROW_LIMIT;
 
     /**
@@ -66,10 +72,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param int $containerType one of self::TYPE_ ordering schemas (UUID STRING)
      */
     public function __construct($keyID = NULL, $keySpace = NULL, $name = NULL, $containerType = NULL) {
+        if ($containerType !== NULL) $this->setType($containerType);
         if ($keyID !== NULL) $this->setKeyID($keyID);
         if ($keySpace !== NULL) $this->setKeySpace($keySpace);
         if ($name !== NULL) $this->setName($name);
-        if ($containerType !== NULL) $this->setType($containerType);
         $this->init();
     }
 
@@ -81,15 +87,26 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function init() {
     }
 
+    /**
+     * Sets the type for this container (uuid or string)
+     * @param int $containerType TYPE_STRING or TYPE_UUID
+     */
     public function setType($containerType) {
         // We can't set type after columns have been added
         if (empty($this->_columns)) {
             $this->_containerType = $containerType;
+            if ($containerType == self::TYPE_UUID) {
+                $this->setKeyValidator(array_merge(array('uuid'), $this->getKeyValidator()));
+            }
         } else {
             throw new RuntimeException('Cannot setType on a non-empty container');
         }
     }
 
+    /**
+     * Container type accessor
+     * @return int TYPE_STRING or TYPE_UUID
+     */
     public function getType() {
         return $this->_containerType;
     }
@@ -155,22 +172,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         return $this->_keyID;
     }
 
-    public function setTypeDef(array $typeDefs, $onKey = FALSE) {
-        if (empty($typeDefs)) return;
-
-        foreach ($typeDefs as $typeDef) {
-            if (!PandraValidator::exists($typeDef)) {
-                throw new RuntimeException("$typeDef is not a Validator type");
-            }
-        }
-
-        if ($onKey) {
-            $this->_typeDefKey = $typeDefs;
-        } else {
-            $this->_typeDef = $typeDefs;
-        }
-    }
-
+    /**
+     * Sets the validator(s) for key changes
+     * @param array $typeDefs PandraValidator primitive or complex types
+     */
     public function setKeyValidator(array $typeDefs) {
         if (empty($typeDefs)) return;
 
@@ -183,10 +188,13 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         $this->_typeDefKey = $typeDefs;
     }
 
+    /**
+     * Key typedef accessor
+     * @return array type definitions for key
+     */
     public function getKeyValidator() {
         return $this->_typeDefKey;
     }
-
 
     /**
      * Checks we have a bare minimum attributes on the entity, to perform a columnpath search
@@ -307,7 +315,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     public function unsetColumn($columnName) {
         if (array_key_exists($columnName, $this->_columns)) {
-            $this->_columns[$columnName]->nullParent(FALSE);
+            $this->_columns[$columnName]->disown(FALSE);
             unset($this->_columns[$columnName]);
         }
     }

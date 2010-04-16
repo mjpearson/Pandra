@@ -58,6 +58,9 @@ class PandraCore {
     /* @var bool Memcached is available for use */
     static private $_memcachedAvailable = FALSE;
 
+    /* @var Memcached instance */
+    static private $_memCached = NULL;
+
     /* @var bool APC is available for use */
     static private $_apcAvailable = FALSE;
 
@@ -173,7 +176,7 @@ class PandraCore {
     }
 
     /**
-     * Disconnects all nodes
+     * Disconnects all nodes in all pools
      * @return bool disconnected OK
      */
     static public function disconnectAll() {
@@ -240,6 +243,12 @@ class PandraCore {
         return FALSE;
     }
 
+    /**
+     * Makes a named logger available to Core
+     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
+     * @param array $params parameters to pass through to logger
+     * @return bool Logger found and registered OK
+     */
     static public function addLogger($loggerName, $params = array()) {
         if (!array_key_exists($loggerName, self::$_loggers)) {
 
@@ -254,6 +263,11 @@ class PandraCore {
         return TRUE;
     }
 
+    /**
+     * Drops a logger from the registered logger pool
+     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
+     * @return bool Logger removed ok
+     */
     static public function removeLogger($loggerName) {
         if (array_key_exists($loggerName, self::$_loggers)) {
             unset(self::$_loggers[$loggerName]);
@@ -262,6 +276,11 @@ class PandraCore {
         return FALSE;
     }
 
+    /**
+     * Gets the instance of a named registered logger
+     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
+     * @return PandraLogger Logger instance
+     */
     static public function getLogger($loggerName) {
         if (array_key_exists($loggerName, self::$_loggers)) {
             return self::$_loggers[$loggerName];
@@ -269,6 +288,11 @@ class PandraCore {
         return NULL;
     }
 
+    /**
+     * Adds an error message to Core's running log, and sends the message to any registered loggers
+     * @param string $errorMsg Error Message
+     * @param int $priority error priority level (PandraLog::LOG_)
+     */
     static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {
         $message = '(PandraCore) '.$errorMsg;
         PandraLog::logPriorityMessage($priority, $message);
@@ -305,7 +329,7 @@ class PandraCore {
 
             return TRUE;
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
         }
         return FALSE;
     }
@@ -336,6 +360,15 @@ class PandraCore {
      */
     static public function getMemcachedAvailable() {
         return self::$_memcachedAvailable;
+    }
+
+    /**
+     * Binds a Memcached instance to core for use
+     * @param Memcached $memcached
+     */
+    static public function bindMemcached(Memcached $memcached) {
+        self::$_memCached = $memcached;
+        self::setMemcachedAvailable(TRUE);
     }
 
     /**
@@ -408,17 +441,31 @@ class PandraCore {
         }
     }
 
-    static private function setLastFail($nodeName = NULL) {
-        $key = 'lastfail_'.md5($nodeName === NULL ? self::$_activeNode : $nodeName);
-        if (self::$_apcAvailable) {
+    /**
+     * Stores the last failure time for a node in the cache (Memcached takes precedence)
+     * @param string $connectionID connection id
+     */
+    static private function setLastFail($connectionID = NULL) {
+        $key = 'lastfail_'.md5($connectionID === NULL ? self::$_activeNode : $connectionID);
+        if (self::$_memcachedAvailable && self::$_memCached instanceof Memcached) {
+            self::$_memcached->set($key, time(), self::$_retryCooldown);
+        } elseif (self::$_apcAvailable) {
             apc_store($key, time(), self::$_retryCooldown);
         }
     }
 
-    static private function priorFail($nodeName = NULL) {
-        $key = 'lastfail_'.md5($nodeName === NULL ? self::$_activeNode : $nodeName);
+    /**
+     * Checks in the cache if the node has been marked as down (Memcached takes precedence)
+     * @param string $connectionID connection id
+     * @return bool node marked down
+     */
+    static private function priorFail($connectionID = NULL) {
+        $key = 'lastfail_'.md5($connectionID === NULL ? self::$_activeNode : $connectionID);
         $ok = FALSE;
-        if (self::$_apcAvailable) {
+        if (self::$_memcachedAvailable && self::$_memCached instanceof Memcached) {
+            $result = is_numeric(self::$_memcached->get($key));
+            return $result;
+        } elseif (self::$_apcAvailable) {
             // relying on the retry
             $result = is_numeric(apc_fetch($key, $ok));
             return $ok && $result;
@@ -496,10 +543,10 @@ class PandraCore {
      * @return bool Column Path deleted OK
      */
     static  public function deleteColumnPath($keySpace,
-            $keyID,
-            cassandra_ColumnPath $columnPath,
-            $time = NULL,
-            $consistencyLevel = NULL) {
+                                                    $keyID,
+                                                    cassandra_ColumnPath $columnPath,
+                                                    $time = NULL,
+                                                    $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -507,7 +554,7 @@ class PandraCore {
             }
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
         return TRUE;
@@ -523,11 +570,11 @@ class PandraCore {
      * @return bool Column Path saved OK
      */
     static public function saveColumnPath($keySpace,
-            $keyID,
-            cassandra_ColumnPath $columnPath,
-            $value,
-            $time = NULL,
-            $consistencyLevel = NULL) {
+                                                $keyID,
+                                                cassandra_ColumnPath $columnPath,
+                                                $value,
+                                                $time = NULL,
+                                                $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -535,7 +582,7 @@ class PandraCore {
             }
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
         return TRUE;
@@ -551,10 +598,10 @@ class PandraCore {
      * @return bool Super Column saved OK
      */
     static public function saveSuperColumn($keySpace,
-            $keyID,
-            array $superCFName,
-            array $superColumnMap,
-            $consistencyLevel = NULL) {
+                                                $keyID,
+                                                array $superCFName,
+                                                array $superColumnMap,
+                                                $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
 
@@ -578,7 +625,7 @@ class PandraCore {
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
         return TRUE;
@@ -594,17 +641,17 @@ class PandraCore {
      * @return cassandra_Column Thrift cassandra column
      */
     static public function getCFSlice($keySpace,
-            $keyID,
-            cassandra_ColumnParent $columnParent,
-            cassandra_SlicePredicate $predicate,
-            $consistencyLevel = NULL) {
+                                            $keyID,
+                                            cassandra_ColumnParent $columnParent,
+                                            cassandra_SlicePredicate $predicate,
+                                            $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
         return NULL;
@@ -630,7 +677,7 @@ class PandraCore {
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
     }
@@ -654,7 +701,7 @@ class PandraCore {
         try {
             return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
     }
@@ -693,16 +740,16 @@ class PandraCore {
      * @return cassandra_Column
      */
     static public function getColumnPath($keySpace,
-            $keyID,
-            cassandra_ColumnPath
-            $columnPath,
-            $consistencyLevel = NULL) {
+                                                $keyID,
+                                                cassandra_ColumnPath
+                                                $columnPath,
+                                                $consistencyLevel = NULL) {
         $client = self::getClient();
 
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
     }
@@ -734,10 +781,9 @@ class PandraCore {
                                                 $numRows,
                                                 self::getConsistency($consistencyLevel));
         } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.$te->why);
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
-
     }
 }
 

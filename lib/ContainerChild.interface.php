@@ -16,25 +16,25 @@
 interface PandraContainerChild {
 
     /**
-     * Column object function to call column unset in the parent (parent->unset($this->getName()) for instance)
+     * Unsets reference to this child in parent
      * @access public
      */
     public function detach();
 
     /**
-     * Sets parent to null
+     * Sets local parent reference to null
      * @access public
      * @param bool $localUnbind optional call local detach() method prior to nullifying
      */
-    public function nullParent($localUnbind = TRUE);
+    public function disown($localUnbind = TRUE);
 
     /**
-     * Sets parent
+     * Sets local parent reference
      * @access public
      * @param object $parent Container object
      * @param bool $bindToParent optional make parent aware of new column via addColumnObj
      */
-    public function setParent($parent, $bindToParent = TRUE);
+    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE);
 
     /**
      * Parent accessor

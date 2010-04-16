@@ -69,7 +69,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
 
     public function testBindTime() {
         $time = $this->obj->bindTime();
-        $this->assertType(PHPUnit_Framework_Constraint_IsType::TYPE_INT, $time);
+        ///$this->assertType(PHPUnit_Framework_Constraint_IsType::TYPE_INT, $time);
         $this->assertEquals($time, $this->obj->timestamp);
 
         $time = time();
@@ -140,7 +140,7 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
      * @expectedException RuntimeException
      */
     public function testSetGetParent() {
-        $this->obj->nullParent();
+        $this->obj->disown();
 
         $this->obj->setParent($this->parent);
         $this->assertEquals($this->parent, $this->obj->getParent());

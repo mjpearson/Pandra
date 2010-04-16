@@ -64,7 +64,6 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
     public function addColumn($superName, $containerType = NULL) {
         if (!array_key_exists($superName, $this->_columns)) {
             $this->_columns[$superName] = new PandraSuperColumn(
-                    //$superName,
                     $this->typeConvert($superName, UUID::UUID_FMT_BIN),
                     $this->getKeyID(),
                     $this->getKeySpace(),

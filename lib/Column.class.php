@@ -6,8 +6,6 @@
  * This class extends the Thrift cassandra_Column class with input validation,
  * time binding and pre-insert callbacks
  *
- * PandraColumn is both a ContainerChild and ColumnPathable
- *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
@@ -76,7 +74,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * Binds a ColumnFamily or SuperColumn as parent
      * @param PandraColumnContainer $parent ColumnFamily or SuperColumn parent object or NULL
      */
-    public function setParent($parent, $bindToParent = TRUE) {
+    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE) {
 
         if ( ! ($parent instanceof PandraColumnFamily || $parent instanceof PandraSuperColumn) || $parent instanceof PandraSuperColumnFamily) {
             throw new RuntimeException('Column Family or Super Column parent expected, received : '.get_class($parent));
@@ -90,7 +88,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         $this->_parent = $parent;
     }
 
-    public function nullParent($localDetach = TRUE) {
+    public function disown($localDetach = TRUE) {
         if ($localDetach) $this->detach();
         $this->_parent = NULL;
     }

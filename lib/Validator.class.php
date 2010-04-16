@@ -26,20 +26,26 @@ class PandraValidator {
             'minlength',	// =[length]
             'enum',		// =[comma,delimitered,enumerates]
             'email',
-            'url'
+            'url',
+            'uuid'
     );
 
     /**
      * Complex types are aggregates of the predefined primitive type definitions. Similarly,
      * the type definitions can also be aggregated to build even more complex types (try not to get crazy with the stack yo).
      * In cases where there appears to be collision between types (aggregate types with different maxlength options for example)
-     * the first type will be viewed as authoritive.
+     * the final type will be viewed as authoritive.
      */
     static public $complex = array(
             'stringregular' => array('string', 'notempty'),
             'string20' => array('stringregular', 'maxlength=20'),
     );
 
+    /**
+     * Type definition is defined
+     * @param string $typeDef check type is available
+     * @return bool type exists
+     */
     static public function exists($typeDef) {
         return (in_array($typeDef, self::$primitive) || array_key_exists($typeDef, self::$_complex));
     }
@@ -164,8 +170,13 @@ class PandraValidator {
                     if ($error) $errorMsg[] = "Invalid Argument";
                     break;
 
+                case 'uuid' :
+                    $error = (!UUID::validUUID($value));
+                    if ($error) $errorMsg[] = "Invalid UUID (UUID String expected)";
+                    break;
+
                 default :
-                    throw new RuntimeException("Unhandled type definition ($type) or unexpected end of case");
+                    throw new RuntimeException("Unhandled type definition ($type)");
                     break;
             }
         }

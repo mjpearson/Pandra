@@ -50,6 +50,11 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         parent::__construct($keyID, $keySpace, $superName, $containerType);
     }
 
+    /**
+     * Checks we have a bare minimum attributes on the entity, to perform a columnpath search
+     * @param string $keyID optional overriding row key
+     * @return bool columnpath looks ok
+     */
     public function pathOK($keyID = NULL) {
         if ($this->_parent === NULL) {
             return parent::pathOK($keyID);
@@ -167,10 +172,10 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
     }
 
     /**
-     * Sets parent ColumnFamily or
+     * Sets parent Column Container
      * @param PandraColumnContainer $parent SuperColumnFamily container object, or NULL
      */
-    public function setParent($parent, $bindToParent = TRUE) {
+    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE) {
 
         if (!($parent instanceof PandraSuperColumnFamily))
             throw new RuntimeException('Parent must be an instance of PandraSuperColumnFamily');
@@ -194,7 +199,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
     /**
      * Nullifies a parent
      */
-    public function nullParent($localDetach = TRUE) {
+    public function disown($localDetach = TRUE) {
         if ($localDetach) $this->detach();
         $this->_parent = NULL;
     }

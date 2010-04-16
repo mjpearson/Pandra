@@ -6,9 +6,9 @@
  * "a property that the elements of a set have in common."
  *
  * They are used in most Get queries of Cassandra's API.
- *
- * @author Michael Pearson <pandra-support@phpgrease.net>
+ * 
  * @author Jordan Pittier <jordan@rezel.net>
+ * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
  * @version 0.2
