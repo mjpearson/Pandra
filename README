@@ -38,11 +38,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         * Extensible type definition, validation and callback layers
 
-        * UUID Column Families
+        * Supports UUID types
 
         * Flexible arrangement of Keyspaces, Column Families and Super Columns (implements ArrayAccess)
 
-        * Schema aware, or build factory objects on the fly
+        * Schema aware and factory objects
+
+        * Extensible Logging interface
 
 - Dependencies
 
@@ -50,11 +52,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         * Thrift Interface (tested cassandra.thrift and pre-generated files are packaged)
 
-        * PHP >= 5.3 (APC and Memcached suggested)
+        * PHP >= 5.3
 
         * OSSP PHP-UUID module
 
-        * scyk yaml (optional)
+        - Optional
+
+            * Model Generation - syck yaml
+
+            * Caching - APC or Memcached (PECL)
+
+            * Logging - Syslog, Sendmail and FirePHP
 
 - Download
 

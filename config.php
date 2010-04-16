@@ -26,7 +26,6 @@ define('THRIFT_PORT_DEFAULT', 9160);
 define('DEFAULT_ROW_LIMIT', 10);
 define('PERSIST_CONNECTIONS', FALSE); // TSocket Persistence
 
-// horrendous autoloader in the absense of namespace
 function _pandraAutoLoad($className) {
 
     // seperate classes and interfaces for clarity
