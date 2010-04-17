@@ -231,7 +231,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      */
     public function setKeyID($keyID, $validate = TRUE) {
         if ($validate && !empty($this->_typeDefKey)) {
-            if (!PandraValidator::check($keyID, $this->name." KEY", $this->_typeDefKey, $this->errors)) {
+            if (!PandraValidator::check($keyID, $this->name.' KEY ('.get_class($this).')', $this->_typeDefKey, $this->errors)) {
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
@@ -240,6 +240,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         }
 
         $this->_keyID = $keyID;
+        return TRUE;
     }
 
     /**

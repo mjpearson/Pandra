@@ -67,6 +67,14 @@ class PandraColumnTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($this->obj->isModified());
     }
 
+    public function testSetKeyValidated() {
+        $this->obj->reset();
+        $this->obj->setKeyValidator(array('string20'));
+        $newKey = 1;
+        $this->assertFalse($this->obj->setKeyID($newKey));
+        $this->assertFalse($this->obj->getKeyID() == $newKey);
+    }
+
     public function testBindTime() {
         $time = $this->obj->bindTime();
         ///$this->assertType(PHPUnit_Framework_Constraint_IsType::TYPE_INT, $time);

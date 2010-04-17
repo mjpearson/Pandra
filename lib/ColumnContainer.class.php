@@ -95,9 +95,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         // We can't set type after columns have been added
         if (empty($this->_columns)) {
             $this->_containerType = $containerType;
-            if ($containerType == self::TYPE_UUID) {
-                $this->setKeyValidator(array_merge(array('uuid'), $this->getKeyValidator()));
-            }
         } else {
             throw new RuntimeException('Cannot setType on a non-empty container');
         }
@@ -151,7 +148,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function setKeyID($keyID, $validate = TRUE) {
         if ($validate && !empty($this->_typeDefKey)) {
             $errors = array();
-            if (!PandraValidator::check($keyID, $this->getName()." KEY", $this->_typeDefKey, $errors)) {
+            if (!PandraValidator::check($keyID, $this->getName().' KEY ('.get_class($this).')', $this->_typeDefKey, $errors)) {
                 $lastError = $errors[0];
                 $this->registerError($lastError);
                 if ($this->_parent !== NULL) {
@@ -162,6 +159,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         }
 
         $this->_keyID = $keyID;
+        return TRUE;
     }
 
     /**

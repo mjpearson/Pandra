@@ -543,10 +543,10 @@ class PandraCore {
      * @return bool Column Path deleted OK
      */
     static  public function deleteColumnPath($keySpace,
-                                                    $keyID,
-                                                    cassandra_ColumnPath $columnPath,
-                                                    $time = NULL,
-                                                    $consistencyLevel = NULL) {
+            $keyID,
+            cassandra_ColumnPath $columnPath,
+            $time = NULL,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -570,11 +570,11 @@ class PandraCore {
      * @return bool Column Path saved OK
      */
     static public function saveColumnPath($keySpace,
-                                                $keyID,
-                                                cassandra_ColumnPath $columnPath,
-                                                $value,
-                                                $time = NULL,
-                                                $consistencyLevel = NULL) {
+            $keyID,
+            cassandra_ColumnPath $columnPath,
+            $value,
+            $time = NULL,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
             if ($time === NULL) {
@@ -598,10 +598,10 @@ class PandraCore {
      * @return bool Super Column saved OK
      */
     static public function saveSuperColumn($keySpace,
-                                                $keyID,
-                                                array $superCFName,
-                                                array $superColumnMap,
-                                                $consistencyLevel = NULL) {
+            $keyID,
+            array $superCFName,
+            array $superColumnMap,
+            $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE);
 
@@ -641,10 +641,10 @@ class PandraCore {
      * @return cassandra_Column Thrift cassandra column
      */
     static public function getCFSlice($keySpace,
-                                            $keyID,
-                                            cassandra_ColumnParent $columnParent,
-                                            cassandra_SlicePredicate $predicate,
-                                            $consistencyLevel = NULL) {
+            $keyID,
+            cassandra_ColumnParent $columnParent,
+            cassandra_SlicePredicate $predicate,
+            $consistencyLevel = NULL) {
 
         $client = self::getClient();
 
@@ -740,10 +740,10 @@ class PandraCore {
      * @return cassandra_Column
      */
     static public function getColumnPath($keySpace,
-                                                $keyID,
-                                                cassandra_ColumnPath
-                                                $columnPath,
-                                                $consistencyLevel = NULL) {
+            $keyID,
+            cassandra_ColumnPath
+            $columnPath,
+            $consistencyLevel = NULL) {
         $client = self::getClient();
 
         try {
@@ -774,12 +774,12 @@ class PandraCore {
 
         try {
             return $client->get_range_slice($keySpace,
-                                                $columnParent,
-                                                $predicate,
-                                                $keyRange['start'],
-                                                $keyRange['finish'],
-                                                $numRows,
-                                                self::getConsistency($consistencyLevel));
+                    $columnParent,
+                    $predicate,
+                    $keyRange['start'],
+                    $keyRange['finish'],
+                    $numRows,
+                    self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
