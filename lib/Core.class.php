@@ -786,9 +786,4 @@ class PandraCore {
         }
     }
 }
-
-// Setup our capabilities
-PandraCore::setMemcachedAvailable(class_exists('Memcached'));
-
-PandraCore::setAPCAvailable(function_exists('apc_sma_info') && apc_sma_info() !== FALSE);
 ?>

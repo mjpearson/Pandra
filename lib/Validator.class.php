@@ -132,8 +132,11 @@ class PandraValidator {
                     if ($error) $errorMsg[] = "Invalid URL";
                     break;
 
-                case 'int' :
                 case 'float' :
+                    $error = !is_float($value);
+                    if ($error) $errorMsg[] = "Field error, expected ".$type;
+                    break;
+                case 'int' :
                 case 'numeric' :
                     $error = !is_numeric($value);
                     if ($error) $errorMsg[] = "Field error, expected ".$type;
