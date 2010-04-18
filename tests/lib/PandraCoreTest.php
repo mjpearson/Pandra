@@ -65,7 +65,7 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      */
     public function testSetActiveNode() {
 
-        $tokens = PandraCore::getConnectedTokens();
+        $tokens = PandraCore::getPoolTokens();
         foreach ($tokens as $token) {
             $this->assertTrue(PandraCore::setActiveNode($token));
         }
@@ -76,7 +76,7 @@ class PandraCoreTest extends PHPUnit_Framework_TestCase {
      * @todo Implement testDisconnect().
      */
     public function testDisconnect() {
-        $tokens = PandraCore::getConnectedTokens();
+        $tokens = PandraCore::getPoolTokens();
         foreach ($tokens as $token) {
             $this->assertTrue(PandraCore::disconnect($token));
         }
