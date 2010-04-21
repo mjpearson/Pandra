@@ -47,7 +47,8 @@ class PandraValidator {
      * @return bool type exists
      */
     static public function exists($typeDef) {
-        return (in_array($typeDef, self::$primitive) || array_key_exists($typeDef, self::$complex));
+        list($type, $args) = explode('=', $typeDef);
+        return (in_array($type, self::$primitive) || array_key_exists($type, self::$complex));
     }
 
     /**

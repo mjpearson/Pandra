@@ -174,8 +174,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * Sets the validator(s) for key changes
      * @param array $typeDefs PandraValidator primitive or complex types
      */
-    public function setKeyValidator(array $typeDefs) {
+    public function setKeyValidator($typeDefs) {
         if (empty($typeDefs)) return;
+
+        $typeDefs = (array) $typeDefs;
 
         foreach ($typeDefs as $typeDef) {
             if (!PandraValidator::exists($typeDef)) {

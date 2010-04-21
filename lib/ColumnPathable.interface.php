@@ -77,7 +77,7 @@ interface PandraColumnPathable {
      * key type def mutator. Sets a validating type definition for key
      * @param array $typeDefs PandraValidator primitive or complex types
      */
-    public function setKeyValidator(array $typeDefs);
+    public function setKeyValidator($typeDefs);
 
     /**
      * key validator accessor

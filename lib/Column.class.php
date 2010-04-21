@@ -149,7 +149,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     public function setTypeDef($typeDefs, $onKey = FALSE) {
         if (empty($typeDefs)) return;
 
-        if (!is_array($typeDefs)) $typeDefs = (array) $typeDefs;
+        $typeDefs = (array) $typeDefs;
 
         foreach ($typeDefs as $typeDef) {
             if (!PandraValidator::exists($typeDef)) {
@@ -168,7 +168,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         return $this->_typeDef;
     }
 
-    public function setKeyValidator(array $typeDefs) {
+    public function setKeyValidator($typeDefs) {
         $this->setTypeDef($typeDefs, TRUE);
     }
 
