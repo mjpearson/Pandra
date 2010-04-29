@@ -64,6 +64,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var int default limit for autocreate queries */
     protected $_rangeLimit = DEFAULT_ROW_LIMIT;
 
+    /* @var bool reverses slice order */
+    protected $_reversed = TRUE;
+
     /**
      * CF constructor, calls init()
      * @param string $keyID row key id
@@ -401,6 +404,19 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     public function getLimit() {
         return $this->_rangeLimit;
+    }
+
+    public function setReversed($reverse) {
+        $this->_reversed = $reverse;
+    }
+
+    public function reverse($reverse) {
+        $this->setReversed($reverse);
+        return $this;
+    }
+
+    public function getReversed() {
+        return $this->_reversed;
     }
 
     /**

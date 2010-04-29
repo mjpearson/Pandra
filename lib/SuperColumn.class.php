@@ -131,7 +131,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                 $predicate->slice_range->start = '';
                 $predicate->slice_range->finish = '';
                 $predicate->slice_range->count = $this->getLimit();
-                $predicate->slice_range->reversed = TRUE;
+                $predicate->slice_range->reversed = $this->getReversed();
 
                 $result = PandraCore::getCFSlice(
                         $this->getKeySpace(),

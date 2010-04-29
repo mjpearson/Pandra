@@ -123,6 +123,16 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         return ($this->value == $cmpValue);
     }
 
+    /**
+     * Checks a given value against the validator for this column
+     * @param mixed $cmpValue value to check
+     * @param array $errors array to store error messages
+     * @return bool value checked out ok
+     */
+    public function checkValue($cmpValue, array &$errors) {
+        return PandraValidator::check($cmpValue, $this->name, $this->_typeDef, $errors);
+    }
+
     // ----------------- MUTATORS AND ACCESSORS
 
     /**
