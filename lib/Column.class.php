@@ -110,6 +110,19 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         }
     }
 
+    // ----------------- UTILITIES AND HELPERS
+
+    /**
+     * Compares a given value to the local value when normalised against the
+     * same pre-save callback
+     * @param mixed $cmpValue value to compare
+     * @return bool comparitor and local value are the same
+     */
+    public function compareToCB($cmpValue) {
+        $cmpValue = $this->callbackvalue($cmpValue);
+        return ($this->value == $cmpValue);
+    }
+
     // ----------------- MUTATORS AND ACCESSORS
 
     /**
@@ -217,11 +230,12 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * returns the callback function value for this->value
      * @return mixed result of callback eval
      */
-    public function callbackvalue() {
+    public function callbackvalue($value = NULL) {
         if ($this->_callback === NULL) {
             return $this->value;
         }
-        return call_user_func($this->_callback, $this->value);
+        $val = ($value === NULL) ? $this->value :  $value;
+        return call_user_func($this->_callback, $val);
     }
 
     /**

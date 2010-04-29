@@ -72,11 +72,12 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param int $containerType one of self::TYPE_ ordering schemas (UUID STRING)
      */
     public function __construct($keyID = NULL, $keySpace = NULL, $name = NULL, $containerType = NULL) {
+        $this->init();
         if ($containerType !== NULL) $this->setType($containerType);
         if ($keyID !== NULL) $this->setKeyID($keyID);
         if ($keySpace !== NULL) $this->setKeySpace($keySpace);
         if ($name !== NULL) $this->setName($name);
-        $this->init();
+
     }
 
     /**
