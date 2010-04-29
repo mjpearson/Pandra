@@ -56,6 +56,7 @@ class UUID {
     public static function convert($uuid, $toFmt) {
         $uuidConv = $uuid;
         $fromFmt = self::isBinary($uuid) ? self::UUID_FMT_BIN : self::UUID_FMT_STR;
+        $uuidCreate = self::instance();
         uuid_import(&self::$_uuid, $fromFmt, $uuid);
         uuid_export(self::instance(), $toFmt, &$uuidConv);
         return $uuidConv;
