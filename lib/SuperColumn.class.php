@@ -128,8 +128,8 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
             if ($autoCreate) {
 
                 $predicate->slice_range = new cassandra_SliceRange();
-                $predicate->slice_range->start = '';
-                $predicate->slice_range->finish = '';
+                $predicate->slice_range->start = $this->getStart();
+                $predicate->slice_range->finish = $this->getFinish();
                 $predicate->slice_range->count = $this->getLimit();
                 $predicate->slice_range->reversed = $this->getReversed();
 
@@ -268,5 +268,16 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
             if ($this->_parent !== NULL) $this->_parent->registerError($errorStr);
         }
     }
+
+    public function _getName() {
+        $parent = $this->getParent();
+        if ($parent !== NULL) {
+            if ($parent->getType() == self::TYPE_UUID) {
+                return UUID::convert($this->_name, UUID::UUID_FMT_STR);
+            }
+        }
+        return parent::getName();
+    }
+
 }
 ?>

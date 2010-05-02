@@ -67,6 +67,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var bool reverses slice order */
     protected $_reversed = TRUE;
 
+    protected $_start = '';
+
+    protected $_finish = '';
+
     /**
      * CF constructor, calls init()
      * @param string $keyID row key id
@@ -419,6 +423,32 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         return $this->_reversed;
     }
 
+    public function setStart($start) {
+        $this->_start = $this->typeConvert($start, UUID::UUID_FMT_BIN);
+    }
+
+    public function start($start) {
+        $this->setStart($start);
+        return $this;
+    }
+
+    public function getStart() {
+        return $this->_start;
+    }
+
+    public function setFinish($finish) {
+        $this->_finish = $this->typeConvert($finish, UUID::UUID_FMT_BIN);
+    }
+
+    public function finish($finish) {
+        $this->setFinish($finish);
+        return $this;
+    }
+
+    public function getFinish() {
+        return $this->_finish;
+    }
+
     /**
      * Converts the given column name to it's expected container type context (UUID or String)
      * @param string $columnName column name
@@ -451,7 +481,6 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return PandraColumn reference to created column
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
-
         if (!array_key_exists($columnName, $this->_columns)) {
             $this->_columns[$columnName] =
                     new PandraColumn($this->typeConvert($columnName, UUID::UUID_FMT_BIN), $typeDef);

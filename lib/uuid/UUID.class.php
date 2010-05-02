@@ -62,6 +62,11 @@ class UUID {
         return $uuidConv;
     }
 
+    public function toStr($uuid) {
+        return self::convert($uuid, self::UUID_FMT_STR);
+
+    }
+
     public static function validUUID($uuidStr) {
         return preg_match('/^\{?[0-9a-f]{8}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?[0-9a-f]{4}\-?[0-9a-f]{12}\}?$/i', $uuidStr);
     }

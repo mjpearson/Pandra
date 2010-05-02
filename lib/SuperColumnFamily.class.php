@@ -159,8 +159,8 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
             if ($autoCreate) {
 
                 $predicate->slice_range = new cassandra_SliceRange();
-                $predicate->slice_range->start = '';
-                $predicate->slice_range->finish = '';
+                $predicate->slice_range->start = $this->getStart();
+                $predicate->slice_range->finish = $this->getFinish();
                 $predicate->slice_range->count = $this->getLimit();
                 $predicate->slice_range->reversed = $this->getReversed();
 
