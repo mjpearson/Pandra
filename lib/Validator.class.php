@@ -189,7 +189,7 @@ class PandraValidator {
             $errors[] = array($label => $errorMsg);
             PandraLog::debug(array($label => $errorMsg));
         }
-
+ 
         return empty($errorMsg);
     }
 }

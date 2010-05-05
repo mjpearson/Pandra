@@ -660,16 +660,20 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
                 if ($column instanceof cassandra_Column) {
                     $columnName =  $this->typeConvert($column->name, UUID::UUID_FMT_STR);
 
-                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
+                    if ($this->getAutoCreate($colAutoCreate) ) {
                         $this->_columns[$columnName] = PandraColumn::cast($column, $this);
+                    } else if (array_key_exists($columnName, $this->_columns)) {
+                        $this->_columns[$columnName]->setValue($column->column->value);
                     }
 
                     // circular dependency?
                 } elseif ($column instanceof cassandra_ColumnOrSuperColumn && !empty($column->column)) {
                     $columnName =  $this->typeConvert($column->column->name, UUID::UUID_FMT_STR);
 
-                    if ($this->getAutoCreate($colAutoCreate) || array_key_exists($columnName, $this->_columns)) {
+                    if ($this->getAutoCreate($colAutoCreate) ) {
                         $this->_columns[$columnName] = PandraColumn::cast($column->column, $this);
+                    } else if (array_key_exists($columnName, $this->_columns)) {
+                        $this->_columns[$columnName]->setValue($column->column->value);
                     }
 
                 } else {
@@ -739,7 +743,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         }
 
         if (!$this->setColumn($columnName, $value)) {
-            throw new RuntimeException('Property '.$columnName.' does not exist');
+            throw new RuntimeException('Property '.$columnName.' could not be set');
         }
     }
 

@@ -119,10 +119,13 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                 if (!$ok) $this->registerError(PandraCore::$lastError);
 
             } else {
+
                 // @todo have this use thrift batch_insert method in core
                 $modifiedColumns = $this->getModifiedColumns();
+
+                $err = array();
                 foreach ($modifiedColumns as &$cObj) {
-                    if (!$cObj->save(PandraCore::getConsistency($consistencyLevel))) {
+                    if (!$cObj->checkValue($cObj->value, $err) || !$cObj->save(PandraCore::getConsistency($consistencyLevel))) {
                         $this->registerError($cObj->getLastError());
                         return FALSE;
                     }
