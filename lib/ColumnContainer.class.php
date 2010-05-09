@@ -653,6 +653,11 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             $data = json_decode($data, TRUE);
         }
 
+        if ($data instanceof cassandra_KeySlice) {
+            $this->setKeyID($data->key);
+            $data = $data->columns;
+        }
+
         if (is_array($data) && count($data)) {
 
             // Check depth, take first few keys as keyspace/columnfamily/key
