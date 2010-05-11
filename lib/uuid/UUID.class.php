@@ -12,6 +12,10 @@ class UUID {
 
     public static $_uuid;
 
+    const UUID_BIN = 0;
+
+    const UUID_STR = 1;
+
     const UUID_FMT_STR = UUID_FMT_STR;
 
     const UUID_FMT_BIN = UUID_FMT_BIN;
