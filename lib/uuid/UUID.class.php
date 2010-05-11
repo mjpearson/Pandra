@@ -54,17 +54,28 @@ class UUID {
     }
 
     public static function convert($uuid, $toFmt) {
-        $uuidConv = $uuid;
-        $fromFmt = self::isBinary($uuid) ? self::UUID_FMT_BIN : self::UUID_FMT_STR;
-        $uuidCreate = self::instance();
-        uuid_import(&self::$_uuid, $fromFmt, $uuid);
-        uuid_export(self::instance(), $toFmt, &$uuidConv);
-        return $uuidConv;
+        if ($toFmt == self::UUID_FMT_BIN) {
+            return self::toBin($uuid);
+        } elseif ($toFmt == self::UUID_FMT_STR) {
+            return self::toStr($uuid);
+        }
+        return $uuid;
     }
 
-    public function toStr($uuid) {
-        return self::convert($uuid, self::UUID_FMT_STR);
+    public static function toStr($uuid) {
+        if (self::isBinary($uuid)) {
+            $unpacked_string = unpack("H8a/H4b/H4c/H4d/H12e", $uuid);
+            return(implode("-", $unpacked_string));
+        }
+        return $uuid;
+    }
 
+    public static function toBin($uuid) {
+        if (!self::isBinary($uuid)) {
+            $reduced_uuid = str_replace("-", "", $uuid);
+            return (pack("H*", $reduced_uuid));
+        }
+        return $uuid;
     }
 
     public static function validUUID($uuidStr) {
