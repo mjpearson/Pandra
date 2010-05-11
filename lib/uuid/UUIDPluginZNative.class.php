@@ -26,7 +26,7 @@
  */
 /**
  * 
- * OSSP UUID plugin for Pandra
+ * Native UUID plugin for Pandra
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
