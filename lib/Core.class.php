@@ -776,8 +776,8 @@ class PandraCore {
             return $client->get_range_slice($keySpace,
                     $columnParent,
                     $predicate,
-                    $keyRange['start'],
-                    $keyRange['finish'],
+                    (isset($keyRange['start']) ? $keyRange['start'] : ''),
+                    (isset($keyRange['finish']) ? $keyRange['finish'] : ''),
                     $numRows,
                     self::getConsistency($consistencyLevel));
         } catch (TException $te) {
