@@ -23,5 +23,5 @@ define('SCHEMA_PATH', dirname(__FILE__).'/schemas/');
 define('THRIFT_PORT_DEFAULT', 9160);
 define('DEFAULT_ROW_LIMIT', 10);
 define('PERSIST_CONNECTIONS', FALSE); // TSocket Persistence
-define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-0.6.0/conf/storage-conf.xml');
+define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-0.6.1/conf/storage-conf.xml');
 ?>

@@ -11,6 +11,7 @@
  * @package pandra
  */
 define('PANDRA_64', PHP_INT_SIZE == 8);
+define('PANDRA_INSTALL_DIR', dirname(__FILE__));
 function _pandraAutoLoad($className) {
     // seperate classes and interfaces for clarity
     $fExt = array('.class.php', '.interface.php');
@@ -42,4 +43,6 @@ spl_autoload_register('_pandraAutoLoad');
 // Setup our capabilities
 PandraCore::setMemcachedAvailable(class_exists('Memcached'));
 PandraCore::setAPCAvailable(function_exists('apc_sma_info') && apc_sma_info() !== FALSE);
+
+UUID::auto();
 ?>
