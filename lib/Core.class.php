@@ -525,10 +525,13 @@ class PandraCore {
     static public function getTime() {
         // use microtime where possible
         // @todo patch thrift .so
-        if (PANDRA_64 || (!PANDRA_64 && !function_exists("thrift_protocol_write_binary"))) {
+        if (PANDRA_64) {
+            return round(microtime(true) * 1000000, 3);
+        } else if (!PANDRA_64 && !function_exists("thrift_protocol_write_binary")) {
             return round(microtime(true) * 1000, 3);
+        } else {
+            return time();
         }
-        return time();
     }
 
     // ----------------------- THRIFT COLUMN PATH INTERFACE
