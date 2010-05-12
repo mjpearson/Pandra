@@ -11,7 +11,7 @@
  * @package pandra
  */
 
-$GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/../thrift-php/';
+$GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/thrift/';
 require_once $GLOBALS['THRIFT_ROOT'].'/packages/cassandra/Cassandra.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/transport/TSocket.php';
 require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
