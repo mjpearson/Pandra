@@ -10,6 +10,14 @@
  * @version 0.2
  * @package pandra
  */
+
+$GLOBALS['THRIFT_ROOT'] = dirname(__FILE__).'/../thrift-php/';
+require_once $GLOBALS['THRIFT_ROOT'].'/packages/cassandra/Cassandra.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TSocket.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/protocol/TBinaryProtocol.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TFramedTransport.php';
+require_once $GLOBALS['THRIFT_ROOT'].'/transport/TBufferedTransport.php';
+
 define('PANDRA_64', PHP_INT_SIZE == 8);
 define('PANDRA_INSTALL_DIR', dirname(__FILE__));
 function _pandraAutoLoad($className) {

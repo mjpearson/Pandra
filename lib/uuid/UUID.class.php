@@ -69,7 +69,7 @@ class UUID {
     public static function register($pluginName) {
         $className = 'Pandra'.self::$_pluginPfx.$pluginName;
 
-        if (class_exists($className) && $className::isCapable()) {
+        if (class_exists($className) && call_user_func(array($className, 'isCapable'))) {
             self::$_pluginRef = $className;
             return TRUE;
         }
