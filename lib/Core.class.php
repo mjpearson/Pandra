@@ -522,8 +522,7 @@ class PandraCore {
      * Generates current time, or microtime for 64-bit systems
      * @return int timestamp
      */
-    static public function getTime() {
-        // use microtime where possible
+    static public function getTime() {        
         // @todo patch thrift .so
         if ((PANDRA_64) || (!PANDRA_64 && !function_exists("thrift_protocol_write_binary"))) {
             return round(microtime(true) * 1000000, 3);
