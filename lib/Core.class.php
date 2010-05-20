@@ -320,6 +320,8 @@ class PandraCore {
                     new TBinaryProtocol($transport)));
 
             $tokenMap = $client->get_string_property('token map');
+	    $transport->close();
+	    unset($transport); unset($client);
             $tokens = json_decode($tokenMap);
             foreach ($tokens as $token => $host) {
                 if (!self::connect($token, $host, $poolName)) {
@@ -427,7 +429,9 @@ class PandraCore {
 
         // check connection is open
         try {
-            self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->open();
+	    if (!self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->isOpen()) {
+              self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->open();
+            }
             return $conn;
         } catch (TException $te) {
 

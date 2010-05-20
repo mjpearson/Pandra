@@ -90,4 +90,6 @@ $addrsClone->setKeyID($keyID);
 
 // Show the JSON for our CF with cloned data.  This and the prior echo should match
 echo '<pre>'.$addrsClone->toJSON(TRUE).'</pre>';
+
+PandraCore::disconnectAll();
 ?>
