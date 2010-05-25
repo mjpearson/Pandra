@@ -24,8 +24,6 @@ class PandraLoggerMail implements PandraLogger {
 
     private $_headers = '';
 
-    private $_subject = '';
-
     private $_messages = '';
 
     /**
