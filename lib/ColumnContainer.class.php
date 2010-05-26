@@ -28,6 +28,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var int 'STRING' container type (untranslated bytes/ascii/utf8/long types) */
     const TYPE_STRING = 2;
 
+    /* @var int 'LONG' container type @todo - not implemented! */
+    const TYPE_LONG = 3;
+
     /* @var array complete list of errors for this object instance */
     public $errors = array();
 
