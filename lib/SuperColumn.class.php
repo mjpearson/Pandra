@@ -273,7 +273,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         $parent = $this->getParent();
         if ($parent !== NULL) {
             if ($parent->getType() == self::TYPE_UUID) {
-                return UUID::convert($this->_name, UUID::UUID_STR);
+                return UUID::toStr($this->_name);
             }
         }
         return parent::getName();

@@ -44,7 +44,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
         $superName = $scObj->getName();
 
         if ($this->getType() == self::TYPE_UUID && !UUID::isBinary($scObj->getName())) {
-            $scObj->setName(UUID::convert($scObj->getName(), UUID::UUID_BIN));
+            $scObj->setName(UUID::toBin($scObj->getName()));
         }
 
         $scObj->setParent($this, false);

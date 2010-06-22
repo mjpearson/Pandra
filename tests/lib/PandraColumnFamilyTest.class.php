@@ -68,7 +68,7 @@ class PandraColumnFamilyTest extends PHPUnit_Framework_TestCase {
         $cf = new PandraColumnFamily($this->_keyID, 'Keyspace1', 'StandardByUUID1', PandraColumnContainer::TYPE_UUID);
         $column = $cf->addColumn(UUID::v1());
 
-        $uuidName = UUID::convert($column->getName(), UUID_FMT_STR);
+        $uuidName = UUID::toStr($column->getName());
         $cValue = 'test value';
         $column->setValue($cValue);
         //$this->assertTrue($cf->save());

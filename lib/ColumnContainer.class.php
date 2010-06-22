@@ -462,25 +462,29 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return mixed converted column name
      */
     protected function typeConvert($columnName, $toFmt) {
-        if (($this->_containerType != self::TYPE_UUID)	) {
-            return $columnName;
+        if (($this->_containerType == self::TYPE_UUID)	) {
+
+            $bin = UUID::isBinary($columnName);
+
+            // Save accidental double-conversions on binaries
+            if (($bin && $toFmt == UUID::UUID_BIN) ||
+                    (!$bin && $toFmt == UUID::UUID_STR)) {
+                return $columnName;
+            } elseif (!$bin && !UUID::validUUID($columnName)) {
+                throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');
+            }
+
+            if ($toFmt == UUID::UUID_BIN) {
+                return UUID::toBin($columnName);
+            } elseif ($toFmt == UUID::UUID_STR) {
+                return UUID::toStr($columnName);
+            }
+        } else if ($this->_containerType == self::TYPE_LONG) {
+            $columnName = UUID::isBinary($columnName) ?
+                            unpack('NN', $columnName) :
+                            pack('NN', $columnName);
         }
 
-        $bin = UUID::isBinary($columnName);
-
-        // Save accidental double-conversions on binaries
-        if (($bin && $toFmt == UUID::UUID_BIN) ||
-                (!$bin && $toFmt == UUID::UUID_STR)) {
-            return $columnName;
-        } elseif (!$bin && !UUID::validUUID($columnName)) {
-            throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');
-        }
-
-        if ($toFmt == UUID::UUID_BIN) {
-            return UUID::toBin($columnName);
-        } elseif ($toFmt == UUID::UUID_STR) {
-            return UUID::toStr($columnName);
-        }
         return $columnName;
     }
 
@@ -563,7 +567,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function columnIn($columnName) {
         if (UUID::isBinary($columnName)) {
-            $columnName = UUID::convert($columnName, UUID::UUID_STR);
+            $columnName = UUID::toStr($columnName);
         }
         return array_key_exists($columnName, $this->_columns);
 
