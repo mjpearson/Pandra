@@ -300,6 +300,13 @@ class PandraCore {
     }
 
     /**
+     * Alias for connectBySeed (deprecated)
+     */
+    static public function auto($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+        return self::connectBySeed($host, $poolName, $port);
+    }
+
+    /**
      * Given a single host, attempts to find other nodes in the cluster and attaches them
      * to the pool
      * @todo build connections from token map
@@ -308,7 +315,7 @@ class PandraCore {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function auto($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+    static public function connectBySeed($host, $poolName = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
 
         try {
             // Create Thrift transport and binary protocol cassandra client
@@ -396,8 +403,9 @@ class PandraCore {
 
         // Catch trimmed nodes or a completely trimmed pool
         if (empty(self::$_activeNode) || empty(self::$_socketPool[self::$_activePool])) {
-            self::registerError('Not Connected', PandraLog::LOG_CRIT);
-            throw new Exception('Not Connected');
+            $err = 'Could not connect to Cassandra Server';
+            self::registerError($err, PandraLog::LOG_CRIT);
+            throw new Exception($err);
         }
 
         $activePool = self::$_socketPool[self::$_activePool];
