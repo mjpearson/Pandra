@@ -67,7 +67,7 @@ class PandraUUIDPluginZNative implements PandraUUIDPlugin {
      * @return string
      */
     public static function v1() {
-        return self::_generate(self::UUID_TIME, self::FMT_STRING, gethostname());
+        return self::_generate(self::UUID_TIME, self::FMT_STRING, function_exists('gethostname') ? gethostname() : 'cassclient');
     }
 
     /**
