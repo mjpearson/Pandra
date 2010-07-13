@@ -31,6 +31,12 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /* @var int 'LONG' container type @todo - not implemented! */
     const TYPE_LONG = 3;
 
+    /* @var int 'string' flag for type conversion */
+    const CONTEXT_STRING = 0;
+
+    /* @var int 'binary' flag for type conversion */
+    const CONTEXT_BIN = 1;
+
     /* @var array complete list of errors for this object instance */
     public $errors = array();
 
@@ -430,8 +436,18 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         return $this->_reversed;
     }
 
+    private function _setStartFinish($value, $attrib = '_start') {
+        if (($this->_containerType == self::TYPE_UUID)	) {
+            $this->$attrib = $this->typeConvert($value, self::CONTEXT_BIN);
+        } elseif (($this->_containerType == self::TYPE_LONG)) {
+            $this->$attrib = $this->typeConvert($value, self::CONTEXT_BIN);
+        } else {
+            $this->$attrib = $value;
+        }
+    }
+
     public function setStart($start) {
-        $this->_start = $this->typeConvert($start, UUID::UUID_BIN);
+        $this->_setStartFinish($start);
     }
 
     public function start($start) {
@@ -444,7 +460,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     public function setFinish($finish) {
-        $this->_finish = $this->typeConvert($finish, UUID::UUID_BIN);
+        $this->_setStartFinish($finish, '_finish');
     }
 
     public function finish($finish) {
@@ -462,33 +478,42 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * This stub can also potentially handle long and utf8 cf types
      *
      * @param string $columnName column name
-     * @param int $toFmt convert to type (UUID::UUID_BIN, UUID::UUID_STR)
+     * @param int $toFmt convert to type CONTEXT_BIN OR CONTEXT_STRING
      * @return mixed converted column name
      */
     protected function typeConvert($columnName, $toFmt) {
+        $bin = UUID::isBinary($columnName);
+
         if (($this->_containerType == self::TYPE_UUID)	) {
-
-            $bin = UUID::isBinary($columnName);
-
             // Save accidental double-conversions on binaries
-            if (($bin && $toFmt == UUID::UUID_BIN) ||
-                    (!$bin && $toFmt == UUID::UUID_STR)) {
+            if (($bin && $toFmt == self::CONTEXT_BIN) ||
+                    (!$bin && $toFmt == self::CONTEXT_STRING)) {
                 return $columnName;
             } elseif (!$bin && !UUID::validUUID($columnName)) {
                 throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');
             }
 
-            if ($toFmt == UUID::UUID_BIN) {
+            if ($toFmt == self::CONTEXT_BIN) {
                 return UUID::toBin($columnName);
-            } elseif ($toFmt == UUID::UUID_STR) {
+            } elseif ($toFmt == self::CONTEXT_STRING) {
                 return UUID::toStr($columnName);
             }
-        } else if ($this->_containerType == self::TYPE_LONG) {
-            $columnName = UUID::isBinary($columnName) ?
-                            unpack('NN', $columnName) :
-                            pack('NN', $columnName);
-        }
 
+        } else if ($this->_containerType == self::TYPE_LONG) {
+            // Save accidental double-conversions on binaries
+            if (($bin && $toFmt == self::CONTEXT_BIN) ||
+                    (!$bin && $toFmt == self::CONTEXT_STRING)) {
+                return $columnName;
+
+                // unpack the long
+            } elseif ($bin && $toFmt == self::CONTEXT_STRING) {
+                $columnName = array_pop(unpack('N', $columnName));
+
+                // pack the long
+            } elseif (!$bin && $toFmt == self::CONTEXT_BIN) {
+                $columnName = pack('NN', $columnName, 0);
+            }
+        }
         return $columnName;
     }
 
@@ -500,15 +525,29 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return PandraColumn reference to created column
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
-        if (!array_key_exists($columnName, $this->_columns)) {
+
+        // can't use array_key_exists - it truncates floats on 32 bit systems
+        $foundKey = FALSE;
+        foreach ($this->_columns as $key => $value) {
+            $foundKey = ($key == $columnName);
+            if ($foundKey) break;
+        }
+
+        if (!$foundKey) {
             $this->_columns[$columnName] =
-                    new PandraColumn($this->typeConvert($columnName, UUID::UUID_BIN), $typeDef);
+                    new PandraColumn($this->typeConvert($columnName, self::CONTEXT_BIN, $typeDef));
 
             $this->_columns[$columnName]->setParent($this, FALSE);
         }
 
         // pre-save callback
         if (!empty($callbackOnSave)) $this->getColumn($columnName)->setCallback($callbackOnSave);
+
+        // php sucks balls, lets lose our precision.
+        if (!PANDRA_64 && $this->_containerType == self::TYPE_LONG) {
+            $columnName = (int) $columnName;
+        }
+
         return $this->getColumn($columnName);
     }
 
@@ -518,7 +557,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function addColumnObj(PandraColumn $columnObj) {
         if ($columnObj->getName() === NULL) throw new RuntimeException('Column has no name');
-        $this->_columns[$this->typeConvert($columnObj->name, UUID::UUID_STR)] = $columnObj;
+        $this->_columns[$this->typeConvert($columnObj->name, self::CONTEXT_STRING)] = $columnObj;
     }
 
     /**
@@ -682,7 +721,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             // Check depth, take first few keys as keyspace/columnfamily/key
             foreach ($data as $idx => $column) {
                 if ($column instanceof cassandra_Column) {
-                    $columnName =  $this->typeConvert($column->name, UUID::UUID_STR);
+                    $columnName =  $this->typeConvert($column->name, self::CONTEXT_STRING);
 
                     if ($this->getAutoCreate($colAutoCreate) ) {
                         $this->_columns[$columnName] = PandraColumn::cast($column, $this);
@@ -692,7 +731,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
                     // circular dependency?
                 } elseif ($column instanceof cassandra_ColumnOrSuperColumn && !empty($column->column)) {
-                    $columnName =  $this->typeConvert($column->column->name, UUID::UUID_STR);
+                    $columnName =  $this->typeConvert($column->column->name, self::CONTEXT_STRING);
 
                     if ($this->getAutoCreate($colAutoCreate) ) {
                         $this->_columns[$columnName] = PandraColumn::cast($column->column, $this);

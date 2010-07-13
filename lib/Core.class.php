@@ -52,9 +52,9 @@ class PandraCore {
     static private $writeMode = self::MODE_RANDOM;
 
     static private $_supportedReadConsistency = array(
-        cassandra_ConsistencyLevel::ONE,
-        cassandra_ConsistencyLevel::QUORUM,
-        cassandra_ConsistencyLevel::ALL
+            cassandra_ConsistencyLevel::ONE,
+            cassandra_ConsistencyLevel::QUORUM,
+            cassandra_ConsistencyLevel::ALL
     );
 
     /* @var supported modes for this core version */
@@ -227,6 +227,8 @@ class PandraCore {
                 // Create Thrift transport and binary protocol cassandra client
                 $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
 
+                self::_authOpen($transport, $keySpace);
+
                 self::$_socketPool[$keySpace][$connectionID] = array(
                         'retries' => 0,
                         'transport' => $transport,
@@ -244,7 +246,6 @@ class PandraCore {
             }
         } catch (TException $te) {
             self::registerError('TException: '.$te->getMessage(), PandraLog::LOG_CRIT);
-
         }
 
         return FALSE;
@@ -316,8 +317,8 @@ class PandraCore {
     static public function authKeyspace($keySpace, $username, $password) {
         $auth = new cassandra_AuthenticationRequest();
         $auth->credentials = array (
-            "username" => $username,
-            "password" => $password
+                "username" => $username,
+                "password" => $password
         );
         self::$_ksAuth[$keySpace] = $auth;
     }
@@ -325,44 +326,49 @@ class PandraCore {
     /**
      * Alias for connectBySeed (deprecated)
      */
-    static public function auto($host, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
-        return self::connectSeededKeyspace($host, $keySpace, $port);
+    static public function auto($hosts, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+        return self::connectSeededKeyspace($hosts, $keySpace, $port);
     }
 
     /**
      * Given a single host, attempts to find other nodes in the cluster and attaches them
      * to the pool
      * @todo build connections from token map
-     * @param string $host host name or IP of connecting node
+     * @param mixed $hosts host name or IP of connecting node (or array thereof)
      * @param string $keySpace name of the connection pool (cluster name - usually keyspace)
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connectSeededKeyspace($host, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+    static public function connectSeededKeyspace($hosts, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
 
-        try {
-            // Create Thrift transport and binary protocol cassandra client
-            $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
-            $transport->open();
-            $client = new CassandraClient(
-                    (function_exists("thrift_protocol_write_binary") ?
-                    new TBinaryProtocolAccelerated($transport) :
-                    new TBinaryProtocol($transport)));
+        if (!is_array($hosts)) {
+            $hosts = (array) $hosts;
+        }
 
-            // @todo this has been deprecated by 'describe_ring' 0.6.3
-            $tokenMap = $client->get_string_property('token map');
-	    $transport->close();
-	    unset($transport); unset($client);
-            $tokens = json_decode($tokenMap);
-            foreach ($tokens as $token => $host) {
-                if (!self::connect($token, $host, $keySpace)) {
-                    return FALSE;
+        foreach ($hosts as $host) {
+            try {
+                // Create Thrift transport and binary protocol cassandra client
+                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                $transport->open();
+                $client = new CassandraClient(
+                        (function_exists("thrift_protocol_write_binary") ?
+                        new TBinaryProtocolAccelerated($transport) :
+                        new TBinaryProtocol($transport)));
+
+                // @todo this has been deprecated by 'describe_ring' 0.6.3
+                $tokenMap = $client->get_string_property('token map');
+                $transport->close();
+                unset($transport); unset($client);
+                $tokens = json_decode($tokenMap);
+                foreach ($tokens as $token => $host) {
+                    if (!self::connect($token, $host, $keySpace)) {
+                        return FALSE;
+                    }
                 }
+                return TRUE;
+            } catch (TException $te) {
+                self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             }
-
-            return TRUE;
-        } catch (TException $te) {
-            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
         }
         return FALSE;
     }
@@ -425,7 +431,7 @@ class PandraCore {
      * @param bool $writeMode optional get the write mode client
      * @param string $keySpace optional keyspace where auth has been defined
      */
-    static public function getClient($writeMode = FALSE, $keySpace = NULL) {
+    static public function getClient($writeMode = FALSE, $keySpace = self::DEFAULT_POOL_NAME) {
 
         // Catch trimmed nodes or a completely trimmed pool
         if (empty(self::$_activeNode) || empty(self::$_socketPool[self::$_activePool])) {
@@ -463,7 +469,7 @@ class PandraCore {
 
         // check connection is open
         try {
-	    if (!self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->isOpen()) {
+            if (!self::$_socketPool[self::$_activePool][self::$_activeNode]['transport']->isOpen()) {
                 self::_authOpen(self::$_socketPool[self::$_activePool][self::$_activeNode]['transport'], $keySpace);
             }
             return $conn;
