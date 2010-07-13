@@ -66,8 +66,8 @@ class PandraUUIDPluginZNative implements PandraUUIDPlugin {
      * returns a type 1 (MAC address and time based) uuid
      * @return string
      */
-    public static function v1() {
-        return self::_generate(self::UUID_TIME, self::FMT_STRING, function_exists('gethostname') ? gethostname() : 'cassclient');
+    public static function v1($namespace = 'cassclient') {
+        return self::_generate(self::UUID_TIME, self::FMT_STRING, function_exists('gethostname') ? gethostname() : $namespace);
     }
 
     /**
