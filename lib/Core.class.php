@@ -24,8 +24,11 @@ class PandraCore {
     /* @var string Last internal error */
     static public $lastError = '';
 
-    /* @var int default consistency level */
-    static private $_consistencyLevel = cassandra_ConsistencyLevel::ONE;
+    /* @var int default write consistency level */
+    static private $_consistencyLevelWrite = cassandra_ConsistencyLevel::ONE;
+
+    /* @var int default read consistency level */
+    static private $_consistencyLevelRead = cassandra_ConsistencyLevel::ONE;
 
     /* @var string currently selected node */
     static private $_activePool = NULL;
@@ -47,6 +50,12 @@ class PandraCore {
 
     /* @var int default write mode (active/round/random) */
     static private $writeMode = self::MODE_RANDOM;
+
+    static private $_supportedReadConsistency = array(
+        cassandra_ConsistencyLevel::ONE,
+        cassandra_ConsistencyLevel::QUORUM,
+        cassandra_ConsistencyLevel::ALL
+    );
 
     /* @var supported modes for this core version */
     static private $_supportedModes = array(
@@ -326,6 +335,7 @@ class PandraCore {
                     new TBinaryProtocolAccelerated($transport) :
                     new TBinaryProtocol($transport)));
 
+            // @todo this has been deprecated by 'describe_ring' 0.6.3
             $tokenMap = $client->get_string_property('token map');
 	    $transport->close();
 	    unset($transport); unset($client);
@@ -498,12 +508,18 @@ class PandraCore {
     /**
      * consistency accessor
      * @param int $consistencyLevel overrides the return, or returns default if NULL
+     * @param bool $readMode optional return the read mode consistency (default write)
      * @return int consistency level
      */
-    static public function getConsistency($consistencyLevel = NULL) {
-        $consistency = self::$_consistencyLevel;
+    static public function getConsistency($consistencyLevel = NULL, $readMode = FALSE) {
+        $consistency = ($readMode) ? self::$_consistencyLevelRead : self::$_consistencyLevelWrite;
         if ($consistencyLevel !== NULL) {
             $consistency = $consistencyLevel;
+        }
+
+        // warn devs they should be setting proper consistency
+        if ($readMode && !in_array($consistencyLevel, self::$_supportedReadConsistency)) {
+            self::registerError("Unsupported Read Consistency", PandraLog::LOG_WARNING);
         }
 
         return $consistency;
@@ -512,9 +528,14 @@ class PandraCore {
     /**
      * consistency mutator
      * @param int $consistencyLevel new consistency level
+     * @param bool $readMode optional set read consistency (default write)
      */
-    static public function setConsistency($consistencyLevel) {
-        self::$_consistencyLevel = $consistencyLevel;
+    static public function setConsistency($consistencyLevel, $readMode = FALSE) {
+        if ($readMode) {
+            self::$_consistencyLevelRead = $consistencyLevel;
+        } else {
+            self::$_consistencyLevelWrite = $consistencyLevel;
+        }
     }
 
     /**
@@ -757,6 +778,8 @@ class PandraCore {
             $columnPath,
             $consistencyLevel = NULL) {
         $client = self::getClient();
+
+
 
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));

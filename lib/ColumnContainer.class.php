@@ -86,8 +86,12 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         if ($containerType !== NULL) $this->setType($containerType);
         if ($keyID !== NULL) $this->setKeyID($keyID);
         if ($keySpace !== NULL) $this->setKeySpace($keySpace);
-        if ($name !== NULL) $this->setName($name);
-
+        if ($name !== NULL) {
+            $this->setName($name);
+        } else if ($name === NULL && $this->getName() === NULL) {
+            // Fall back to the class name
+            $this->setName(get_class($this));
+        }
     }
 
     /**
