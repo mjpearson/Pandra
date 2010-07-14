@@ -214,7 +214,7 @@ class PandraCore {
         try {
 
             // check connectionid hasn't been marked as down
-            if (self::priorFail($connectionID)) {
+            if (self::_priorFail($connectionID)) {
                 self::registerError($host.'/'.$port.' is marked DOWN', PandraLog::LOG_CRIT);
             } else {
                 // if the connection exists but it is closed, return (getClient will open)
@@ -459,7 +459,7 @@ class PandraCore {
             case self::MODE_ACTIVE :
             default :
             // If we're trying to use an explicit connection id and it's down, then bail
-                if (self::priorFail(self::$_activeNode)) {
+                if (self::_priorFail(self::$_activeNode)) {
                     return NULL;
                 }
 
@@ -476,7 +476,7 @@ class PandraCore {
         } catch (TException $te) {
 
             if (++self::$_socketPool[self::$_activePool][self::$_activeNode]['retries'] > self::$_maxRetries) {
-                self::setLastFail();
+                self::_setLastFail();
                 unset(self::$_socketPool[self::$_activePool][self::$_activeNode]);
             }
 
@@ -507,7 +507,7 @@ class PandraCore {
      * Stores the last failure time for a node in the cache (Memcached takes precedence)
      * @param string $connectionID connection id
      */
-    static private function setLastFail($connectionID = NULL) {
+    static private function _setLastFail($connectionID = NULL) {
         $key = 'lastfail_'.md5($connectionID === NULL ? self::$_activeNode : $connectionID);
         if (self::$_memcachedAvailable && self::$_memCached instanceof Memcached) {
             self::$_memcached->set($key, time(), self::$_retryCooldown);
@@ -521,7 +521,7 @@ class PandraCore {
      * @param string $connectionID connection id
      * @return bool node marked down
      */
-    static private function priorFail($connectionID = NULL) {
+    static private function _priorFail($connectionID = NULL) {
         $key = 'lastfail_'.md5($connectionID === NULL ? self::$_activeNode : $connectionID);
         $ok = FALSE;
         if (self::$_memcachedAvailable && self::$_memCached instanceof Memcached) {

@@ -437,9 +437,8 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     private function _setStartFinish($value, $attrib = '_start') {
-        if (($this->_containerType == self::TYPE_UUID)	) {
-            $this->$attrib = $this->typeConvert($value, self::CONTEXT_BIN);
-        } elseif (($this->_containerType == self::TYPE_LONG)) {
+        if ($this->_containerType == self::TYPE_UUID ||
+             $this->_containerType == self::TYPE_LONG) {
             $this->$attrib = $this->typeConvert($value, self::CONTEXT_BIN);
         } else {
             $this->$attrib = $value;
@@ -475,21 +474,25 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     /**
      * Converts the given column name to it's expected container type context (UUID or String)
      *
-     * This stub can also potentially handle long and utf8 cf types
+     * This stub can also potentially handle utf8 cf types
      *
      * @param string $columnName column name
      * @param int $toFmt convert to type CONTEXT_BIN OR CONTEXT_STRING
      * @return mixed converted column name
      */
     protected function typeConvert($columnName, $toFmt) {
+        // @todo move to generic helper
         $bin = UUID::isBinary($columnName);
 
-        if (($this->_containerType == self::TYPE_UUID)	) {
-            // Save accidental double-conversions on binaries
-            if (($bin && $toFmt == self::CONTEXT_BIN) ||
-                    (!$bin && $toFmt == self::CONTEXT_STRING)) {
+        // Save accidental double-conversions on binaries
+        if (($bin && $toFmt == self::CONTEXT_BIN) ||
+            (!$bin && $toFmt == self::CONTEXT_STRING)) {
                 return $columnName;
-            } elseif (!$bin && !UUID::validUUID($columnName)) {
+        }
+
+        if (($this->_containerType == self::TYPE_UUID)	) {
+
+            if (!$bin && !UUID::validUUID($columnName)) {
                 throw new RuntimeException('Column Name ('.$columnName.') cannot be converted');
             }
 
@@ -500,20 +503,16 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             }
 
         } else if ($this->_containerType == self::TYPE_LONG) {
-            // Save accidental double-conversions on binaries
-            if (($bin && $toFmt == self::CONTEXT_BIN) ||
-                    (!$bin && $toFmt == self::CONTEXT_STRING)) {
-                return $columnName;
-
-                // unpack the long
-            } elseif ($bin && $toFmt == self::CONTEXT_STRING) {
+            // unpack the long
+            if ($bin && $toFmt == self::CONTEXT_STRING) {
                 $columnName = array_pop(unpack('N', $columnName));
 
-                // pack the long
+            // pack the long
             } elseif (!$bin && $toFmt == self::CONTEXT_BIN) {
                 $columnName = pack('NN', $columnName, 0);
             }
         }
+
         return $columnName;
     }
 
@@ -526,11 +525,15 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
 
-        // can't use array_key_exists - it truncates floats on 32 bit systems
-        $foundKey = FALSE;
-        foreach ($this->_columns as $key => $value) {
-            $foundKey = ($key == $columnName);
-            if ($foundKey) break;
+        // can't use array_key_exists for longs - floats are truncated
+        if ($this->_containerType == self::TYPE_LONG) {
+            $foundKey = FALSE;
+            foreach ($this->_columns as $key => $value) {
+                $foundKey = ($key == $columnName);
+                if ($foundKey) break;
+            }
+        } else {
+            $foundKey = array_key_exists($columnName, $this->_columns);
         }
 
         if (!$foundKey) {
@@ -543,7 +546,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         // pre-save callback
         if (!empty($callbackOnSave)) $this->getColumn($columnName)->setCallback($callbackOnSave);
 
-        // php sucks balls, lets lose our precision.
+        // @todo php sucks balls, lets lose our precision.
         if (!PANDRA_64 && $this->_containerType == self::TYPE_LONG) {
             $columnName = (int) $columnName;
         }
