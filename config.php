@@ -16,4 +16,11 @@ define('PERSIST_CONNECTIONS', TRUE); // TSocket Persistence
 define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-0.6.1/conf/storage-conf.xml');
 
 require_once dirname(__FILE__).'/lib/loader.php';
+
+// Put any extra setups in project_config.php
+// ie: setting up loggers, creating connections etc.
+// This is also built by build-models
+if (file_exists(dirname(__FILE__).'/project_config.php')) {
+    require_once(dirname(__FILE__).'project_config.php');
+}
 ?>
