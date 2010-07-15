@@ -120,17 +120,28 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
 
             } else {
 
-                // @todo have this use thrift batch_insert method in core
                 $modifiedColumns = $this->getModifiedColumns();
 
-                $err = array();
+                // build mutation
+                $map = array($this->getKeyID() => array($this->getName() => array()));
+
+                // @todo - test delete mutate
                 foreach ($modifiedColumns as &$cObj) {
-                    if (!$cObj->checkValue($cObj->value, $err) || !$cObj->save(PandraCore::getConsistency($consistencyLevel))) {
-                        $this->registerError($cObj->getLastError());
-                        return FALSE;
+                    $cObj->bindTime();
+
+                    if ($cObj->isDeleted()) {
+                        $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, array($cObj->getName()));
+                        $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
+                        $m = new cassandra_Mutation(array('deletion' => $sc));
+                    } else {
+                        $sc = new cassandra_ColumnOrSuperColumn(array('column' => $cObj));
+                        $m = new cassandra_Mutation(array('column_or_supercolumn' => $sc));
                     }
+
+                    $map[$this->getKeyID()][$this->getName()][] = $m;
                 }
-                $ok = TRUE;
+
+                $ok = PandraCore::saveMutation($this->getKeySpace(), $map, $consistencyLevel);
             }
             if ($ok) $this->reset();
         }

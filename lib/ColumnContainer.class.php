@@ -334,23 +334,23 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         $this->unsetColumn($columnName);
     }
 
-    public function unsetColumn($columnName) {
-        if (array_key_exists($columnName, $this->_columns)) {
-            $this->_columns[$columnName]->disown(FALSE);
-            unset($this->_columns[$columnName]);
-        }
-    }
-
     /**
      * Get column value by column name
      * @param string $offset column name
      * @return mixed column value
      */
     public function offsetGet($columnName) {
-        if ($columnName instanceof PandraClause) {
+        if ($columnName instanceof PandraClause || $columnName instanceof PandraQuery) {
             return $this->getColumn($columnName);
         }
         return $this->__get($columnName);
+    }
+
+    public function unsetColumn($columnName) {
+        if (array_key_exists($columnName, $this->_columns)) {
+            $this->_columns[$columnName]->disown(FALSE);
+            unset($this->_columns[$columnName]);
+        }
     }
 
     /**
@@ -438,7 +438,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     private function _setStartFinish($value, $attrib = '_start') {
         if ($this->_containerType == self::TYPE_UUID ||
-             $this->_containerType == self::TYPE_LONG) {
+                $this->_containerType == self::TYPE_LONG) {
             $this->$attrib = $this->typeConvert($value, self::CONTEXT_BIN);
         } else {
             $this->$attrib = $value;
@@ -486,8 +486,8 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
         // Save accidental double-conversions on binaries
         if (($bin && $toFmt == self::CONTEXT_BIN) ||
-            (!$bin && $toFmt == self::CONTEXT_STRING)) {
-                return $columnName;
+                (!$bin && $toFmt == self::CONTEXT_STRING)) {
+            return $columnName;
         }
 
         if (($this->_containerType == self::TYPE_UUID)	) {
@@ -507,7 +507,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             if ($bin && $toFmt == self::CONTEXT_STRING) {
                 $columnName = array_pop(unpack('N', $columnName));
 
-            // pack the long
+                // pack the long
             } elseif (!$bin && $toFmt == self::CONTEXT_BIN) {
                 $columnName = pack('NN', $columnName, 0);
             }
@@ -570,9 +570,14 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      */
     public function getColumn($columnMatch) {
 
-        // Extract matching named columns based on clause
-        if ($columnMatch instanceof PandraClause) {
+        // @todo document that only empty containers can act as dynamic views.
+        if ($columnMatch instanceof PandraQuery && empty($this->_columns)) {
+            $columnMatch->setInvoker($this);
+            $columnMatch->graphContext(get_class($this));
+            return $columnMatch;
 
+        // Extract matching named columns based on clause
+        } elseif ($columnMatch instanceof PandraClause) {
             $matches = array();
 
             foreach ($this->_columns as $columnName => &$column) {

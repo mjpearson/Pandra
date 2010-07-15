@@ -11,8 +11,6 @@
 
 class PandraClauseIn extends PandraClause {
 
-    protected $_type = self::TYPE_LITERAL;
-
     private $_valueIn = array();
 
     public function __construct() {

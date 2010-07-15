@@ -18,8 +18,6 @@ class PandraClauseRegex extends PandraClause {
 
     public $matches = array();
 
-    protected $_type = self::TYPE_FILTER;
-
     public function __construct() {
         $args = func_get_args();
 

@@ -355,14 +355,15 @@ class PandraCore {
                         new TBinaryProtocolAccelerated($transport) :
                         new TBinaryProtocol($transport)));
 
-                // @todo this has been deprecated by 'describe_ring' 0.6.3
-                $tokenMap = $client->get_string_property('token map');
+                $tokenMap = $client->describe_ring($keySpace);
                 $transport->close();
                 unset($transport); unset($client);
-                $tokens = json_decode($tokenMap);
-                foreach ($tokens as $token => $host) {
-                    if (!self::connect($token, $host, $keySpace)) {
-                        return FALSE;
+
+                foreach ($tokenMap as $tokenRange) {
+                    foreach ($tokenRange->endpoints as $host) {
+                        if (!self::connect(md5($host), $host, $keySpace)) {
+                            return FALSE;
+                        }
                     }
                 }
                 return TRUE;
@@ -695,8 +696,20 @@ class PandraCore {
             }
 
             // batch_insert inserts a supercolumn across multiple CF's for key
+            // @todo batch mutate
             $client->batch_insert($keySpace, $keyID, $mutations, self::getConsistency($consistencyLevel));
 
+        } catch (TException $te) {
+            self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    public function saveMutation($keySpace, $mutation, $consistencyLevel = NULL) {
+        try {
+            $client = self::getClient(TRUE, $keySpace);
+            $client->batch_mutate($keySpace, $mutation, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
@@ -819,8 +832,6 @@ class PandraCore {
             $consistencyLevel = NULL) {
         $client = self::getClient(FALSE, $keySpace);
 
-
-
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
@@ -831,15 +842,15 @@ class PandraCore {
 
     /**
      * @param string $keySpace keyspace of key
-     * @param array $keyRange associative array of keys indexed by 'start' and 'finish'
+     * @param cassandra_KeyRange $keyRange
      * @param cassandra_ColumnParent $columnParent
      * @param cassandra_SlicePredicate $predicate column names or range predicate
      * @param int number of rows to return
      * @param int $consistencyLevel response consistency level
      * @return <type>
      */
-    static public function getRangeKeys($keySpace,
-            array $keyRange,
+    static public function getRangeSlices($keySpace,
+            cassandra_KeyRange $keyRange,
             cassandra_ColumnParent $columnParent,
             cassandra_SlicePredicate $predicate,
             $numRows = DEFAULT_ROW_LIMIT,
@@ -848,11 +859,10 @@ class PandraCore {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->get_range_slice($keySpace,
+            return $client->get_range_slices($keySpace,
                     $columnParent,
                     $predicate,
-                    (isset($keyRange['start']) ? $keyRange['start'] : ''),
-                    (isset($keyRange['finish']) ? $keyRange['finish'] : ''),
+                    $keyRange,
                     $numRows,
                     self::getConsistency($consistencyLevel));
         } catch (TException $te) {
