@@ -21,6 +21,6 @@ require_once dirname(__FILE__).'/lib/loader.php';
 // ie: setting up loggers, creating connections etc.
 // This is also built by build-models
 if (file_exists(dirname(__FILE__).'/project_config.php')) {
-    require_once(dirname(__FILE__).'project_config.php');
+    require_once(dirname(__FILE__).'/project_config.php');
 }
 ?>
