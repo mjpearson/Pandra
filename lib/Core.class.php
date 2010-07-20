@@ -592,6 +592,30 @@ class PandraCore {
         return $conf;
     }
 
+    static public function loadConfig() {
+        if (!file_exists(CASSANDRA_CONF_PATH)) {
+            throw new RuntimeException('Cannot build models, file not found ('.CASSANDRA_CONF_PATH.')\n');
+        }
+
+        $tokens = explode('/', CASSANDRA_CONF_PATH);
+        $file = array_pop($tokens);
+
+        list($f, $ext) = explode('.', $file);
+        $ext = strtolower($ext);
+
+        $conf = NULL;
+        if ($ext == 'xml') {
+            $conf = simplexml_load_file(CASSANDRA_CONF_PATH);
+        } elseif ($ext == 'yaml') {
+            if (!function_exists('syck_load')) {
+                throw new RuntimeException('YAML config found but syck module not supported');
+            } else {
+                $conf = syck_load(file_get_contents(CASSANDRA_CONF_PATH));
+            }
+        }
+        return $conf;
+    }
+
     /**
      * Generates current time, or microtime for 64-bit systems
      * @return int timestamp
