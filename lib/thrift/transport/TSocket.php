@@ -222,7 +222,7 @@ class TSocket extends TTransport {
     $pre = null;
     while (TRUE) {
       $buf = @fread($this->handle_, $len);
-      if ($buf === FALSE || $buf === '') {
+      if ($buf === FALSE) {
         $md = stream_get_meta_data($this->handle_);
         if ($md['timed_out']) {
           throw new TException('TSocket: timed out reading '.$len.' bytes from '.
@@ -233,7 +233,7 @@ class TSocket extends TTransport {
         }
       } else if (($sz = strlen($buf)) < $len) {
         $md = stream_get_meta_data($this->handle_);
-        if ($md['timed_out']) {
+        if ($md['timed_out'] && false === $md['blocked']) {
           throw new TException('TSocket: timed out reading '.$len.' bytes from '.
                                $this->host_.':'.$this->port_);
         } else {
@@ -257,9 +257,11 @@ class TSocket extends TTransport {
       stream_set_timeout($this->handle_, 0, $this->recvTimeout_*1000);
       $this->sendTimeoutSet_ = FALSE;
     }
+    $md = stream_get_meta_data($this->handle_);
+    if ($md['unread_bytes'] > 0 && $md['unread_bytes'] < $len ) $len = $md['unread_bytes'];
     $data = @fread($this->handle_, $len);
     if ($data === FALSE || $data === '') {
-      $md = stream_get_meta_data($this->handle_);
+      //$md = stream_get_meta_data($this->handle_);
       if ($md['timed_out']) {
         throw new TException('TSocket: timed out reading '.$len.' bytes from '.
                              $this->host_.':'.$this->port_);

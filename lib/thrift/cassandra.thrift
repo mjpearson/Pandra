@@ -151,7 +151,7 @@ exception AuthorizationException {
  *              calls will have correct data even if the initial read gets an older value. (This is called 'read repair'.)
  *      QUORUM  Will query all storage nodes and return the record with the most recent timestamp once it has at least a
  *              majority of replicas reported. Again, the remaining replicas will be checked in the background.
- *      ALL     Not yet supported, but we plan to eventually.
+ *      ALL     Queries all storage nodes and returns the record with the most recent timestamp.
 */
 enum ConsistencyLevel {
     ZERO = 0,
@@ -198,7 +198,7 @@ struct ColumnPath {
                   must a valid value under the rules of the Comparator defined for the given ColumnFamily.
     @param finish. The column name to stop the slice at. This attribute is not required, though there is no default value,
                    and can be safely set to an empty byte array to not stop until 'count' results are seen. Otherwise, it
-                   must also be a value value to the ColumnFamily Comparator.
+                   must also be a valid value to the ColumnFamily Comparator.
     @param reversed. Whether the results should be ordered in reversed order. Similar to ORDER BY blah DESC in SQL.
     @param count. How many keys to return. Similar to LIMIT 100 in SQL. May be arbitrarily large, but Thrift will
                   materialize the whole result into memory before returning it to the client, so be aware that you may
@@ -443,7 +443,8 @@ service Cassandra {
 
       for the same reason, we can't return a set here, even though
       order is neither important nor predictable. */
-  list<TokenRange> describe_ring(1:required string keyspace),
+  list<TokenRange> describe_ring(1:required string keyspace)
+                   throws (1:InvalidRequestException ire),
 
   /** describe specified keyspace */
   map<string, map<string, string>> describe_keyspace(1:required string keyspace)
