@@ -15,6 +15,10 @@ define('DEFAULT_ROW_LIMIT', 10);
 define('PERSIST_CONNECTIONS', TRUE); // TSocket Persistence
 define('CASSANDRA_CONF_PATH', '/usr/local/src/apache-cassandra-0.6.3/conf/cassandra.yaml');
 
+define('DEFAULT_POOL_NAME', 'Keyspace1');
+define('MAX_RETRIES', 2);
+define('RETRY_COOLDOWN', 10);
+
 require_once dirname(__FILE__).'/lib/loader.php';
 
 // Put any extra setups in project_config.php

@@ -19,8 +19,6 @@ class PandraCore {
 
     const MODE_RANDOM = 2; // select random node
 
-    const DEFAULT_POOL_NAME = 'Keyspace1';
-
     /* @var string Last internal error */
     static public $lastError = '';
 
@@ -40,10 +38,10 @@ class PandraCore {
     static private $_activeNode = NULL;
 
     /* @var int maximum number of retries *per 'core'* before marking a host down */
-    static private $_maxRetries = 2;
+    static private $_maxRetries = MAX_RETRIES;
 
     /* @var int retry cooldown interval in seconds against a problem host */
-    static private $_retryCooldown = 10;
+    static private $_retryCooldown = RETRY_COOLDOWN;
 
     /* @var int default read mode (active/round/random) */
     static private $readMode = self::MODE_RANDOM;
@@ -72,6 +70,9 @@ class PandraCore {
 
     /* @var bool APC is available for use */
     static private $_apcAvailable = FALSE;
+
+    /* @var bool downgrade quorum read/writes if we don't have enough pool connections. **experimental */
+    static private $_autoDowngrades FALSE;
 
     static private $_loggers = array();
 
@@ -210,7 +211,7 @@ class PandraCore {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connect($connectionID, $host, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+    static public function connect($connectionID, $host, $keySpace = DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         try {
 
             // check connectionid hasn't been marked as down
@@ -326,7 +327,7 @@ class PandraCore {
     /**
      * Alias for connectBySeed (deprecated)
      */
-    static public function auto($hosts, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+    static public function auto($hosts, $keySpace = DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         return self::connectSeededKeyspace($hosts, $keySpace, $port);
     }
 
@@ -339,7 +340,7 @@ class PandraCore {
      * @param int $port TCP port of connecting node
      * @return bool connected ok
      */
-    static public function connectSeededKeyspace($hosts, $keySpace = self::DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
+    static public function connectSeededKeyspace($hosts, $keySpace = DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
 
         if (!is_array($hosts)) {
             $hosts = (array) $hosts;
@@ -379,7 +380,7 @@ class PandraCore {
      * @param <type> $keySpace
      * @return <type>
      */
-    static public function getPoolTokens($keySpace = self::DEFAULT_POOL_NAME) {
+    static public function getPoolTokens($keySpace = DEFAULT_POOL_NAME) {
         if (!empty(self::$_socketPool[$keySpace])) {
             return array_keys(self::$_socketPool[$keySpace]);
         }
@@ -432,11 +433,11 @@ class PandraCore {
      * @param bool $writeMode optional get the write mode client
      * @param string $keySpace optional keyspace where auth has been defined
      */
-    static public function getClient($writeMode = FALSE, $keySpace = self::DEFAULT_POOL_NAME) {
+    static public function getClient($writeMode = FALSE, $keySpace = DEFAULT_POOL_NAME) {
 
         // Catch trimmed nodes or a completely trimmed pool
         if (empty(self::$_activeNode) || empty(self::$_socketPool[self::$_activePool])) {
-            $err = 'Could not connect to Cassandra Server';
+            $err = 'Could not connect to Cassandra Server, pool '.self::$_activePool.' is empty';
             self::registerError($err, PandraLog::LOG_CRIT);
             throw new Exception($err);
         }
@@ -561,6 +562,21 @@ class PandraCore {
         // warn devs they should be setting proper consistency
         if ($readMode && !in_array($consistencyLevel, self::$_supportedReadConsistency)) {
             self::registerError("Unsupported Read Consistency", PandraLog::LOG_WARNING);
+        }
+
+        // downgrade if we don't have enough hosts in the active pool to support this consistency
+        // ** experimental!
+        if (self::$_autoDowngrades) {
+            $quorums = array(
+                                cassandra_ConsistencyLevel::QUORUM,
+                                cassandra_ConsistencyLevel::DCQUORUM,
+                                cassandra_ConsistencyLevel::DCQUORUMSYNC
+                            );
+
+            if (in_array($consistency, $quorums) && count(self::$_socketPool[self::$_activePool]) < 2) {
+                $consistencyLevel == cassandra_ConsistencyLevel::ONE;
+                self::registerError("Auto downgrading to consistency 1. Not enough connected hosts for Quroum", PandraLog::LOG_WARNING);
+            }
         }
 
         return $consistency;
