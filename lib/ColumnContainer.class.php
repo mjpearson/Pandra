@@ -537,9 +537,9 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         }
 
         if (!$foundKey) {
-            $this->_columns[$columnName] =
-                    new PandraColumn($this->typeConvert($columnName, self::CONTEXT_BIN, $typeDef));
 
+            $this->_columns[$columnName] =
+                    new PandraColumn($this->typeConvert($columnName, self::CONTEXT_BIN), $typeDef);
             $this->_columns[$columnName]->setParent($this, FALSE);
         }
 
@@ -576,7 +576,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             $columnMatch->graphContext(get_class($this));
             return $columnMatch;
 
-        // Extract matching named columns based on clause
+            // Extract matching named columns based on clause
         } elseif ($columnMatch instanceof PandraClause) {
             $matches = array();
 
