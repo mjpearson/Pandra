@@ -72,7 +72,7 @@ class PandraCore {
     static private $_apcAvailable = FALSE;
 
     /* @var bool downgrade quorum read/writes if we don't have enough pool connections. **experimental */
-    static private $_autoDowngrades FALSE;
+    static private $_autoDowngrades = FALSE;
 
     static private $_loggers = array();
 
