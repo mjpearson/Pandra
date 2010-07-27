@@ -30,6 +30,8 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
+        PandraCore::addLogger('STDOUT');
+
         $this->superColumnFamily = new PandraSuperColumnFamily();
         $this->superColumnFamily->setKeySpace('Keyspace1');
         $this->superColumnFamily->setName('Super1');
@@ -42,7 +44,7 @@ class PandraSuperColumnTest extends PHPUnit_Framework_TestCase {
         $this->obj->addColumn('street', 'string');
         $this->obj->addColumn('zip', 'int');
 
-        PandraCore::connect('default', 'localhost');
+        PandraCore::connectSeededKeyspace(array('localhost'));
     }
 
     /**

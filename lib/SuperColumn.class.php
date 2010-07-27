@@ -72,7 +72,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         $ok = $this->pathOK();
 
         if ($ok) {
-            if ($this->getDelete()) {
+            if ($this->isDeleted()) {
 
                 $columnPath = new cassandra_ColumnPath();
                 $columnPath->column_family = $this->getColumnFamilyName();
@@ -81,16 +81,47 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         $this->getKeyID(),
                         $columnPath,
                         NULL,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
             } else {
 
+                $deletions = array();
+                $insertions = array();
+
+                $selfKey = $this->getKeyID();
+                $selfName = $this->getName();
+                $selfCFName = $this->getColumnFamilyName();
+
+                // build mutation
+                $map = array($selfKey => array($selfCFName => array()));
+
+                $ptr = &$map[$selfKey][$selfCFName];
+
                 $this->bindTimeModifiedColumns();
-                $ok = PandraCore::saveSuperColumn(
-                        $this->getKeySpace(),
-                        $this->getKeyID(),
-                        array($this->getColumnFamilyName()),
-                        array($this->getName() => $this->getModifiedColumns()),
-                        PandraCore::getConsistency($consistencyLevel));
+                $modifiedColumns = $this->getModifiedColumns();
+
+                if (!empty($modifiedColumns)) {
+                    foreach ($modifiedColumns as &$cObj) {
+                        if ($cObj->isDeleted()) {
+                            $deletions[] = $cObj->getName();
+                        } else {
+                            $insertions[] = $cObj;
+                        }
+                    }
+
+                    if (!empty($deletions)) {
+                        $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, $deletions);
+                        $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
+                        $ptr[] = new cassandra_Mutation(array('deletion' => $sd));
+                    }
+
+                    if (!empty($insertions)) {
+                        $sc = new cassandra_SuperColumn(array('name' => $selfName, 'columns' => $insertions));
+                        $csc = new cassandra_ColumnOrSuperColumn(array('super_column' => $sc));
+                        $ptr[] = new cassandra_Mutation(array('column_or_supercolumn' => $csc));
+                    }
+
+                    $ok = PandraCore::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
+                }
             }
 
             if ($ok) {
@@ -140,7 +171,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                                 'column_family' => $this->getColumnFamilyName(),
                                 'super_column' => $this->getName())),
                         $predicate,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 // otherwise by defined columns (slice query)
             } else {
@@ -155,7 +186,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                         array(
                                 'column_family' => $this->getColumnFamilyName(),
                                 'super_column' => $this->getName())),
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 $result = $result[$keyID];
             }
@@ -278,6 +309,5 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         }
         return parent::getName();
     }
-
 }
 ?>

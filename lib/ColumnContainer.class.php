@@ -242,14 +242,14 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @return void
      */
     public function delete() {
-        $this->setDelete(TRUE);
+        $this->_delete = $this->_modified = TRUE;
         foreach ($this->_columns as &$column) {
             $column->delete();
         }
     }
 
     /**
-     * mutator, marks this column for deletion and sets modified
+     * mutator, marks this column for deletion
      * @param bool $delete
      */
     protected function setDelete($delete) {

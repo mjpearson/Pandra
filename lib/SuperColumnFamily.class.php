@@ -117,7 +117,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                         $this->getKeyID(),
                         $columnPath,
                         NULL,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
                 if (!$ok) $this->registerError(PandraCore::$lastError);
 
             } else {
@@ -171,7 +171,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                         array(
                                 'column_family' => $this->getName())),
                         $predicate,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 // otherwise by defined columns (slice query)
             } else {
@@ -185,7 +185,7 @@ class PandraSuperColumnFamily extends PandraColumnFamily implements PandraColumn
                         array(
                                 'column_family' => $this->getName())),
                         $predicate,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 $result = $result[$keyID];
             }

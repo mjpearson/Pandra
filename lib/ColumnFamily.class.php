@@ -55,7 +55,7 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                         array(
                                 'column_family' => $this->getName())),
                         $predicate,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 // otherwise by defined columns (slice query)
             } else {
@@ -63,13 +63,13 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                 $predicate->column_names = $this->getColumnNames();
 
                 $result = PandraCore::getCFSliceMulti(
-                                                            $this->getKeySpace(),
-                                                            array($keyID),
-                                                            new cassandra_ColumnParent(
-                                                            array(
-                                                                    'column_family' => $this->getName())),
-                                                            $predicate,
-                                                            PandraCore::getConsistency($consistencyLevel));
+                        $this->getKeySpace(),
+                        array($keyID),
+                        new cassandra_ColumnParent(
+                        array(
+                                'column_family' => $this->getName())),
+                        $predicate,
+                        $consistencyLevel);
 
                 $result = $result[$keyID];
             }
@@ -114,34 +114,41 @@ class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPa
                         $this->getKeyID(),
                         $columnPath,
                         NULL,
-                        PandraCore::getConsistency($consistencyLevel));
+                        $consistencyLevel);
 
                 if (!$ok) $this->registerError(PandraCore::$lastError);
 
             } else {
+                $deletions = array();
+                $selfKey = $this->getKeyID();
+                $selfName = $this->getName();
+
+                // build mutation
+                $map = array($selfKey => array($selfName => array()));
+
+                $ptr = &$map[$selfKey][$selfName];
 
                 $modifiedColumns = $this->getModifiedColumns();
 
-                // build mutation
-                $map = array($this->getKeyID() => array($this->getName() => array()));
-
                 // @todo - test delete mutate
                 foreach ($modifiedColumns as &$cObj) {
-                    $cObj->bindTime();
+                    $timestamp = $cObj->bindTime();
 
                     if ($cObj->isDeleted()) {
-                        $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, array($cObj->getName()));
-                        $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
-                        $m = new cassandra_Mutation(array('deletion' => $sc));
+                        $deletions[] = $cObj->getName();
                     } else {
                         $sc = new cassandra_ColumnOrSuperColumn(array('column' => $cObj));
-                        $m = new cassandra_Mutation(array('column_or_supercolumn' => $sc));
+                        $ptr[] = new cassandra_Mutation(array('column_or_supercolumn' => $sc));
                     }
-
-                    $map[$this->getKeyID()][$this->getName()][] = $m;
                 }
 
-                $ok = PandraCore::saveMutation($this->getKeySpace(), $map, $consistencyLevel);
+                if (!empty($deletions)) {
+                    $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, $deletions);
+                    $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
+                    $ptr[] = new cassandra_Mutation(array('deletion' => $sd));
+                }
+
+                $ok = PandraCore::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
             }
             if ($ok) $this->reset();
         }

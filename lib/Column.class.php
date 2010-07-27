@@ -548,8 +548,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * mutator, marks this column for deletion and sets modified
      */
     public function delete() {
-        $this->_delete = TRUE;
-        $this->_modified = TRUE;
+        $this->_delete = $this->_modified = TRUE;
     }
 
     /**
