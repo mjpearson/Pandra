@@ -1,4 +1,4 @@
-== Welcome to the Pandra toolkit (0.2) ==
+== Welcome to the Pandra toolkit (0.2.1) ==
 
 Copyright (C) 2010 Michael Pearson <pandra-support@phpgrease.net>
 
@@ -66,7 +66,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         Latest snapshot :  git clone git://github.com/mjpearson/Pandra.git .
         - or -
-        Latest stable tag : http://github.com/mjpearson/Pandra/tarball/0.2
+        Latest stable tag : http://github.com/mjpearson/Pandra/tarball/0.2.1
 
 - Community
 
