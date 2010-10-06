@@ -36,12 +36,47 @@ final class cassandra_ConsistencyLevel {
   );
 }
 
+$GLOBALS['cassandra_E_IndexOperator'] = array(
+  'EQ' => 0,
+  'GTE' => 1,
+  'GT' => 2,
+  'LTE' => 3,
+  'LT' => 4,
+);
+
+final class cassandra_IndexOperator {
+  const EQ = 0;
+  const GTE = 1;
+  const GT = 2;
+  const LTE = 3;
+  const LT = 4;
+  static public $__names = array(
+    0 => 'EQ',
+    1 => 'GTE',
+    2 => 'GT',
+    3 => 'LTE',
+    4 => 'LT',
+  );
+}
+
+$GLOBALS['cassandra_E_IndexType'] = array(
+  'KEYS' => 0,
+);
+
+final class cassandra_IndexType {
+  const KEYS = 0;
+  static public $__names = array(
+    0 => 'KEYS',
+  );
+}
+
 class cassandra_Column extends TBase {
   static $_TSPEC;
 
   public $name = null;
   public $value = null;
   public $timestamp = null;
+  public $ttl = null;
 
   public function __construct($vals=null) {
     if (!isset(self::$_TSPEC)) {
@@ -57,6 +92,10 @@ class cassandra_Column extends TBase {
         3 => array(
           'var' => 'timestamp',
           'type' => TType::I64,
+          ),
+        4 => array(
+          'var' => 'ttl',
+          'type' => TType::I32,
           ),
         );
     }
@@ -495,6 +534,95 @@ class cassandra_SlicePredicate extends TBase {
   }
 }
 
+class cassandra_IndexExpression extends TBase {
+  static $_TSPEC;
+
+  public $column_name = null;
+  public $op = null;
+  public $value = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'column_name',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'op',
+          'type' => TType::I32,
+          ),
+        3 => array(
+          'var' => 'value',
+          'type' => TType::STRING,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'IndexExpression';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('IndexExpression', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('IndexExpression', self::$_TSPEC, $output);
+  }
+}
+
+class cassandra_IndexClause extends TBase {
+  static $_TSPEC;
+
+  public $expressions = null;
+  public $start_key = null;
+  public $count = 100;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'expressions',
+          'type' => TType::LST,
+          'etype' => TType::STRUCT,
+          'elem' => array(
+            'type' => TType::STRUCT,
+            'class' => 'cassandra_IndexExpression',
+            ),
+          ),
+        2 => array(
+          'var' => 'start_key',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'count',
+          'type' => TType::I32,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'IndexClause';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('IndexClause', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('IndexClause', self::$_TSPEC, $output);
+  }
+}
+
 class cassandra_KeyRange extends TBase {
   static $_TSPEC;
 
@@ -586,6 +714,43 @@ class cassandra_KeySlice extends TBase {
   }
   public function write($output) {
     return $this->_write('KeySlice', self::$_TSPEC, $output);
+  }
+}
+
+class cassandra_KeyCount extends TBase {
+  static $_TSPEC;
+
+  public $key = null;
+  public $count = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'key',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'count',
+          'type' => TType::I32,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'KeyCount';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('KeyCount', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('KeyCount', self::$_TSPEC, $output);
   }
 }
 
@@ -754,6 +919,230 @@ class cassandra_AuthenticationRequest extends TBase {
   }
   public function write($output) {
     return $this->_write('AuthenticationRequest', self::$_TSPEC, $output);
+  }
+}
+
+class cassandra_ColumnDef extends TBase {
+  static $_TSPEC;
+
+  public $name = null;
+  public $validation_class = null;
+  public $index_type = null;
+  public $index_name = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'name',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'validation_class',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'index_type',
+          'type' => TType::I32,
+          ),
+        4 => array(
+          'var' => 'index_name',
+          'type' => TType::STRING,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'ColumnDef';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('ColumnDef', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('ColumnDef', self::$_TSPEC, $output);
+  }
+}
+
+class cassandra_CfDef extends TBase {
+  static $_TSPEC;
+
+  public $keyspace = null;
+  public $name = null;
+  public $column_type = "Standard";
+  public $comparator_type = "BytesType";
+  public $subcomparator_type = null;
+  public $comment = null;
+  public $row_cache_size = 0;
+  public $preload_row_cache = false;
+  public $key_cache_size = 200000;
+  public $read_repair_chance = 1;
+  public $column_metadata = null;
+  public $gc_grace_seconds = null;
+  public $default_validation_class = null;
+  public $id = null;
+  public $min_compaction_threshold = null;
+  public $max_compaction_threshold = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'keyspace',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'name',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'column_type',
+          'type' => TType::STRING,
+          ),
+        5 => array(
+          'var' => 'comparator_type',
+          'type' => TType::STRING,
+          ),
+        6 => array(
+          'var' => 'subcomparator_type',
+          'type' => TType::STRING,
+          ),
+        8 => array(
+          'var' => 'comment',
+          'type' => TType::STRING,
+          ),
+        9 => array(
+          'var' => 'row_cache_size',
+          'type' => TType::DOUBLE,
+          ),
+        10 => array(
+          'var' => 'preload_row_cache',
+          'type' => TType::BOOL,
+          ),
+        11 => array(
+          'var' => 'key_cache_size',
+          'type' => TType::DOUBLE,
+          ),
+        12 => array(
+          'var' => 'read_repair_chance',
+          'type' => TType::DOUBLE,
+          ),
+        13 => array(
+          'var' => 'column_metadata',
+          'type' => TType::LST,
+          'etype' => TType::STRUCT,
+          'elem' => array(
+            'type' => TType::STRUCT,
+            'class' => 'cassandra_ColumnDef',
+            ),
+          ),
+        14 => array(
+          'var' => 'gc_grace_seconds',
+          'type' => TType::I32,
+          ),
+        15 => array(
+          'var' => 'default_validation_class',
+          'type' => TType::STRING,
+          ),
+        16 => array(
+          'var' => 'id',
+          'type' => TType::I32,
+          ),
+        17 => array(
+          'var' => 'min_compaction_threshold',
+          'type' => TType::I32,
+          ),
+        18 => array(
+          'var' => 'max_compaction_threshold',
+          'type' => TType::I32,
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'CfDef';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('CfDef', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('CfDef', self::$_TSPEC, $output);
+  }
+}
+
+class cassandra_KsDef extends TBase {
+  static $_TSPEC;
+
+  public $name = null;
+  public $strategy_class = null;
+  public $strategy_options = null;
+  public $replication_factor = null;
+  public $cf_defs = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'name',
+          'type' => TType::STRING,
+          ),
+        2 => array(
+          'var' => 'strategy_class',
+          'type' => TType::STRING,
+          ),
+        3 => array(
+          'var' => 'strategy_options',
+          'type' => TType::MAP,
+          'ktype' => TType::STRING,
+          'vtype' => TType::STRING,
+          'key' => array(
+            'type' => TType::STRING,
+          ),
+          'val' => array(
+            'type' => TType::STRING,
+            ),
+          ),
+        4 => array(
+          'var' => 'replication_factor',
+          'type' => TType::I32,
+          ),
+        5 => array(
+          'var' => 'cf_defs',
+          'type' => TType::LST,
+          'etype' => TType::STRUCT,
+          'elem' => array(
+            'type' => TType::STRUCT,
+            'class' => 'cassandra_CfDef',
+            ),
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      parent::__construct(self::$_TSPEC, $vals);
+    }
+  }
+
+  public function getName() {
+    return 'KsDef';
+  }
+
+  public function read($input)
+  {
+    return $this->_read('KsDef', self::$_TSPEC, $input);
+  }
+  public function write($output) {
+    return $this->_write('KsDef', self::$_TSPEC, $output);
   }
 }
 
