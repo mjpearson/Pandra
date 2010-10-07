@@ -214,7 +214,7 @@ class PandraCore {
     static public function connect($connectionID, $host, $keySpace = DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         try {
 
-            // check connectionid hasn't been marked as down
+            // check connectionId hasn't been marked as down
             if (self::_priorFail($connectionID)) {
                 self::registerError($host.'/'.$port.' is marked DOWN', PandraLog::LOG_CRIT);
             } else {
@@ -226,18 +226,23 @@ class PandraCore {
                 if (!array_key_exists($keySpace, self::$_socketPool)) self::$_socketPool[$keySpace] = array();
 
                 // Create Thrift transport and binary protocol cassandra client
-                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                $transport = new TFramedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), true, true);
 
                 self::_authOpen($transport, $keySpace);
+
+				$client = new CassandraClient(
+					(PANDRA_64 &&
+						function_exists("thrift_protocol_write_binary") ?
+						new TBinaryProtocolAccelerated($transport) :
+						new TBinaryProtocol($transport)));
+
+				// Cassandra 0.7 won't let you do anything without an active keyspace
+				$client->set_keyspace($keySpace);
 
                 self::$_socketPool[$keySpace][$connectionID] = array(
                         'retries' => 0,
                         'transport' => $transport,
-                        'client' => new CassandraClient(
-                        (PANDRA_64 &&
-                                function_exists("thrift_protocol_write_binary") ?
-                        new TBinaryProtocolAccelerated($transport) :
-                        new TBinaryProtocol($transport)))
+                        'client' => $client
                 );
 
                 // set new connection the active, working master
@@ -325,15 +330,16 @@ class PandraCore {
     }
 
     /**
-     * Alias for connectBySeed (deprecated)
+     * Alias for connectSeededKeypsace.
+	 * @deprecated use connectSeededKeypsace instead.
      */
     static public function auto($hosts, $keySpace = DEFAULT_POOL_NAME, $port = THRIFT_PORT_DEFAULT) {
         return self::connectSeededKeyspace($hosts, $keySpace, $port);
     }
 
     /**
-     * Given a single host, attempts to find other nodes in the cluster and attaches them
-     * to the pool
+     * Given a single host, attempts to find other nodes in the cluster and 
+     * attach them to the pool
      * @todo build connections from token map
      * @param mixed $hosts host name or IP of connecting node (or array thereof)
      * @param string $keySpace name of the connection pool (cluster name - usually keyspace)
@@ -349,7 +355,7 @@ class PandraCore {
         foreach ($hosts as $host) {
             try {
                 // Create Thrift transport and binary protocol cassandra client
-                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                $transport = new TFramedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), true, true);
                 $transport->open();
                 $client = new CassandraClient(
                         (function_exists("thrift_protocol_write_binary") ?
@@ -492,12 +498,12 @@ class PandraCore {
      * @param <type> $transport
      * @param <type> $keySpace
      */
-    static private function _authOpen(TBufferedTransport &$transport, $keySpace) {
+    static private function _authOpen(TFramedTransport &$transport, $keySpace) {
         $transport->open();
         if (array_key_exists($keySpace, self::$_ksAuth)) {
             try {
                 $client = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
-                $client->login($keySpace, self::$_ksAuth[$keySpace]);
+                $client->login(self::$_ksAuth[$keySpace]);
             } catch (cassandra_AuthenticationException $e) {
                 self::registerError($e->why, PandraLog::LOG_CRIT);
                 throw new TException($e->why);
@@ -666,7 +672,7 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
-            $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
+            $client->remove($keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
@@ -685,7 +691,7 @@ class PandraCore {
      */
     static public function saveColumnPath($keySpace,
             $keyID,
-            cassandra_ColumnPath $columnPath,
+            cassandra_ColumnPath $path,
             $value,
             $time = NULL,
             $consistencyLevel = NULL) {
@@ -694,7 +700,23 @@ class PandraCore {
             if ($time === NULL) {
                 $time = self::getTime();
             }
-            $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
+
+			xdebug_break();
+
+			// Pretty sure this isn't the "Pandra Way". Feel free to fix it.
+			$col = new cassandra_Column(
+				array(
+					"name" => $path->column,
+				    "value" => $value,
+					'timestamp' => $time
+			));
+			$parent = new cassandra_ColumnParent(
+				array(
+					'column_family' => $path->column_family,
+					'super_column' => $path->super_column,
+			));
+
+            $client->insert($keyID, $parent, $col, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
@@ -709,10 +731,10 @@ class PandraCore {
      * @param int $consistencyLevel response consistency level
      * @return bool mutate operation completed OK
      */
-    public function batchMutate($keySpace, $mutation, $consistencyLevel = NULL) {
+    static public function batchMutate($keySpace, $mutation, $consistencyLevel = NULL) {
         try {
             $client = self::getClient(TRUE, $keySpace);
-            $client->batch_mutate($keySpace, $mutation, self::getConsistency($consistencyLevel));
+            $client->batch_mutate($mutation, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
@@ -738,7 +760,7 @@ class PandraCore {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
+            return $client->get_slice($keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
@@ -764,7 +786,7 @@ class PandraCore {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
+            return $client->multiget_slice($keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
@@ -781,14 +803,15 @@ class PandraCore {
      */
     static public function getCFColumnCount($keySpace,
             $keyID,
-            cassandra_ColumnParent
-            $columnParent,
+            cassandra_ColumnParent $columnParent,
+		cassandra_SlicePredicate $predicate,
             $consistencyLevel = NULL) {
 
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
+            return $client->get_count($keyID, $columnParent, $predicate,
+				self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
@@ -836,7 +859,7 @@ class PandraCore {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
+            return $client->get($keyID, $columnPath, self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
@@ -844,11 +867,11 @@ class PandraCore {
     }
 
     /**
+	 * numRows is no longer supported; that option has been folded into the slice predicate.
      * @param string $keySpace keyspace of key
      * @param cassandra_KeyRange $keyRange
      * @param cassandra_ColumnParent $columnParent
      * @param cassandra_SlicePredicate $predicate column names or range predicate
-     * @param int number of rows to return
      * @param int $consistencyLevel response consistency level
      * @return <type>
      */
@@ -862,11 +885,11 @@ class PandraCore {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
-            return $client->get_range_slices($keySpace,
+            return $client->get_range_slices(
                     $columnParent,
                     $predicate,
                     $keyRange,
-                    $numRows,
+					// $numRows, // DEPRECATED, see above
                     self::getConsistency($consistencyLevel));
         } catch (TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
