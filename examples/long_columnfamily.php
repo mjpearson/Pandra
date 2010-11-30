@@ -54,6 +54,4 @@ $cfNew = new PandraColumnFamily($keyID, $ks, $cfName, PandraColumnFamily::TYPE_L
 $cfNew->populate($result);
 
 echo '<br>Imported...<br>';
-print_r($cfNew->toJSON());
-
-?>
+print_r($cfNew->toJSON(TRUE));

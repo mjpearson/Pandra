@@ -472,6 +472,26 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     }
 
     /**
+     * Takes php integer and packs it to 64bit (8 bytes) long big endian binary representation.
+     * @param  $x integer
+     * @return string eight bytes long binary repersentation of the integer in big endian order.
+     */
+    public static function pack_longtype($x) {
+        return pack('C8', ($x >> 56) & 0xff, ($x >> 48) & 0xff, ($x >> 40) & 0xff, ($x >> 32) & 0xff,
+                    ($x >> 24) & 0xff, ($x >> 16) & 0xff, ($x >> 8) & 0xff, $x & 0xff);
+    }
+
+    /**
+     * Takes eight bytes long big endian binary representation of an integer and unpacks it to a php integer.
+     * @param  $x
+     * @return php integer
+     */
+    public static function unpack_longtype($x) {
+        $a = unpack('C8', $x);
+        return ($a[1] << 56) + ($a[2] << 48) + ($a[3] << 40) + ($a[4] << 32) + ($a[5] << 24) + ($a[6] << 16) + ($a[7] << 8) + $a[8];
+    }
+
+    /**
      * Converts the given column name to it's expected container type context (UUID or String)
      *
      * This stub can also potentially handle utf8 cf types
@@ -505,11 +525,13 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         } else if ($this->_containerType == self::TYPE_LONG) {
             // unpack the long
             if ($bin && $toFmt == self::CONTEXT_STRING) {
-                $columnName = array_pop(unpack('N', $columnName));
+                //$columnName = array_pop(unpack('N', $columnName));
+                $columnName = self::unpack_longtype($columnName);
 
                 // pack the long
             } elseif (!$bin && $toFmt == self::CONTEXT_BIN) {
-                $columnName = pack('NN', $columnName, 0);
+                //$columnName = pack('NN', $columnName, 0);
+                $columnName = self::pack_longtype($columnName);
             }
         }
 
@@ -898,18 +920,16 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
             //$columnName =  $this->typeConvert($column->getName(), UUID::UUID_STR);
 
             if ($column instanceof PandraColumn) {
-                $retArr[$columnName] = $column->value;
-
-            } else {
                 // keyspace/CF/key/{column or supercolumn}
                 if ($keyPath) {
-                    $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$columnName] = $column->toArray();
+                    $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$columnName] = $column->value;
                 } else {
-                    $retArr[$columnName] = $column->toArray($keyPath);
+                    $retArr[$columnName] = $column->value;
                 }
+            } else {
+                $retArr[$columnName] = $column->toArray($keyPath);
             }
         }
         return $retArr;
     }
 }
-?>
