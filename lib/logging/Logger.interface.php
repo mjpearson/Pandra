@@ -1,6 +1,6 @@
 <?php
 /**
- * PandraLogger
+ * Logger
  *
  * Logger interface.  Static 'Log' class expects loggers to use this interface.
  *
@@ -11,7 +11,9 @@
  * @package pandra
  * @abstract
  */
-interface PandraLogger {
+namespace Pandra;
+
+interface Logger {
 
     /**
      * Class constructor

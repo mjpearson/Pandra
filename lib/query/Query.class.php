@@ -149,7 +149,9 @@ class PandraQuery implements ArrayAccess {
     }
 
     // @todo
-    public function load($hydration) {
+    public function load($hydration = self::HYDRATE_MODEL) {
+
+        print_r($this->_graph);
 
     }
 }

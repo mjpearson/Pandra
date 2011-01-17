@@ -1,6 +1,6 @@
 <?php
 /**
- * PandraLoggerSTDOUT
+ * LoggerSTDOUT
  *
  * Sends all logging events to standard output (unbuffered)
  *
@@ -10,7 +10,7 @@
  * @version 0.2.1
  * @package pandra
  */
-class PandraLoggerSTDOUT implements PandraLogger {
+class LoggerSTDOUT implements Logger {
 
     private $_isOpen = true;
 
@@ -37,12 +37,12 @@ class PandraLoggerSTDOUT implements PandraLogger {
     }
 
     public function execute($priority, $message) {
-        $out = PandraLog::$priorityMap[$priority] . ": " . $message . "\n";
+        $out = Log::$priorityMap[$priority] . ": " . $message . "\n";
 
         if ($this->_htmlMode) $out = nl2br($out);
 
-        if ($priority == PandraLog::LOG_CRIT) {
-            throw new RuntimeException($out);
+        if ($priority == Log::LOG_CRIT) {
+            throw new \RuntimeException($out);
         } else {
             echo $out;
             return TRUE;

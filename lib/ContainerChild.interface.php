@@ -9,11 +9,13 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  * @abstract
  */
-interface PandraContainerChild {
+namespace Pandra;
+
+interface ContainerChild {
 
     /**
      * Unsets reference to this child in parent
@@ -34,7 +36,7 @@ interface PandraContainerChild {
      * @param object $parent Container object
      * @param bool $bindToParent optional make parent aware of new column via addColumnObj
      */
-    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE);
+    public function setParent(ColumnContainer $parent, $bindToParent = TRUE);
 
     /**
      * Parent accessor

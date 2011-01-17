@@ -10,7 +10,9 @@
  * @version 0.2.1
  * @package pandra
  */
-interface PandraUUIDPlugin {
+namespace Pandra;
+
+interface UUIDPlugin {
 
     /**
      * Checks that local dependencies are met

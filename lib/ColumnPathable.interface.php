@@ -10,11 +10,13 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  * @abstract
  */
-interface PandraColumnPathable {
+namespace Pandra;
+
+interface ColumnPathable {
 
     /**
      * Loads a container column path by keyid

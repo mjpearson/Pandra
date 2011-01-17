@@ -1,6 +1,6 @@
 <?php
 /**
- * PandraSuperColumn
+ * SuperColumn
  *
  * SuperColumns are special kinds of Column Containers which can contain both
  * Columns and have a ColumnFamily parent (implements ContainerChild)
@@ -21,12 +21,14 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  */
-class PandraSuperColumn extends PandraColumnContainer implements PandraContainerChild, PandraColumnPathable {
+namespace Pandra;
 
-    /* @var PandraColumnFamily column family parent reference */
+class PandraSuperColumn extends ColumnContainer implements ContainerChild, ColumnPathable {
+
+    /* @var ColumnFamily column family parent reference */
     private $_parent = NULL;
 
     /* @var string parent column family name, overrides parent */
@@ -74,10 +76,10 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
         if ($ok) {
             if ($this->isDeleted()) {
 
-                $columnPath = new cassandra_ColumnPath();
+                $columnPath = new \cassandra_ColumnPath();
                 $columnPath->column_family = $this->getColumnFamilyName();
                 $columnPath->super_column = $this->getName();
-                $ok = PandraCore::deleteColumnPath($this->getKeySpace(),
+                $ok = Core::deleteColumnPath($this->getKeySpace(),
                         $this->getKeyID(),
                         $columnPath,
                         NULL,
@@ -109,25 +111,25 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                     }
 
                     if (!empty($deletions)) {
-                        $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, $deletions);
-                        $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
-                        $ptr[] = new cassandra_Mutation(array('deletion' => $sd));
+                        $p = new SlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, $deletions);
+                        $sd = new \cassandra_Deletion(array('timestamp' => Core::getTime(), 'predicate' => $p));
+                        $ptr[] = new \cassandra_Mutation(array('deletion' => $sd));
                     }
 
                     if (!empty($insertions)) {
-                        $sc = new cassandra_SuperColumn(array('name' => $selfName, 'columns' => $insertions));
-                        $csc = new cassandra_ColumnOrSuperColumn(array('super_column' => $sc));
-                        $ptr[] = new cassandra_Mutation(array('column_or_supercolumn' => $csc));
+                        $sc = new \cassandra_SuperColumn(array('name' => $selfName, 'columns' => $insertions));
+                        $csc = new \cassandra_ColumnOrSuperColumn(array('super_column' => $sc));
+                        $ptr[] = new \cassandra_Mutation(array('column_or_supercolumn' => $csc));
                     }
 
-                    $ok = PandraCore::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
+                    $ok = Core::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
                 }
             }
 
             if ($ok) {
                 $this->reset();
             } else {
-                $this->registerError(PandraCore::$lastError);
+                $this->registerError(Core::$lastError);
             }
         }
 
@@ -153,21 +155,21 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
             $autoCreate = $this->getAutoCreate();
 
-            $predicate = new cassandra_SlicePredicate();
+            $predicate = new \cassandra_SlicePredicate();
 
             // if autocreate is turned on, get latest limited everything
             if ($autoCreate) {
 
-                $predicate->slice_range = new cassandra_SliceRange();
+                $predicate->slice_range = new \cassandra_SliceRange();
                 $predicate->slice_range->start = $this->getStart();
                 $predicate->slice_range->finish = $this->getFinish();
                 $predicate->slice_range->count = $this->getLimit();
                 $predicate->slice_range->reversed = $this->getReversed();
 
-                $result = PandraCore::getCFSlice(
+                $result = Core::getCFSlice(
                         $this->getKeySpace(),
                         $keyID,
-                        new cassandra_ColumnParent(array(
+                        new \cassandra_ColumnParent(array(
                                 'column_family' => $this->getColumnFamilyName(),
                                 'super_column' => $this->getName())),
                         $predicate,
@@ -178,11 +180,11 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
                 $predicate->column_names = $this->getColumnNames();
 
-                $result = PandraCore::getCFSliceMulti(
+                $result = Core::getCFSliceMulti(
                         $this->getKeySpace(),
                         array($keyID),
                         $predicate,
-                        new cassandra_ColumnParent(
+                        new \cassandra_ColumnParent(
                         array(
                                 'column_family' => $this->getColumnFamilyName(),
                                 'super_column' => $this->getName())),
@@ -196,7 +198,7 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
                 $this->setLoaded($this->populate($result, $autoCreate));
                 if ($this->isLoaded()) $this->setKeyID($keyID);
             } else {
-                $this->registerError(PandraCore::$lastError);
+                $this->registerError(Core::$lastError);
             }
         }
         return ($ok && $this->isLoaded());
@@ -204,9 +206,9 @@ class PandraSuperColumn extends PandraColumnContainer implements PandraContainer
 
     /**
      * Sets parent Column Container
-     * @param PandraColumnContainer $parent SuperColumnFamily container object, or NULL
+     * @param ColumnContainer $parent SuperColumnFamily container object, or NULL
      */
-    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE) {
+    public function setParent(ColumnContainer $parent, $bindToParent = TRUE) {
 
         if (!($parent instanceof PandraSuperColumnFamily))
             throw new RuntimeException('Parent must be an instance of PandraSuperColumnFamily');

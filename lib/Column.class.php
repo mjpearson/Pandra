@@ -1,18 +1,20 @@
 <?php
 /**
- * PandraColumn
+ * Column
  *
  * Column is Cassandra's atomic datatype, consisting of a name/value and timestamp
- * This class extends the Thrift cassandra_Column class with input validation,
+ * This class extends the Thrift \cassandra_Column class with input validation,
  * time binding and pre-insert callbacks
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  */
-class PandraColumn extends cassandra_Column implements PandraContainerChild, PandraColumnPathable {
+namespace Pandra;
+
+class Column extends \cassandra_Column implements ContainerChild, ColumnPathable {
 
     /* @var array validator type definitions for this column */
     private $_typeDef = array();
@@ -35,7 +37,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     /* @var bool column has been loaded from Cassandra */
     protected $_loaded = FALSE;
 
-    /* @var PandraColumnFamily column family parent reference */
+    /* @var ColumnFamily column family parent reference */
     private $_parent = NULL;
 
     /* @var string row key id */
@@ -53,12 +55,12 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     // ----------------- CONSTRUCTOR AND PARENT BINDING
 
     /**
-     * Column constructor (extends cassandra_Column)
+     * Column constructor (extends \cassandra_Column)
      * @param string $name Column name
-     * @param PandraColumnContainer $parent parent column family (standard or super), or supercolumn
+     * @param ColumnContainer $parent parent column family (standard or super), or supercolumn
      * @param array $typeDef validator type definitions
      */
-    public function __construct($name, $typeDefs = array(), PandraColumnContainer $parent = NULL, $callback = NULL) {
+    public function __construct($name, $typeDefs = array(), ColumnContainer $parent = NULL, $callback = NULL) {
 
         parent::__construct(array('name' => $name));
 
@@ -72,12 +74,12 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
 
     /**
      * Binds a ColumnFamily or SuperColumn as parent
-     * @param PandraColumnContainer $parent ColumnFamily or SuperColumn parent object or NULL
+     * @param ColumnContainer $parent ColumnFamily or SuperColumn parent object or NULL
      */
-    public function setParent(PandraColumnContainer $parent, $bindToParent = TRUE) {
+    public function setParent(ColumnContainer $parent, $bindToParent = TRUE) {
 
-        if ( ! ($parent instanceof PandraColumnFamily || $parent instanceof PandraSuperColumn) || $parent instanceof PandraSuperColumnFamily) {
-            throw new RuntimeException('Column Family or Super Column parent expected, received : '.get_class($parent));
+        if ( ! ($parent instanceof ColumnFamily || $parent instanceof SuperColumn) || $parent instanceof SuperColumnFamily) {
+            throw new \RuntimeException('Column Family or Super Column parent expected, received : '.get_class($parent));
         }
 
         if ($bindToParent) $parent->addColumnObj($this);
@@ -141,7 +143,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      * @return int new timestamp
      */
     public function bindTime($time = NULL) {
-        $this->timestamp = ($time === NULL) ? PandraCore::getTime() : intval($time);
+        $this->timestamp = ($time === NULL) ? Core::getTime() : intval($time);
         $this->setModified();
         return $this->timestamp;
     }
@@ -154,7 +156,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      */
     public function setValue($value, $validate = TRUE) {
         if ($validate && !empty($this->_typeDef)) {
-            if (!PandraValidator::check($value, $this->name, $this->_typeDef, $this->errors)) {
+            if (!Validator::check($value, $this->name, $this->_typeDef, $this->errors)) {
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
@@ -175,8 +177,8 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         $typeDefs = (array) $typeDefs;
 
         foreach ($typeDefs as $typeDef) {
-            if (!PandraValidator::exists($typeDef)) {
-                throw new RuntimeException("$typeDef is not a Validator type");
+            if (!Validator::exists($typeDef)) {
+                throw new \RuntimeException("$typeDef is not a Validator type");
             }
         }
 
@@ -217,12 +219,12 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     }
 
     /**
-     * Callback mutator, throws a RuntimeException if function does not exist
+     * Callback mutator, throws a \RuntimeException if function does not exist
      * @param string $cbFunc callback function name
      */
     public function setCallback($cbFunc) {
         if (!function_exists($cbFunc)) {
-            throw new RuntimeException("Function $cbFunc could not be found");
+            throw new \RuntimeException("Function $cbFunc could not be found");
         } else {
             $this->_callback = $cbFunc;
         }
@@ -255,7 +257,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      */
     public function setKeyID($keyID, $validate = TRUE) {
         if ($validate && !empty($this->_typeDefKey)) {
-            if (!PandraValidator::check($keyID, $this->name.' KEY ('.get_class($this).')', $this->_typeDefKey, $this->errors)) {
+            if (!Validator::check($keyID, $this->name.' KEY ('.get_class($this).')', $this->_typeDefKey, $this->errors)) {
                 if ($this->_parent !== NULL) {
                     $this->_parent->registerError($this->errors[0]);
                 }
@@ -314,9 +316,9 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     public function getColumnFamilyName() {
         $parent = $this->getParent();
         if ($this->_columnFamilyName === NULL) {
-            if ($parent instanceof PandraSuperColumn) {
+            if ($parent instanceof SuperColumn) {
                 return $parent->getParent()->getName();
-            } elseif ($parent instanceof PandraColumnFamily) {
+            } elseif ($parent instanceof ColumnFamily) {
                 return $parent->getName();
             }
         }
@@ -337,7 +339,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
      */
     public function getSuperColumnName() {
         $parent = $this->getParent();
-        if ($this->_superColumnName === NULL && $parent instanceof PandraSuperColumn) {
+        if ($this->_superColumnName === NULL && $parent instanceof SuperColumn) {
             return $parent->getParent()->getName();
         }
         return $this->_superColumnName;
@@ -346,25 +348,25 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
     // ----------------- Saves and Loads
 
     /**
-     * Casts from a cassandra_ColumnOrSuperColumn->column or cassandra_Column types, to PandraColumn
-     * @param cassandra_Column $object source objct
-     * @param PandraColumnContainer $parent parent container
-     * @return PandraColumn new column object or NULL on empty cassandra_ColumnOrSuperColumn->column
+     * Casts from a \cassandra_ColumnOrSuperColumn->column or \cassandra_Column types, to Column
+     * @param \cassandra_Column $object source objct
+     * @param ColumnContainer $parent parent container
+     * @return Column new column object or NULL on empty \cassandra_ColumnOrSuperColumn->column
      */
-    static public function cast($object, PandraColumnContainer $parent = NULL) {
+    static public function cast($object, ColumnContainer $parent = NULL) {
 
-        if ($object instanceof cassandra_ColumnOrSuperColumn) {
+        if ($object instanceof \cassandra_ColumnOrSuperColumn) {
             if (!empty($object->column->name)) {
                 $object = $object->column;
             } else {
                 return NULL;
             }
 
-        } elseif (!($object instanceof cassandra_Column)) {
-            throw new RuntimeException('Cast expected cassandra_Column[OrSuperColumn], recieved '.get_class($object));
+        } elseif (!($object instanceof \cassandra_Column)) {
+            throw new \RuntimeException('Cast expected \cassandra_Column[OrSuperColumn], recieved '.get_class($object));
         }
 
-        $newObj = new PandraColumn($object->name);
+        $newObj = new Column($object->name);
 
         if ($parent !== NULL) $newObj->setParent($parent);
 
@@ -401,22 +403,22 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         $this->setLoaded(FALSE);
 
         if ($ok) {
-            $result = PandraCore::getColumn(
+            $result = Core::getColumn(
                     $this->getKeySpace(),
                     $keyID === NULL ? $this->getKeyID() : $keyID,
                     $this->getColumnFamilyName(),
                     $this->getName(),
                     $this->getSuperColumnName(),
-                    PandraCore::getConsistency($consistencyLevel));
+                    Core::getConsistency($consistencyLevel));
 
-            if (!empty($result) && $result instanceof cassandra_ColumnOrSuperColumn) {
+            if (!empty($result) && $result instanceof \cassandra_ColumnOrSuperColumn) {
                 $column = $result->column;
                 $this->setValue($column->value);
                 $this->bindTime($column->timestamp);
                 $this->reset();
                 $this->setLoaded(TRUE);
             } else {
-                $this->registerError(PandraCore::$lastError);
+                $this->registerError(Core::$lastError);
             }
         }
         return ($ok && $this->isLoaded());
@@ -435,7 +437,7 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         }
 
         // Build the column path for modifying this individual column
-        $columnPath = new cassandra_ColumnPath();
+        $columnPath = new \cassandra_ColumnPath();
         $columnPath->column_family = $this->getColumnFamilyName();
         $columnPath->super_column = $this->getSuperColumnName();
         $columnPath->column = $this->getName();
@@ -443,28 +445,28 @@ class PandraColumn extends cassandra_Column implements PandraContainerChild, Pan
         $ok = FALSE;
 
         if ($this->isDeleted()) {
-            $ok = PandraCore::deleteColumnPath(
+            $ok = Core::deleteColumnPath(
                     $this->getKeySpace(),
                     $this->getKeyID(),
                     $columnPath,
                     $this->bindTime(),
-                    PandraCore::getConsistency($consistencyLevel));
+                    Core::getConsistency($consistencyLevel));
 
         } else {
-            $ok = PandraCore::saveColumnPath(
+            $ok = Core::saveColumnPath(
                     $this->getKeySpace(),
                     $this->getKeyID(),
                     $columnPath,
                     $this->callbackvalue(),
                     $this->bindTime(),
-                    PandraCore::getConsistency($consistencyLevel));
+                    Core::getConsistency($consistencyLevel));
         }
 
         if (!$ok) {
-            if (empty(PandraCore::$lastError)) {
+            if (empty(Core::$lastError)) {
                 $errorStr = 'Unknown Error';
             } else {
-                $errorStr = PandraCore::$lastError;
+                $errorStr = Core::$lastError;
             }
 
             $this->registerError($errorStr);

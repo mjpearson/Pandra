@@ -11,7 +11,9 @@
  * @version 0.2.1
  * @package pandra
  */
-class PandraLog {
+namespace Pandra;
+
+class Log {
 
     /**
      * Constants normalise against syslog LOG_ types
@@ -51,31 +53,35 @@ class PandraLog {
     );
 
     /**
-     * Returns the class name of a logger implementing PandraLogger interface
+     * Returns the class name of a logger implementing Logger interface
      * @static
      * @access private
      * @param string $loggerName name of the logger we're deriving a class for
-     * @param bool $verify ensure the class exists and implements PandraLogger interface
+     * @param bool $verify ensure the class exists and implements Logger interface
      * @return string name of the logger class we're looking for
      */
     static private function getClassFromName($loggerName, $verify = FALSE) {
-        $classPfx = 'PandraLogger';
+        $classPfx = 'Logger';
 
         // Strip the loggername, incase the entire class has been passed
         $class = $classPfx.ucfirst(preg_replace("/$classPfx/", '', $loggerName));
+        $class = __NAMESPACE__ . '\\'.$classPfx.$loggerName;
 
         if (!$verify) {
             return $class;
         } else {
+
             // Make sure the class exists
             if (class_exists($class)) {
+                
                 $c = new $class(array());
-                if ($c instanceof PandraLogger) {
+                if ($c instanceof Logger) {
                     unset($c);
                     return $class;
                 }
+            } else {
+                throw new \RuntimeException("Logger $class could not be found");
             }
-            throw new RuntimeException("Logger $class could not be found");
         }
     }
 
@@ -84,7 +90,7 @@ class PandraLog {
      * @static
      * @access public
      * @param string $loggerName name of the logger
-     * @return PandraLogger registered instance of the logger names
+     * @return Logger registered instance of the logger names
      */
     static public function getLogger($loggerName) {
         $lc = self::getClassFromName($loggerName);
@@ -163,98 +169,12 @@ class PandraLog {
     /* ------- Priority Helper */
     /*
      * @todo 5.3, strip the priority helpers and use callStatic
+     */
     static public function __callStatic($class, $args) {
         $priority = array_search(strtolower($class), self::$priorityMap);
         if (!empty($priority)) {
             self::logPriorityMessage($priority, array_pop($args));
         }
-    }
-    */
-
-    /**
-     * Logs for priority Emergency
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function emerg($message, $trace = TRUE) {
-        if ($trace) {
-            $message = array_merge($message, debug_backtrace());
-        }
-        self::logPriorityMessage(self::LOG_EMERG, $message);
-    }
-
-    /**
-     * Logs for priority Alert
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function alert($message) {
-        self::logPriorityMessage(self::LOG_ALERT, $message);
-    }
-
-    /**
-     * Logs for priority Crit(ical)
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function crit($message) {
-        self::logPriorityMessage(self::LOG_CRIT, $message);
-    }
-
-    /**
-     * Logs for priority Err(or)
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function err($message) {
-        self::logPriorityMessage(self::LOG_ERR, $message);
-    }
-
-    /**
-     * Logs for priority Warning
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function warning($message) {
-        self::logPriorityMessage(self::LOG_WARNING, $message);
-    }
-
-    /**
-     * Logs for priority Notice
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function notice($message) {
-        self::logPriorityMessage(self::LOG_NOTICE, $message);
-    }
-
-    /**
-     * Logs for priority Info
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function info($message) {
-        self::logPriorityMessage(self::LOG_INFO, $message);
-    }
-
-    /**
-     * Logs for priority Debug
-     * @static
-     * @access public
-     * @param string $message
-     */
-    static public function debug($message, $trace = FALSE) {
-        if ($trace) {
-            $message = array_merge(array($message), debug_backtrace());
-        }
-        self::logPriorityMessage(self::LOG_DEBUG, $message);
     }
 }
 ?>

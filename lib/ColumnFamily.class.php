@@ -1,6 +1,6 @@
 <?php
 /**
- * PandraColumnFamily
+ * ColumnFamily
  *
  * Column Container for Cassandra Column Families
  *
@@ -13,10 +13,12 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  */
-class PandraColumnFamily extends PandraColumnContainer implements PandraColumnPathable {
+namespace Pandra;
+
+class ColumnFamily extends ColumnContainer implements ColumnPathable {
 
     /**
      * Loads an entire columnfamily by keyid

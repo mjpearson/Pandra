@@ -1,8 +1,8 @@
 <?php
 /**
- * PandraLoggerSyslog
+ * LoggerSyslog
  *
- * Syslog implementation of PandraLogger.  Handles all log messages err -> emergency
+ * Syslog implementation of Logger.  Handles all log messages err -> emergency
  * Syslog is part of PHP core, there are no other dependencies.
  *
  * @author Michael Pearson <pandra-support@phpgrease.net>
@@ -11,11 +11,11 @@
  * @version 0.2.1
  * @package pandra
  */
-class PandraLoggerSyslog implements PandraLogger {
+class LoggerSyslog implements Logger {
 
     private $_isOpen = FALSE;
 
-    private $_maxPriority = PandraLog::LOG_ERR;
+    private $_maxPriority = Log::LOG_ERR;
 
     /* @var int default syslog open 'option' */
     const DEFAULT_OPTION = LOG_ODELAY;

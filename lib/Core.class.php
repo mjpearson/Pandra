@@ -8,10 +8,12 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  */
-class PandraCore {
+namespace Pandra;
+
+class Core {
 
     const MODE_ACTIVE = 0; // Active client only
 
@@ -23,10 +25,10 @@ class PandraCore {
     static public $lastError = '';
 
     /* @var int default write consistency level */
-    static private $_consistencyLevelWrite = cassandra_ConsistencyLevel::ONE;
+    static private $_consistencyLevelWrite = \cassandra_ConsistencyLevel::ONE;
 
     /* @var int default read consistency level */
-    static private $_consistencyLevelRead = cassandra_ConsistencyLevel::ONE;
+    static private $_consistencyLevelRead = \cassandra_ConsistencyLevel::ONE;
 
     /* @var string currently selected node */
     static private $_activePool = NULL;
@@ -50,9 +52,11 @@ class PandraCore {
     static private $writeMode = self::MODE_RANDOM;
 
     static private $_supportedReadConsistency = array(
-            cassandra_ConsistencyLevel::ONE,
-            cassandra_ConsistencyLevel::QUORUM,
-            cassandra_ConsistencyLevel::ALL
+            \cassandra_ConsistencyLevel::ONE,
+            \cassandra_ConsistencyLevel::QUORUM,
+            \cassandra_ConsistencyLevel::LOCAL_QUORUM,
+            \cassandra_ConsistencyLevel::EACH_QUORUM,
+            \cassandra_ConsistencyLevel::ALL
     );
 
     /* @var supported modes for this core version */
@@ -113,7 +117,7 @@ class PandraCore {
      * @param int $newMode new mode
      */
     static public function setReadMode($newMode) {
-        if (!array_key_exists($newMode, self::$_supportedModes)) throw new RuntimeExcpetion("Unsupported Read Mode");
+        if (!array_key_exists($newMode, self::$_supportedModes)) throw new \RuntimeExcpetion("Unsupported Read Mode");
         self::$readMode = $newMode;
     }
 
@@ -130,7 +134,7 @@ class PandraCore {
      * @param int $newMode new mode
      */
     static public function setWriteMode($newMode) {
-        if (!array_key_exists($newMode, self::$_supportedModes)) throw new RuntimeExcpetion("Unsupported Write Mode");
+        if (!array_key_exists($newMode, self::$_supportedModes)) throw new \RuntimeExcpetion("Unsupported Write Mode");
         self::$writeMode = $newMode;
     }
 
@@ -197,7 +201,7 @@ class PandraCore {
             $connections = array_keys($socketPool);
 
             foreach ($connections as $connectionID) {
-                if (!self::disconnect($connectionID, $keySpace)) throw new RuntimeException($connectionID.' could not be closed');
+                if (!self::disconnect($connectionID, $keySpace)) throw new \RuntimeException($connectionID.' could not be closed');
             }
         }
         return TRUE;
@@ -216,7 +220,7 @@ class PandraCore {
 
             // check connectionid hasn't been marked as down
             if (self::_priorFail($connectionID)) {
-                self::registerError($host.'/'.$port.' is marked DOWN', PandraLog::LOG_CRIT);
+                self::registerError($host.'/'.$port.' is marked DOWN', Log::LOG_CRIT);
             } else {
                 // if the connection exists but it is closed, return (getClient will open)
                 if (array_key_exists($keySpace, self::$_socketPool) && array_key_exists($connectionID, self::$_socketPool[$keySpace])) {
@@ -226,18 +230,22 @@ class PandraCore {
                 if (!array_key_exists($keySpace, self::$_socketPool)) self::$_socketPool[$keySpace] = array();
 
                 // Create Thrift transport and binary protocol cassandra client
-                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                if (THRIFT_TRANSPORT == THRIFT_TRANSPORT_BUFFERED) {
+                    $transport = new \TBufferedTransport(new \TSocket($host, $port, PERSIST_CONNECTIONS, 'Pandra\Core::registerError'), 1024, 1024);
+                } else {
+                    $transport = new \TFramedTransport(new \TSocket($host, $port, PERSIST_CONNECTIONS, 'Pandra\Core::registerError'), 1024, 1024);
+                }
 
                 self::_authOpen($transport, $keySpace);
 
                 self::$_socketPool[$keySpace][$connectionID] = array(
                         'retries' => 0,
                         'transport' => $transport,
-                        'client' => new CassandraClient(
+                        'client' => new \cassandraClient(
                         (PANDRA_64 &&
                                 function_exists("thrift_protocol_write_binary") ?
-                        new TBinaryProtocolAccelerated($transport) :
-                        new TBinaryProtocol($transport)))
+                        new \TBinaryProtocolAccelerated($transport) :
+                        new \TBinaryProtocol($transport)))
                 );
 
                 // set new connection the active, working master
@@ -245,8 +253,8 @@ class PandraCore {
                 self::setActiveNode($connectionID);
                 return TRUE;
             }
-        } catch (TException $te) {
-            self::registerError('TException: '.$te->getMessage(), PandraLog::LOG_CRIT);
+        } catch (\TException $te) {
+            self::registerError('TException: '.$te->getMessage(), Log::LOG_CRIT);
         }
 
         return FALSE;
@@ -254,15 +262,15 @@ class PandraCore {
 
     /**
      * Makes a named logger available to Core
-     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
+     * @param string $loggerName Logger class name (minus Logger Prefix)
      * @param array $params parameters to pass through to logger
      * @return bool Logger found and registered OK
      */
     static public function addLogger($loggerName, $params = array()) {
         if (!array_key_exists($loggerName, self::$_loggers)) {
 
-            $registered = PandraLog::register($loggerName, $params);
-            $logger = PandraLog::getLogger($loggerName);
+            $registered = Log::register($loggerName, $params);
+            $logger = Log::getLogger($loggerName);
             if ($registered && $logger !== NULL) {
                 self::$_loggers[$loggerName] = $logger;
             } else {
@@ -274,7 +282,7 @@ class PandraCore {
 
     /**
      * Drops a logger from the registered logger pool
-     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
+     * @param string $loggerName Logger class name (minus Logger Prefix)
      * @return bool Logger removed ok
      */
     static public function removeLogger($loggerName) {
@@ -287,8 +295,8 @@ class PandraCore {
 
     /**
      * Gets the instance of a named registered logger
-     * @param string $loggerName Logger class name (minus PandraLogger Prefix)
-     * @return PandraLogger Logger instance
+     * @param string $loggerName Logger class name (minus Logger Prefix)
+     * @return Logger Logger instance
      */
     static public function getLogger($loggerName) {
         if (array_key_exists($loggerName, self::$_loggers)) {
@@ -300,11 +308,11 @@ class PandraCore {
     /**
      * Adds an error message to Core's running log, and sends the message to any registered loggers
      * @param string $errorMsg Error Message
-     * @param int $priority error priority level (PandraLog::LOG_)
+     * @param int $priority error priority level (Log::LOG_)
      */
-    static public function registerError($errorMsg, $priority = PandraLog::LOG_WARNING) {
+    static public function registerError($errorMsg, $priority = Log::LOG_WARNING) {
         $message = '(PandraCore) '.$errorMsg;
-        PandraLog::logPriorityMessage($priority, $message);
+        Log::logPriorityMessage($priority, $message);
         self::$lastError = $errorMsg;
     }
 
@@ -316,7 +324,7 @@ class PandraCore {
      * @param string $password auth password
      */
     static public function authKeyspace($keySpace, $username, $password) {
-        $auth = new cassandra_AuthenticationRequest();
+        $auth = new \cassandra_AuthenticationRequest();
         $auth->credentials = array (
                 "username" => $username,
                 "password" => $password
@@ -349,12 +357,16 @@ class PandraCore {
         foreach ($hosts as $host) {
             try {
                 // Create Thrift transport and binary protocol cassandra client
-                $transport = new TBufferedTransport(new TSocket($host, $port, PERSIST_CONNECTIONS, 'PandraCore::registerError'), 1024, 1024);
+                if (THRIFT_TRANSPORT == THRIFT_TRANSPORT_BUFFERED) {
+                    $transport = new \TBufferedTransport(new \TSocket($host, $port, PERSIST_CONNECTIONS, 'Pandra\\Core::registerError'), 1024, 1024);
+                } else {
+                    $transport = new \TFramedTransport(new \TSocket($host, $port, PERSIST_CONNECTIONS, 'Pandra\\Core::registerError'), 1024, 1024);
+                }
                 $transport->open();
-                $client = new CassandraClient(
+                $client = new cassandraClient(
                         (function_exists("thrift_protocol_write_binary") ?
-                        new TBinaryProtocolAccelerated($transport) :
-                        new TBinaryProtocol($transport)));
+                        new \TBinaryProtocolAccelerated($transport) :
+                        new \TBinaryProtocol($transport)));
 
                 $tokenMap = $client->describe_ring($keySpace);
                 $transport->close();
@@ -368,7 +380,7 @@ class PandraCore {
                     }
                 }
                 return TRUE;
-            } catch (TException $te) {
+            } catch (\TException $te) {
                 self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             }
         }
@@ -438,8 +450,8 @@ class PandraCore {
         // Catch trimmed nodes or a completely trimmed pool
         if (empty(self::$_activeNode) || empty(self::$_socketPool[self::$_activePool])) {
             $err = 'Could not connect to Cassandra Server, pool '.self::$_activePool.' is empty';
-            self::registerError($err, PandraLog::LOG_CRIT);
-            throw new Exception($err);
+            self::registerError($err, Log::LOG_CRIT);
+            throw new \Exception($err);
         }
 
         $activePool = self::$_socketPool[self::$_activePool];
@@ -475,7 +487,7 @@ class PandraCore {
                 self::_authOpen(self::$_socketPool[self::$_activePool][self::$_activeNode]['transport'], $keySpace);
             }
             return $conn;
-        } catch (TException $te) {
+        } catch (\TException $te) {
 
             if (++self::$_socketPool[self::$_activePool][self::$_activeNode]['retries'] > self::$_maxRetries) {
                 self::_setLastFail();
@@ -492,14 +504,14 @@ class PandraCore {
      * @param <type> $transport
      * @param <type> $keySpace
      */
-    static private function _authOpen(TBufferedTransport &$transport, $keySpace) {
+    static private function _authOpen(\TTransport $transport, $keySpace) {
         $transport->open();
         if (array_key_exists($keySpace, self::$_ksAuth)) {
             try {
                 $client = self::$_socketPool[self::$_activePool][self::$_activeNode]['client'];
                 $client->login($keySpace, self::$_ksAuth[$keySpace]);
-            } catch (cassandra_AuthenticationException $e) {
-                self::registerError($e->why, PandraLog::LOG_CRIT);
+            } catch (\cassandra_AuthenticationException $e) {
+                self::registerError($e->why, Log::LOG_CRIT);
                 throw new TException($e->why);
             }
         }
@@ -561,21 +573,21 @@ class PandraCore {
 
         // warn devs they should be setting proper consistency
         if ($readMode && !in_array($consistencyLevel, self::$_supportedReadConsistency)) {
-            self::registerError("Unsupported Read Consistency", PandraLog::LOG_WARNING);
+            self::registerError("Unsupported Read Consistency", Log::LOG_WARNING);
         }
 
         // downgrade if we don't have enough hosts in the active pool to support this consistency
         // ** experimental!
         if (self::$_autoDowngrades) {
             $quorums = array(
-                    cassandra_ConsistencyLevel::QUORUM,
-                    cassandra_ConsistencyLevel::DCQUORUM,
-                    cassandra_ConsistencyLevel::DCQUORUMSYNC
+                    \cassandra_ConsistencyLevel::QUORUM,
+                    \cassandra_ConsistencyLevel::DCQUORUM,
+                    \cassandra_ConsistencyLevel::DCQUORUMSYNC
             );
 
             if (in_array($consistency, $quorums) && count(self::$_socketPool[self::$_activePool]) < 2) {
-                $consistencyLevel == cassandra_ConsistencyLevel::ONE;
-                self::registerError("Auto downgrading to consistency 1. Not enough connected hosts for Quroum", PandraLog::LOG_WARNING);
+                $consistencyLevel == \cassandra_ConsistencyLevel::ONE;
+                self::registerError("Auto downgrading to consistency 1. Not enough connected hosts for Quroum", Log::LOG_WARNING);
             }
         }
 
@@ -600,20 +612,20 @@ class PandraCore {
      * @return SimpleXMLElement SimpleXML config structure
      */
     static public function loadConfigXML() {
-        if (!file_exists(CASSANDRA_CONF_PATH)) {
-            throw new RuntimeException('Cannot build models, file not found ('.CASSANDRA_CONF_PATH.')\n');
+        if (!file_exists(\cassandra_CONF_PATH)) {
+            throw new \RuntimeException('Cannot build models, file not found ('.\cassandra_CONF_PATH.')\n');
         }
 
-        $conf = simplexml_load_file(CASSANDRA_CONF_PATH);
+        $conf = simplexml_load_file(\cassandra_CONF_PATH);
         return $conf;
     }
 
     static public function loadConfig() {
-        if (!file_exists(CASSANDRA_CONF_PATH)) {
-            throw new RuntimeException('Cannot build models, file not found ('.CASSANDRA_CONF_PATH.')\n');
+        if (!file_exists(\cassandra_CONF_PATH)) {
+            throw new \RuntimeException('Cannot build models, file not found ('.\cassandra_CONF_PATH.')\n');
         }
 
-        $tokens = explode('/', CASSANDRA_CONF_PATH);
+        $tokens = explode('/', \cassandra_CONF_PATH);
         $file = array_pop($tokens);
 
         list($f, $ext) = explode('.', $file);
@@ -621,12 +633,12 @@ class PandraCore {
 
         $conf = NULL;
         if ($ext == 'xml') {
-            $conf = simplexml_load_file(CASSANDRA_CONF_PATH);
+            $conf = simplexml_load_file(\cassandra_CONF_PATH);
         } elseif ($ext == 'yaml') {
             if (!function_exists('syck_load')) {
-                throw new RuntimeException('YAML config found but syck module not supported');
+                throw new \RuntimeException('YAML config found but syck module not supported');
             } else {
-                $conf = syck_load(file_get_contents(CASSANDRA_CONF_PATH));
+                $conf = syck_load(file_get_contents(\cassandra_CONF_PATH));
             }
         }
         return $conf;
@@ -636,12 +648,12 @@ class PandraCore {
      * Generates current time, or microtime for 64-bit systems
      * @return int timestamp
      */
-    static public function getTime() {
+    static public function getTime($requestTime = FALSE) {
         // @todo patch thrift .so
         if ((PANDRA_64) || (!PANDRA_64 && !function_exists("thrift_protocol_write_binary"))) {
-            return round(microtime(true) * 1000000, 3);
+            return $requestTime ? PANDRA_REQUEST_MICRO : round(microtime(true) * 1000000, 3);
         } else {
-            return time();
+            return $requestTime ? $_SERVER['REQUEST_TIME'] : time();
         }
     }
 
@@ -651,14 +663,14 @@ class PandraCore {
      * Deletes a Column Path from Cassandra
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnPath $columnPath
+     * @param \cassandra_ColumnPath $columnPath
      * @param int $time deletion timestamp
      * @param int $consistencyLevel response consistency level
      * @return bool Column Path deleted OK
      */
     static  public function deleteColumnPath($keySpace,
             $keyID,
-            cassandra_ColumnPath $columnPath,
+            \cassandra_ColumnPath $columnPath,
             $time = NULL,
             $consistencyLevel = NULL) {
         try {
@@ -667,7 +679,7 @@ class PandraCore {
                 $time = self::getTime();
             }
             $client->remove($keySpace, $keyID, $columnPath, $time, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
@@ -678,14 +690,14 @@ class PandraCore {
      * Saves a Column Family to Cassandra
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnPath $columnPath
+     * @param \cassandra_ColumnPath $columnPath
      * @param int $time deletion timestamp
      * @param int $consistencyLevel response consistency level
      * @return bool Column Path saved OK
      */
     static public function saveColumnPath($keySpace,
             $keyID,
-            cassandra_ColumnPath $columnPath,
+            \cassandra_ColumnPath $columnPath,
             $value,
             $time = NULL,
             $consistencyLevel = NULL) {
@@ -695,7 +707,7 @@ class PandraCore {
                 $time = self::getTime();
             }
             $client->insert($keySpace, $keyID, $columnPath, $value, $time, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
@@ -705,7 +717,7 @@ class PandraCore {
     /**
      *
      * @param string $keySpace keyspace of key
-     * @param array $mutation cassandra_Mutation struct
+     * @param array $mutation \cassandra_Mutation struct
      * @param int $consistencyLevel response consistency level
      * @return bool mutate operation completed OK
      */
@@ -713,7 +725,7 @@ class PandraCore {
         try {
             $client = self::getClient(TRUE, $keySpace);
             $client->batch_mutate($keySpace, $mutation, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return FALSE;
         }
@@ -721,25 +733,25 @@ class PandraCore {
     }
 
     /**
-     * Gets complete slice of Thrift cassandra_Column objects for keyID
+     * Gets complete slice of Thrift \cassandra_Column objects for keyID
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnParent $columnParent
-     * @param cassandra_SlicePredicate $predicate column names or range predicate
+     * @param \cassandra_ColumnParent $columnParent
+     * @param \cassandra_SlicePredicate $predicate column names or range predicate
      * @param int $consistencyLevel response consistency level
-     * @return cassandra_Column Thrift cassandra column
+     * @return \cassandra_Column Thrift cassandra column
      */
     static public function getCFSlice($keySpace,
             $keyID,
-            cassandra_ColumnParent $columnParent,
-            cassandra_SlicePredicate $predicate,
+            \cassandra_ColumnParent $columnParent,
+            \cassandra_SlicePredicate $predicate,
             $consistencyLevel = NULL) {
 
         $client = self::getClient(FALSE, $keySpace);
 
         try {
             return $client->get_slice($keySpace, $keyID, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
@@ -750,22 +762,22 @@ class PandraCore {
      * Retrieves slice of columns across keys in parallel
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnParent $columnParent
-     * @param cassandra_SlicePredicate $predicate column names or range predicate
+     * @param \cassandra_ColumnParent $columnParent
+     * @param \cassandra_SlicePredicate $predicate column names or range predicate
      * @param int $consistencyLevel response consistency level
-     * @return array keyed array of matching cassandra_ColumnOrSuperColumn objects
+     * @return array keyed array of matching \cassandra_ColumnOrSuperColumn objects
      */
     static public function getCFSliceMulti($keySpace,
             array $keyIDs,
-            cassandra_ColumnParent $columnParent,
-            cassandra_SlicePredicate $predicate,
+            \cassandra_ColumnParent $columnParent,
+            \cassandra_SlicePredicate $predicate,
             $consistencyLevel = NULL) {
 
         $client = self::getClient(FALSE, $keySpace);
 
         try {
             return $client->multiget_slice($keySpace, $keyIDs, $columnParent, $predicate, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
@@ -775,21 +787,20 @@ class PandraCore {
      * Returns by key, the column count in a column family (or a single CF/SuperColumn pair)
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnParent $columnParent
+     * @param \cassandra_ColumnParent $columnParent
      * @param int $consistencyLevel response consistency level
      * @return int number of rows or null on error
      */
     static public function getCFColumnCount($keySpace,
             $keyID,
-            cassandra_ColumnParent
-            $columnParent,
+            \cassandra_ColumnParent $columnParent,
             $consistencyLevel = NULL) {
 
         $client = self::getClient(FALSE, $keySpace);
 
         try {
             return $client->get_count($keySpace, $keyID, $columnParent, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
@@ -803,7 +814,7 @@ class PandraCore {
      * @param string $columnName column name
      * @param string $superColumnName optional super column name
      * @param int $consistencyLevel response consistency level
-     * @return cassandra_Column Thrift cassandra column
+     * @return \cassandra_Column Thrift cassandra column
      */
     static public function getColumn($keySpace,
             $keyID,
@@ -812,7 +823,7 @@ class PandraCore {
             $superColumnName = NULL,
             $consistencyLevel = NULL) {
 
-        $columnPath = new cassandra_ColumnPath(array(
+        $columnPath = new \cassandra_ColumnPath(array(
                         'column_family' => $columnFamilyName,
                         'super_column' => $superColumnName,
                         'column' => $columnName
@@ -824,20 +835,20 @@ class PandraCore {
     /**
      * @param string $keySpace keyspace of key
      * @param string $keyID row key id
-     * @param cassandra_ColumnPath $columnPath
+     * @param \cassandra_ColumnPath $columnPath
      * @param int $consistencyLevel response consistency level
-     * @return cassandra_Column
+     * @return \cassandra_Column
      */
     static public function getColumnPath($keySpace,
             $keyID,
-            cassandra_ColumnPath
+            \cassandra_ColumnPath
             $columnPath,
             $consistencyLevel = NULL) {
         $client = self::getClient(FALSE, $keySpace);
 
         try {
             return $client->get($keySpace, $keyID, $columnPath, self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }
@@ -845,17 +856,17 @@ class PandraCore {
 
     /**
      * @param string $keySpace keyspace of key
-     * @param cassandra_KeyRange $keyRange
-     * @param cassandra_ColumnParent $columnParent
-     * @param cassandra_SlicePredicate $predicate column names or range predicate
+     * @param \cassandra_KeyRange $keyRange
+     * @param \cassandra_ColumnParent $columnParent
+     * @param \cassandra_SlicePredicate $predicate column names or range predicate
      * @param int number of rows to return
      * @param int $consistencyLevel response consistency level
      * @return <type>
      */
     static public function getRangeSlices($keySpace,
-            cassandra_KeyRange $keyRange,
-            cassandra_ColumnParent $columnParent,
-            cassandra_SlicePredicate $predicate,
+            \cassandra_KeyRange $keyRange,
+            \cassandra_ColumnParent $columnParent,
+            \cassandra_SlicePredicate $predicate,
             $numRows = DEFAULT_ROW_LIMIT,
             $consistencyLevel = NULL) {
 
@@ -868,7 +879,7 @@ class PandraCore {
                     $keyRange,
                     $numRows,
                     self::getConsistency($consistencyLevel));
-        } catch (TException $te) {
+        } catch (\TException $te) {
             self::registerError( 'TException: '.$te->getMessage().' '.(isset($te->why) ? $te->why : ''));
             return NULL;
         }

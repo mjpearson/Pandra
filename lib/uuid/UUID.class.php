@@ -8,6 +8,8 @@
  * @version 0.2.1
  * @package pandra
  */
+namespace Pandra;
+
 class UUID {
 
     const UUID_BIN = 0;

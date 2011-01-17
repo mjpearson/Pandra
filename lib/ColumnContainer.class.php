@@ -1,6 +1,6 @@
 <?php
 /**
- * PandraColumnContainer
+ * ColumnContainer
  *
  * ColumnContainer is an abstract to provide an intuitive representation of
  * Cassandra's associative array data model.  Keyspace and Key are implied in
@@ -13,11 +13,13 @@
  * @author Michael Pearson <pandra-support@phpgrease.net>
  * @copyright 2010 phpgrease.net
  * @license http://www.gnu.org/licenses/lgpl.html GNU Lesser General Public License
- * @version 0.2.1
+ * @version 0.3
  * @package pandra
  * @abstract
  */
-abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable {
+namespace Pandra;
+
+abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
 
     /* @var string magic set/get prefixes for Columns */
     const _columnNamePrefix = 'column_';
@@ -307,7 +309,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     /**
      * Sets value with a validator.  To skip validation, use explicit
-     * PandraColumn->setValue($value, FALSE); or do not provide a typeDef
+     * Column->setValue($value, FALSE); or do not provide a typeDef
      * @param string $offset column name
      * @param mixed $value new column value
      */
@@ -326,7 +328,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
     /**
      * This only unsets the column in the container, to delete use the
-     * PandraColumn->delete() function
+     * Column->delete() function
      * @param string $columnName column name
      * @return void
      */
@@ -543,7 +545,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * @param string $columnName column name
      * @param array $typeDef validator type definitions
      * @param string $callbackOnSave callback function pre-save
-     * @return PandraColumn reference to created column
+     * @return Column reference to created column
      */
     public function addColumn($columnName, $typeDef = array(), $callbackOnSave = NULL) {
 
@@ -561,7 +563,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         if (!$foundKey) {
 
             $this->_columns[$columnName] =
-                    new PandraColumn($this->typeConvert($columnName, self::CONTEXT_BIN), $typeDef);
+                    new Column($this->typeConvert($columnName, self::CONTEXT_BIN), $typeDef);
             $this->_columns[$columnName]->setParent($this, FALSE);
         }
 
@@ -580,15 +582,15 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
      * Adds a column object to this column container, overwrites existing column (context helper)
      * @param PandraSuperColumn $columnObj
      */
-    public function addColumnObj(PandraColumn $columnObj) {
+    public function addColumnObj(Column $columnObj) {
         if ($columnObj->getName() === NULL) throw new RuntimeException('Column has no name');
         $this->_columns[$this->typeConvert($columnObj->name, self::CONTEXT_STRING)] = $columnObj;
     }
 
     /**
-     * Get reference to named PandraColumn
+     * Get reference to named Column
      * @param string $columnName column name
-     * @return PandraColumn
+     * @return Column
      */
     public function getColumn($columnMatch) {
 
@@ -754,7 +756,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
                     $columnName =  $this->typeConvert($column->name, self::CONTEXT_STRING);
 
                     if ($this->getAutoCreate($colAutoCreate) ) {
-                        $this->_columns[$columnName] = PandraColumn::cast($column, $this);
+                        $this->_columns[$columnName] = Column::cast($column, $this);
                     } else if (array_key_exists($columnName, $this->_columns)) {
                         $this->_columns[$columnName]->setValue($column->column->value);
                     }
@@ -764,7 +766,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
                     $columnName =  $this->typeConvert($column->column->name, self::CONTEXT_STRING);
 
                     if ($this->getAutoCreate($colAutoCreate) ) {
-                        $this->_columns[$columnName] = PandraColumn::cast($column->column, $this);
+                        $this->_columns[$columnName] = Column::cast($column->column, $this);
                     } else if (array_key_exists($columnName, $this->_columns)) {
                         $this->_columns[$columnName]->setValue($column->column->value);
                     }
@@ -778,7 +780,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
 
                     // Set Value
                     if (array_key_exists($idx, $this->_columns)) {
-                        if ($this->_columns[$idx] instanceof PandraColumn) {
+                        if ($this->_columns[$idx] instanceof Column) {
                             $this->_columns[$idx]->setValue($column);
                         }
                     }
@@ -811,10 +813,10 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
     public function __get($columnName) {
         if ($this->_gsMutable($columnName)) {
 
-            if ($this->_columns[$columnName] instanceof PandraColumn) {
+            if ($this->_columns[$columnName] instanceof Column) {
                 return $this->_columns[$columnName]->value;
 
-            } else if ($this->_columns[$columnName] instanceof PandraColumnContainer) {
+            } else if ($this->_columns[$columnName] instanceof ColumnContainer) {
                 return $this->_columns[$columnName];
             }
         }
@@ -919,7 +921,7 @@ abstract class PandraColumnContainer implements ArrayAccess, Iterator, Countable
         foreach ($this->_columns as $columnName => $column) {
             //$columnName =  $this->typeConvert($column->getName(), UUID::UUID_STR);
 
-            if ($column instanceof PandraColumn) {
+            if ($column instanceof Column) {
                 // keyspace/CF/key/{column or supercolumn}
                 if ($keyPath) {
                     $retArr[$this->getKeySpace()][$this->getName()][$this->getKeyID()][$columnName] = $column->value;

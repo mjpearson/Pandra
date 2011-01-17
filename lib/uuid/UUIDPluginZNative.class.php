@@ -33,7 +33,9 @@
  * @version 0.2.1
  * @package pandra
  */
-class PandraUUIDPluginZNative implements PandraUUIDPlugin {
+namespace Pandra;
+
+class UUIDPluginZNative implements UUIDPlugin {
 
     /* UUID versions */
     const UUID_TIME     = 1;    /* Time based UUID */
