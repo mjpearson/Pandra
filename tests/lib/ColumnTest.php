@@ -1,12 +1,16 @@
 <?php
+
 namespace Pandra;
+
 require_once 'PHPUnit/Framework.php';
 
 class ColumnFamilyTestObject extends ColumnFamily {
+
     public function init() {
         $this->setKeySpace('Keyspace1');
         $this->setName('Standard1');
     }
+
 }
 
 /**
@@ -17,7 +21,6 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
 
     public $obj = NULL;
     public $parent = NULL;
-
     public $columnName = 'mycolumn';
 
     /**
@@ -29,8 +32,7 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
      * @access protected
      */
     protected function setUp() {
-       //Core::auto('localhost');
-        Core::connect('Keyspace1', 'localhost');
+        Core::connectSeededKeyspace('localhost');
 
         $this->parent = new ColumnFamily();
         $this->parent->setKeySpace('Keyspace1');
@@ -120,7 +122,7 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
         $column->name = 'castedColumn';
         $column->value = 'THRIFT COLUMN VALUE';
 
-        $Column =Column::cast($column, $this->parent);
+        $Column = Column::cast($column, $this->parent);
 
         $this->assertEquals(get_class($Column), 'Column');
         $this->assertEquals($Column->getValue(), $column->value);
@@ -132,9 +134,9 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
         $sc->column = new \cassandra_Column();
         $sc->column->name = 'new column';
         $sc->column->value = 'value';
-        $sc->column->timestamp =Core::getTime();
+        $sc->column->timestamp = Core::getTime();
 
-        $Column =Column::cast($sc);
+        $Column = Column::cast($sc);
         $this->assertEquals(get_class($Column), 'Column');
         $this->assertEquals($Column->getValue(), $sc->column->value);
     }
@@ -186,17 +188,17 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
         //$column = array_pop(Core::getCFSlice($keySpace, $keyID, $columnFamily))->column;
         $this->assertTrue($this->obj->load());
         $column = $this->obj;
-        $this->assertTrue($column->value == $value && $column->name == $this->obj->getName() && empty(Core::$lastError),Core::$lastError);
+        $this->assertTrue($column->value == $value && $column->name == $this->obj->getName() && empty(Core::$lastError), Core::$lastError);
 
         $this->obj->delete();
         $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
-        $columnParent = new \cassandra_ColumnParent(array('column_family'=>$columnFamily));
+        $columnParent = new \cassandra_ColumnParent(array('column_family' => $columnFamily));
         $predicate = newSlicePredicate('Column', array('column' => $this->obj->getName()));
 
-        $result =Core::getCFSlice($keySpace, $keyID, $columnParent, $predicate);
-        $this->assertTrue(empty($result) && empty(Core::$lastError),Core::$lastError);
+        $result = Core::getCFSlice($keySpace, $keyID, $columnParent, $predicate);
+        $this->assertTrue(empty($result) && empty(Core::$lastError), Core::$lastError);
 
         // save using parent
         $this->obj->setKeyID(NULL);
@@ -222,16 +224,15 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue($this->obj->isModified());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
 
-        $columnParent = new \cassandra_ColumnParent(array('column_family'=>$columnFamily));
+        $columnParent = new \cassandra_ColumnParent(array('column_family' => $columnFamily));
         $predicate = newSlicePredicate('Column', array('column' => $this->obj->getName()));
 
         $column = array_pop(Core::getCFSlice($keySpace, $keyID, $columnParent, $predicate))->column;
-        $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(Core::$lastError),Core::$lastError);
+        $this->assertTrue($column->value == $value && $column->name = $this->obj->name && empty(Core::$lastError), Core::$lastError);
 
         $this->obj->delete();
         $this->assertTrue($this->obj->isModified() && $this->obj->isDeleted());
         $this->assertTrue($this->obj->save(), $this->obj->getLastError());
-
     }
 
     public function testRegisterError() {
@@ -241,8 +242,8 @@ class ColumnTest extends \PHPUnit_Framework_TestCase {
 
         $errors = $this->obj->getErrors();
         $this->assertTrue(array_pop($errors) == $errorMsg);
-
     }
 
 }
+
 ?>
