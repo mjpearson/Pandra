@@ -11,6 +11,8 @@
  * @version 0.2.1
  * @package pandra
  */
+namespace Pandra;
+
 class LoggerSyslog implements Logger {
 
     private $_isOpen = FALSE;
@@ -85,4 +87,3 @@ class LoggerSyslog implements Logger {
         $this->close();
     }
 }
-?>

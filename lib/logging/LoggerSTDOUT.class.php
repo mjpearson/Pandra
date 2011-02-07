@@ -10,6 +10,8 @@
  * @version 0.2.1
  * @package pandra
  */
+namespace Pandra;
+
 class LoggerSTDOUT implements Logger {
 
     private $_isOpen = true;
@@ -49,4 +51,3 @@ class LoggerSTDOUT implements Logger {
         }
     }
 }
-?>

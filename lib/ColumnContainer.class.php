@@ -171,7 +171,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
     public function setKeyID($keyID, $validate = TRUE) {
         if ($validate && !empty($this->_typeDefKey)) {
             $errors = array();
-            if (!PandraValidator::check($keyID, $this->getName().' KEY ('.get_class($this).')', $this->_typeDefKey, $errors)) {
+            if (!Validator::check($keyID, $this->getName().' KEY ('.get_class($this).')', $this->_typeDefKey, $errors)) {
                 $lastError = $errors[0];
                 $this->registerError($lastError);
                 if ($this->_parent !== NULL) {
@@ -195,7 +195,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
 
     /**
      * Sets the validator(s) for key changes
-     * @param array $typeDefs PandraValidator primitive or complex types
+     * @param array $typeDefs Validator primitive or complex types
      */
     public function setKeyValidator($typeDefs) {
         if (empty($typeDefs)) return;
@@ -203,7 +203,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
         $typeDefs = (array) $typeDefs;
 
         foreach ($typeDefs as $typeDef) {
-            if (!PandraValidator::exists($typeDef)) {
+            if (!Validator::exists($typeDef)) {
                 throw new RuntimeException("$typeDef is not a Validator type");
             }
         }
@@ -342,7 +342,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
      * @return mixed column value
      */
     public function offsetGet($columnName) {
-        if ($columnName instanceof PandraClause || $columnName instanceof PandraQuery) {
+        if ($columnName instanceof Clause || $columnName instanceof PandraQuery) {
             return $this->getColumn($columnName);
         }
         return $this->__get($columnName);
@@ -580,7 +580,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
 
     /**
      * Adds a column object to this column container, overwrites existing column (context helper)
-     * @param PandraSuperColumn $columnObj
+     * @param SuperColumn $columnObj
      */
     public function addColumnObj(Column $columnObj) {
         if ($columnObj->getName() === NULL) throw new RuntimeException('Column has no name');
@@ -601,7 +601,7 @@ abstract class ColumnContainer implements \ArrayAccess, \Iterator, \Countable {
             return $columnMatch;
 
             // Extract matching named columns based on clause
-        } elseif ($columnMatch instanceof PandraClause) {
+        } elseif ($columnMatch instanceof Clause) {
             $matches = array();
 
             foreach ($this->_columns as $columnName => &$column) {

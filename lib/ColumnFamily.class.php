@@ -39,21 +39,21 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
 
             $autoCreate = $this->getAutoCreate();
 
-            $predicate = new cassandra_SlicePredicate();
+            $predicate = new \cassandra_SlicePredicate();
 
             // if autocreate is turned on, get latest limited everything
             if ($autoCreate) {
 
-                $predicate->slice_range = new cassandra_SliceRange();
+                $predicate->slice_range = new \cassandra_SliceRange();
                 $predicate->slice_range->start = $this->getStart();
                 $predicate->slice_range->finish = $this->getFinish();
                 $predicate->slice_range->count = $this->getLimit();
                 $predicate->slice_range->reversed = $this->getReversed();
 
-                $result = PandraCore::getCFSlice(
+                $result = Core::getCFSlice(
                         $this->getKeySpace(),
                         $keyID,
-                        new cassandra_ColumnParent(
+                        new \cassandra_ColumnParent(
                         array(
                                 'column_family' => $this->getName())),
                         $predicate,
@@ -64,10 +64,10 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
 
                 $predicate->column_names = $this->getColumnNames();
 
-                $result = PandraCore::getCFSliceMulti(
+                $result = Core::getCFSliceMulti(
                         $this->getKeySpace(),
                         array($keyID),
-                        new cassandra_ColumnParent(
+                        new \cassandra_ColumnParent(
                         array(
                                 'column_family' => $this->getName())),
                         $predicate,
@@ -88,7 +88,7 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
                 // If we're loaded, use a new key
                 if ($this->isLoaded()) $this->setKeyID($keyID);
             } else {
-                $this->registerError(PandraCore::$lastError);
+                $this->registerError(Core::$lastError);
             }
         }
 
@@ -97,7 +97,7 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
 
     /**
      * Save this column family and any modified columns to Cassandra
-     * @param cassandra_ColumnPath $columnPath
+     * @param \cassandra_ColumnPath $columnPath
      * @param int $consistencyLevel Cassandra consistency level
      * @return bool save ok
      */
@@ -108,17 +108,17 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
         if ($ok) {
             if ($this->getDelete()) {
 
-                $columnPath = new cassandra_ColumnPath();
+                $columnPath = new \cassandra_ColumnPath();
                 $columnPath->column_family = $this->getName();
 
-                $ok = PandraCore::deleteColumnPath(
+                $ok = Core::deleteColumnPath(
                         $this->getKeySpace(),
                         $this->getKeyID(),
                         $columnPath,
                         NULL,
                         $consistencyLevel);
 
-                if (!$ok) $this->registerError(PandraCore::$lastError);
+                if (!$ok) $this->registerError(Core::$lastError);
 
             } else {
                 $deletions = array();
@@ -139,22 +139,21 @@ class ColumnFamily extends ColumnContainer implements ColumnPathable {
                     if ($cObj->isDeleted()) {
                         $deletions[] = $cObj->getName();
                     } else {
-                        $sc = new cassandra_ColumnOrSuperColumn(array('column' => $cObj));
-                        $ptr[] = new cassandra_Mutation(array('column_or_supercolumn' => $sc));
+                        $sc = new \cassandra_ColumnOrSuperColumn(array('column' => $cObj));
+                        $ptr[] = new \cassandra_Mutation(array('column_or_supercolumn' => $sc));
                     }
                 }
 
                 if (!empty($deletions)) {
-                    $p = new PandraSlicePredicate(PandraSlicePredicate::TYPE_COLUMNS, $deletions);
-                    $sd = new cassandra_Deletion(array('timestamp' => PandraCore::getTime(), 'predicate' => $p));
-                    $ptr[] = new cassandra_Mutation(array('deletion' => $sd));
+                    $p = new SlicePredicate(SlicePredicate::TYPE_COLUMNS, $deletions);
+                    $sd = new \cassandra_Deletion(array('timestamp' => Core::getTime(), 'predicate' => $p));
+                    $ptr[] = new \cassandra_Mutation(array('deletion' => $sd));
                 }
 
-                $ok = PandraCore::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
+                $ok = Core::batchMutate($this->getKeySpace(), $map, $consistencyLevel);
             }
             if ($ok) $this->reset();
         }
         return $ok;
     }
 }
-?>

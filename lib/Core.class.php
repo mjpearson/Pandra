@@ -444,6 +444,7 @@ class Core {
      * get current working node, recursive, trims disconnected clients
      * @param bool $writeMode optional get the write mode client
      * @param string $keySpace optional keyspace where auth has been defined
+     * @return \CassandraClient Thrift client
      */
     static public function getClient($writeMode = FALSE, $keySpace = DEFAULT_POOL_NAME) {
 

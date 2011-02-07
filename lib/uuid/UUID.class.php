@@ -37,7 +37,7 @@ class UUID {
             $tokens = explode('.', $fname);
             $className = preg_replace('/^'.(self::$_pluginPfx).'/', '', $tokens[0]);
             if (self::register($className)) {
-                PandraLog::info('Registered UUID class '.$className);
+                Log::info('Registered UUID class '.$className);
                 $ok = TRUE;
                 break;
             }
@@ -49,7 +49,7 @@ class UUID {
         if (self::$_pluginRef !== NULL) {
             return call_user_func(array(self::$_pluginRef, $function));
         }
-        throw new RuntimeException('No UUID Plugins initialised');
+        throw new \RuntimeException('No UUID Plugins initialised');
     }
 
     public static function generate() {
@@ -69,8 +69,7 @@ class UUID {
     }
 
     public static function register($pluginName) {
-        $className = 'Pandra'.self::$_pluginPfx.$pluginName;
-
+        $className = __NAMESPACE__.'\\'.self::$_pluginPfx.$pluginName;
         if (class_exists($className) && call_user_func(array($className, 'isCapable'))) {
             self::$_pluginRef = $className;
             return TRUE;
@@ -106,4 +105,3 @@ class UUID {
         return preg_match('/((?![\x20-\x7E]).)/', $uuid);
     }
 }
-?>

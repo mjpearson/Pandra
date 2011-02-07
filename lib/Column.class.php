@@ -601,4 +601,3 @@ class Column extends \cassandra_Column implements ContainerChild, ColumnPathable
         return $this->_modified;
     }
 }
-?>

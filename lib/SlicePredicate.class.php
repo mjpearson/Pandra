@@ -53,8 +53,8 @@ class SlicePredicate extends \cassandra_SlicePredicate {
             $this->slice_range = NULL;
         } else {
             $msg = 'Unsupported Predicate Type';
-            PandraLog::crit($msg);
-            throw new RuntimeException($msg);
+            Log::crit($msg);
+            throw new \RuntimeException($msg);
         }
     }
 
@@ -65,13 +65,13 @@ class SlicePredicate extends \cassandra_SlicePredicate {
 
             if (empty($predicateAttribute)) {
                 // Warn that there's no point in building an empty predicate
-                PandraLog::warning('Empty Predicate : an empty result set will be returned');
+                Log::warning('Empty Predicate : an empty result set will be returned');
             }
             $this->column_names = $predicateAttribute;
 
         } elseif ($this->_slicePredicateType === self::TYPE_RANGE) {
             $this->column_names = NULL;
-            $this->slice_range = new cassandra_SliceRange(
+            $this->slice_range = new \cassandra_SliceRange(
                     array('start' => '',
                             'finish' => '',
                             'reversed' => false,
@@ -83,8 +83,8 @@ class SlicePredicate extends \cassandra_SlicePredicate {
             }
         } else {
             $msg = 'Unsupported Predicate Type';
-            PandraLog::crit($msg);
-            throw new RuntimeException($msg);
+            Log::crit($msg);
+            throw new \RuntimeException($msg);
         }
     }
 }

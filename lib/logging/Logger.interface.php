@@ -45,4 +45,3 @@ interface Logger {
      */
     public function execute($priority, $message);
 }
-?>

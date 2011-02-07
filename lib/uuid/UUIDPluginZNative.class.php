@@ -358,7 +358,4 @@ class UUIDPluginZNative implements UUIDPlugin {
         $byte = self::conv_string2byte($src);
         return self::conv_byte2binary($byte);
     }
-
-
 }
-?>
